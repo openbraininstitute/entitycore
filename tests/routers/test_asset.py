@@ -1610,7 +1610,7 @@ def test_entity_asset_multipart_upload_initiate__invalid_content_type(client, en
 
 
 def test_entity_asset_multipart_upload_initiate__filesize_router_validation(client, entity):
-    with patch("app.routers.asset.validate_multipart_filesize", return_value=False):
+    with patch("app.service.asset.validate_multipart_filesize", return_value=False):
         response = assert_request(
             client.post,
             url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
@@ -1622,7 +1622,7 @@ def test_entity_asset_multipart_upload_initiate__filesize_router_validation(clie
 
 
 def test_entity_asset_multipart_upload_initiate__filename_router_validation(client, entity):
-    with patch("app.routers.asset.validate_filename", return_value=False):
+    with patch("app.service.asset.validate_filename", return_value=False):
         response = assert_request(
             client.post,
             url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
@@ -1634,7 +1634,7 @@ def test_entity_asset_multipart_upload_initiate__filename_router_validation(clie
 
 
 def test_entity_asset_multipart_upload_initiate__content_type_router_validation(client, entity):
-    with patch("app.routers.asset.get_content_type", side_effect=ValueError("invalid")):
+    with patch("app.service.asset.get_content_type", side_effect=ValueError("invalid")):
         response = assert_request(
             client.post,
             url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",

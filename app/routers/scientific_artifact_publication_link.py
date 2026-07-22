@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 import app.service.scientific_artifact_publication_link as service
 from app.routers.admin import router as admin_router
-from app.routers.types import AssociationRoute
+from app.types import AssociationRoute
 
 ROUTE = AssociationRoute.scientific_artifact_publication_link
 

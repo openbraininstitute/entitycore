@@ -22,7 +22,6 @@ from app.filters.classification import MTypeClassificationFilterDep
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.routers.types import AssociationRoute
 from app.schemas.classification import (
     MTypeClassificationCreate,
     MTypeClassificationRead,
@@ -30,6 +29,7 @@ from app.schemas.classification import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import admin as admin_service
+from app.types import AssociationRoute
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases

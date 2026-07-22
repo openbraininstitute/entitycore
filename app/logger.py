@@ -32,9 +32,14 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Find caller from where originated the logged message.
+        # Find caller from where originated the logged message, skipping also the frames
+        # injected by Sentry's LoggingIntegration, which patches logging.Logger.callHandlers.
         frame, depth = inspect.currentframe(), 0
-        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+        while frame and (
+            depth == 0
+            or frame.f_code.co_filename == logging.__file__
+            or frame.f_globals.get("__name__", "").startswith("sentry_sdk.")
+        ):
             frame = frame.f_back
             depth += 1
 

@@ -1,15 +1,27 @@
 import logging
 
-import sentry_sdk
+import pytest
 from loguru import logger
 
 from app.logger import InterceptHandler
 
 
-def _intercept_one_message(logger_name):
-    sentry_sdk.init(dsn=None)
-    assert logging.Logger.callHandlers.__module__ == "sentry_sdk.integrations.logging"
+@pytest.fixture(autouse=True)
+def _simulate_sentry_logging_patch(monkeypatch):
+    """Wrap Logger.callHandlers with an extra frame, as sentry's LoggingIntegration does.
 
+    Simulates the sentry monkeypatch without initializing the SDK,
+    which would patch logging.Logger.callHandlers globally for the whole test session.
+    """
+    original = logging.Logger.callHandlers
+
+    def patched_call_handlers(self, record):
+        return original(self, record)
+
+    monkeypatch.setattr(logging.Logger, "callHandlers", patched_call_handlers)
+
+
+def _intercept_one_message(logger_name):
     messages = []
     handler_id = logger.add(messages.append, level="INFO")
     handler = InterceptHandler()

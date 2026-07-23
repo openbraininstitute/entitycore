@@ -403,6 +403,7 @@ def delete_asset_unverified(
     """Delete an asset from the db withouth checking authorization.
 
     In case of directory asset with children registered in the db, they are deleted on cascade.
+
     Asset storage object is deleted via `app.db.events`.
     """
     # TODO: Only directories registered with multipart upload have the children in the db, but
@@ -636,7 +637,7 @@ def multipart_upload_initiate(
         entity_id=entity_id,
     )
     virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    storage = storages[StorageType.aws_s3_internal]
     s3_client = storage_client_factory(storage)
     return multipart_upload_initiate_unverified(
         repos,
@@ -738,11 +739,11 @@ def _entity_asset_multipart_upload_initiate(
 def multipart_upload_complete_unverified(
     repos: RepositoryGroup,
     asset_db: Asset,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for an asset, without checking authorization."""
-    complete_asset_s3(asset=asset_db, storage=storage, s3_client=s3_client)
+    storage = storages[asset_db.storage_type]
+    complete_asset_s3(asset=asset_db, storage=storage, s3_client=storage_client_factory(storage))
     asset_db.status = AssetStatus.CREATED
     repos.db.flush()
     return AssetRead.model_validate(asset_db)
@@ -755,8 +756,7 @@ def entity_asset_multipart_upload_complete(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for an existing entity asset."""
     asset_db = get_writable_entity_db_asset(
@@ -766,12 +766,7 @@ def entity_asset_multipart_upload_complete(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    return multipart_upload_complete_unverified(
-        repos,
-        asset_db=asset_db,
-        storage=storage,
-        s3_client=s3_client,
-    )
+    return multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)
 
 
 def download_entity_asset(
@@ -985,8 +980,7 @@ def entity_asset_directory_multipart_upload_initiate(
 def directory_multipart_upload_complete_unverified(
     repos: RepositoryGroup,
     asset_db: Asset,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for a directory asset, without checking authorization."""
     if asset_db.status != AssetStatus.UPLOADING:
@@ -995,6 +989,8 @@ def directory_multipart_upload_complete_unverified(
             error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
+    storage = storages[asset_db.storage_type]
+    s3_client = storage_client_factory(storage)
     pending_children = [child for child in asset_db.children if child.status != AssetStatus.CREATED]
     if pending_children:
         max_workers = min(settings.S3_MAX_WORKERS, len(pending_children))
@@ -1024,8 +1020,7 @@ def entity_asset_directory_multipart_upload_complete(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for an existing directory asset."""
     asset_db = get_writable_entity_db_asset(
@@ -1035,4 +1030,4 @@ def entity_asset_directory_multipart_upload_complete(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    return directory_multipart_upload_complete_unverified(repos, asset_db, storage, s3_client)
+    return directory_multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)

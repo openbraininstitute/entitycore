@@ -2560,3 +2560,222 @@ def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_b
 
     # Verify multipart upload was aborted
     assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+
+@pytest.mark.usefixtures("s3_file", "mock_virtual_lab_project_mapping")
+def test_register_entity_asset_admin(client_admin, entity):
+    response = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "admin-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=201,
+    )
+    data = response.json()
+    assert data["path"] == "admin-test.swc"
+    assert data["storage_type"] == "aws_s3_open"
+    assert data["status"] == "created"
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_register_entity_asset_admin_non_authorized(clients, entity):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "admin-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+def test_list_directory_admin(
+    clients, root_circuit, circuit, private_asset_directory, asset_directory
+):
+    entity_type = route(root_circuit.type)
+    fake_files = {
+        "file1.txt": {"name": "file1.txt", "size": 100, "last_modified": "2024-01-01T00:00:00Z"},
+    }
+
+    with patch("app.service.asset.list_directory_with_details", return_value=fake_files):
+        # admin can list any directory regardless of visibility
+        data = assert_request(
+            clients.admin.get,
+            url=f"/admin{entity_type}/{circuit.id}/assets/{private_asset_directory.id}/list",
+        ).json()
+        assert data["files"] == fake_files
+
+    with patch("app.service.asset.list_directory_with_details", return_value=fake_files):
+        data = assert_request(
+            clients.admin.get,
+            url=f"/admin{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        ).json()
+        assert data["files"] == fake_files
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_list_directory_admin_non_authorized(clients, root_circuit, asset_directory):
+    entity_type = route(root_circuit.type)
+    response = assert_request(
+        clients.user_1.get,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_multipart_upload_initiate_admin(client_admin, entity):
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+    ).json()
+    assert data["status"] == "uploading"
+    assert data["upload_meta"] is not None
+    assert len(data["upload_meta"]["parts"]) == 3
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_multipart_upload_initiate_admin_non_authorized(clients, entity):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_multipart_upload_complete_admin(db, client_admin, entity, s3, s3_internal_bucket):
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize=3 * 5 * 1024**2),
+    ).json()
+
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+    part_size = data["upload_meta"]["part_size"]
+    for part in data["upload_meta"]["parts"]:
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=data["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=b"x" * part_size,
+        )
+
+    completed = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+    ).json()
+    assert completed["status"] == "created"
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_multipart_upload_complete_admin_non_authorized(clients, entity, uploading_asset):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/multipart-upload/complete",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_directory_multipart_upload_initiate_admin(client_admin, root_circuit):
+    entity_type = route(root_circuit.type)
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="admin-dir"),
+    ).json()
+    assert data["asset"]["is_directory"] is True
+    assert data["asset"]["status"] == "uploading"
+    assert len(data["files"]) == 2
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_directory_multipart_upload_initiate_admin_non_authorized(clients, root_circuit):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="admin-dir-unauth"),
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_directory_multipart_upload_complete_admin(
+    client_admin, root_circuit, db, s3, s3_internal_bucket
+):
+    entity_type = route(root_circuit.type)
+    filesize = 3 * 5 * 1024**2
+
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(
+            directory_name="admin-complete-dir",
+            files=[
+                {
+                    "filename": "file.bin",
+                    "filesize": filesize,
+                    "sha256_digest": DUMMY_DIGEST,
+                    "preferred_part_count": 3,
+                }
+            ],
+        ),
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    file_asset = data["files"][0]
+    upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
+    part_size = file_asset["upload_meta"]["part_size"]
+    for part in file_asset["upload_meta"]["parts"]:
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=file_asset["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=b"x" * part_size,
+        )
+
+    completed = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/{parent_id}/directory/multipart-upload/complete",
+    ).json()
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_directory_multipart_upload_complete_admin_non_authorized(
+    clients, root_circuit, asset_directory
+):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(root_circuit.type)}/{root_circuit.id}/assets/{asset_directory.id}/directory/multipart-upload/complete",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED

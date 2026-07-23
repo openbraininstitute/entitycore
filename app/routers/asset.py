@@ -187,6 +187,8 @@ def delete_entity_asset(
     """Delete an assets associated with a specific entity.
 
     The file is actually deleted from S3, unless it's stored in open data storage.
+
+    Asset storage object is deleted via `app.db.events`.
     """
     asset = asset_service.delete_entity_asset(
         repos,
@@ -195,8 +197,6 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-
-    # Note: Asset storage object is deleted via app.db.events
 
     return asset
 
@@ -211,7 +211,7 @@ def entity_asset_directory_upload(
     files: DirectoryUploadRequest,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    storage = storages[StorageType.aws_s3_internal]
     s3_client = storage_client_factory(storage)
     model, urls = asset_service.entity_asset_directory_upload(
         repos=repos,
@@ -317,16 +317,13 @@ def entity_asset_multipart_upload_complete(
     - If you lose the presigned URLs and wish to cancel the upload, you must
       delete the asset manually using the delete asset endpoint.
     """
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
-
     return asset_service.entity_asset_multipart_upload_complete(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
-        storage=storage,
-        s3_client=storage_client_factory(storage),
+        storage_client_factory=storage_client_factory,
     )
 
 
@@ -340,7 +337,7 @@ def entity_asset_directory_multipart_upload_initiate(
     json_model: MultipartDirectoryUploadRequest,
 ) -> MultipartDirectoryUploadResponse:
     """Initiate a multipart upload for directories."""
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    storage = storages[StorageType.aws_s3_internal]
     s3_client = storage_client_factory(storage)
     entity_type = entity_route_to_type(entity_route)
 
@@ -364,14 +361,11 @@ def entity_asset_directory_multipart_upload_complete(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
-
     return asset_service.entity_asset_directory_multipart_upload_complete(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
-        storage=storage,
-        s3_client=storage_client_factory(storage),
+        storage_client_factory=storage_client_factory,
     )

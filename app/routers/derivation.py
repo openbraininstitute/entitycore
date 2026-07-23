@@ -5,7 +5,7 @@ from fastapi import APIRouter
 import app.service.derivation as service
 from app.routers.admin import router as admin_router
 from app.routers.common import create_user_router, register_default_admin_routes
-from app.routers.types import AssociationRoute
+from app.types import AssociationRoute
 
 ROUTE = AssociationRoute.derivation
 

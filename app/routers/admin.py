@@ -12,7 +12,6 @@ from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
 from app.filters.asset import AssetFilterDep
-from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetRead,
 )
@@ -23,6 +22,7 @@ from app.service import (
     asset as asset_service,
     publish as publish_service,
 )
+from app.types import EntityRoute
 from app.utils.routers import (
     entity_route_to_type,
 )
@@ -32,22 +32,6 @@ router = APIRouter(
     tags=["admin"],
     include_in_schema=False,
 )
-
-
-@router.get("/{entity_route}/{entity_id}/assets/{asset_id}")
-def get_entity_asset(
-    repos: RepoGroupDep,
-    entity_route: EntityRoute,
-    entity_id: uuid.UUID,
-    asset_id: uuid.UUID,
-) -> AssetRead:
-    """Return an asset associated with a specific entity."""
-    return admin_service.get_entity_asset(
-        repos=repos,
-        entity_type=entity_route_to_type(entity_route),
-        entity_id=entity_id,
-        asset_id=asset_id,
-    )
 
 
 @router.get("/{entity_route}/{entity_id}/assets")
@@ -67,26 +51,46 @@ def get_entity_assets(
     )
 
 
-@router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
-def delete_entity_asset(
+@router.get("/{entity_route}/{entity_id}/assets/{asset_id}")
+def get_entity_asset(
     repos: RepoGroupDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
-    """Delete an assets associated with a specific entity.
-
-    The asset record is not deleted from the database, but its status is changed.
-    The file is actually deleted from S3, unless it's stored in open data storage.
-    """
-    asset = asset_service.delete_asset_unverified(
-        repos,
+    """Return an asset associated with a specific entity."""
+    return admin_service.get_entity_asset(
+        repos=repos,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    # Note: Asset storage object is deleted via app.db.events
-    return asset
+
+
+@router.post("/{entity_route}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
+def upload_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: AdminContextDep,
+    virtual_lab_client: AdminVirtualLabClientDep,
+    entity_id: uuid.UUID,
+    file: UploadFile,
+    label: Annotated[AssetLabel, Form()],
+    meta: Annotated[dict | None, Form()] = None,
+) -> AssetRead:
+    return admin_service.upload_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        storage_client_factory=storage_client_factory,
+        entity_id=entity_id,
+        entity_type=entity_route_to_type(entity_route),
+        file=file,
+        label=label,
+        meta=meta,
+        virtual_lab_client=virtual_lab_client,
+    )
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/download")
@@ -126,30 +130,26 @@ def download_entity_asset(
     )
 
 
-@router.post("/{entity_route}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
-def upload_entity_asset(
-    *,
+@router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
+def delete_entity_asset(
     repos: RepoGroupDep,
     entity_route: EntityRoute,
-    storage_client_factory: StorageClientFactoryDep,
-    user_context: AdminContextDep,
-    virtual_lab_client: AdminVirtualLabClientDep,
     entity_id: uuid.UUID,
-    file: UploadFile,
-    label: Annotated[AssetLabel, Form()],
-    meta: Annotated[dict | None, Form()] = None,
+    asset_id: uuid.UUID,
 ) -> AssetRead:
-    return admin_service.upload_entity_asset(
-        repos=repos,
-        user_context=user_context,
-        storage_client_factory=storage_client_factory,
-        entity_id=entity_id,
+    """Delete an assets associated with a specific entity.
+
+    The asset record is not deleted from the database, but its status is changed.
+    The file is actually deleted from S3, unless it's stored in open data storage.
+    """
+    asset = asset_service.delete_asset_unverified(
+        repos,
         entity_type=entity_route_to_type(entity_route),
-        file=file,
-        label=label,
-        meta=meta,
-        virtual_lab_client=virtual_lab_client,
+        entity_id=entity_id,
+        asset_id=asset_id,
     )
+    # Note: Asset storage object is deleted via app.db.events
+    return asset
 
 
 @router.post("/publish-project/{project_id}")

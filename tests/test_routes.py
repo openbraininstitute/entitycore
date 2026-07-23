@@ -7,7 +7,7 @@ import pytest
 from fastapi.routing import iter_route_contexts
 
 from app.application import app
-from app.routers.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
+from app.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
 
 
 @dataclass

@@ -299,26 +299,22 @@ def create_skeletonization_config_id(
 
 
 def add_db(db, row):
-    """Add one row to the db and commit the transaction."""
+    """Add one row to the db and flush to make it visible within the transaction."""
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
 
-def add_all_db(db, rows, *, same_transaction=False):
-    """Add all the rows to the db and commit the transaction.
-
-    If same_transaction is True, all records are inserted in the same transaction,
-    and the creation_date and update_date might be always the same.
-    """
-    if same_transaction:
-        db.add_all(rows)
-        db.commit()
-    else:
+def add_all_db(db, rows, *, force_same_creation_date=False):
+    """Add all the rows to the db and flush to make them visible within the transaction."""
+    if force_same_creation_date:
+        # Set all creation_dates to the same value to test stable tie-breaking by id
+        ts = datetime.now(UTC)
         for row in rows:
-            db.add(row)
-            db.commit()
+            row.creation_date = ts
+    db.add_all(rows)
+    db.flush()
     for row in rows:
         db.refresh(row)
     return rows
@@ -892,7 +888,7 @@ def create_person(
         updated_by_id=created_by_id or agent_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 

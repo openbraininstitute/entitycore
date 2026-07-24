@@ -105,12 +105,12 @@ class Base(DeclarativeBase):
 class TimestampMixin:
     creation_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.clock_timestamp(),
         index=True,
     )
     update_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.clock_timestamp(),
     )
 
 

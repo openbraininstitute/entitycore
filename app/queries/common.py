@@ -456,10 +456,10 @@ def router_update_one[T: Schema, I: Identifiable](
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_model_instance.update_date = sa.func.clock_timestamp()
 
     db.flush()
-    db.refresh(db_model_instance)
+    db.refresh(db_model_instance, attribute_names=["update_date"])
 
     if nested_relationships:
         create_associations_to_entities(
@@ -470,6 +470,8 @@ def router_update_one[T: Schema, I: Identifiable](
             project_id=getattr(db_model_instance, "authorized_project_id", None),
             action="update",
         )
+        relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+        db.expire(db_model_instance, attribute_names=relationship_names)
 
     return response_schema_class.model_validate(db_model_instance)
 
@@ -568,7 +570,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_model_instance.update_date = sa.func.clock_timestamp()
 
     create_associations_to_entities(
         db=db,
@@ -580,6 +582,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     )
 
     db.flush()
-    db.refresh(db_model_instance)
+    relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+    db.expire(db_model_instance, attribute_names=["update_date", *relationship_names])
 
     return response_schema_class.model_validate(db_model_instance)

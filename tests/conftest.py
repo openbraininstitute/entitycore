@@ -11,7 +11,6 @@ import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 from types_boto3_s3 import S3Client
 
@@ -22,7 +21,6 @@ from app.db.model import (
     AnalysisNotebookEnvironment,
     AnalysisNotebookResult,
     AnalysisNotebookTemplate,
-    Base,
     BrainAtlas,
     CellMorphology,
     Circuit,
@@ -50,7 +48,7 @@ from app.db.model import (
     Subject,
     TaskResult,
 )
-from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from app.db.session import DatabaseSessionManager  # ruff:ignore[typing-only-first-party-import]
 from app.db.types import (
     CellMorphologyGenerationType,
     EntityLifecycleStatus,
@@ -466,26 +464,24 @@ def clients(
     )
 
 
-@pytest.fixture(scope="session")
-def database_session_manager() -> Iterator[DatabaseSessionManager]:
-    manager = configure_database_session_manager()
-    yield manager
-    manager.close()
-
-
-@pytest.fixture
-def db(database_session_manager) -> Iterator[Session]:
-    with database_session_manager.session() as session:
-        yield session
-
-
 @pytest.fixture(autouse=True)
-def _db_cleanup(db):
-    yield
-    db.rollback()
-    query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
-    db.execute(query)
-    db.commit()
+def db(session_client) -> Iterator[Session]:
+    """Yield a session that shares a transaction with all app requests for this test.
+
+    DatabaseSessionManager.override_session() makes every request use this same session,
+    so session.commit() in app code only flushes — the outer transaction is rolled back
+    in teardown, cleaning up all test data without needing TRUNCATE.
+    """
+    manager: DatabaseSessionManager = session_client.app.state.database_session_manager
+    with manager.engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(
+            bind=connection, expire_on_commit=False, autocommit=False, autoflush=False
+        )
+        with manager.override_session(session):
+            yield session
+        session.close()
+        transaction.rollback()
 
 
 @pytest.fixture
@@ -514,7 +510,7 @@ def organization_id(db, person_id):
         updated_by_id=person_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row.id
 
@@ -528,7 +524,7 @@ def role_id(db, person_id):
         updated_by_id=person_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row.id
 

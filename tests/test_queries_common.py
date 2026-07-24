@@ -7,13 +7,38 @@ from pydantic import BaseModel
 
 from app.db.model import Derivation, TaskActivity
 from app.errors import ApiError, ApiErrorCode
-from app.queries.common import router_update_activity_one, router_update_one
+from app.filters.cell_morphology import CellMorphologyFilter
+from app.queries.common import (
+    _sort_is_creation_date_first,
+    router_update_activity_one,
+    router_update_one,
+)
 from app.schemas.activity import ActivityUpdate
 from app.schemas.derivation import DerivationRead
 
 
 class _DerivationLabelPatch(BaseModel):
     label: str | None = None
+
+
+@pytest.mark.parametrize(
+    ("order_by", "expected"),
+    [
+        (None, True),  # no ordering_values → default behaviour
+        (["-creation_date"], True),  # explicit descending creation_date
+        (["creation_date"], False),  # ascending creation_date is a different sort
+        (["+creation_date"], False),  # explicitly ascending creation_date
+        (["name"], False),  # non-creation_date primary sort
+        (["-name"], False),  # non-creation_date primary sort (descending)
+        (["-creation_date", "name"], True),  # creation_date DESC is still the primary sort
+        (["name", "-creation_date"], False),  # name is the primary sort
+    ],
+)
+def test_sort_is_creation_date_first(order_by, expected):
+    filter_model = (
+        CellMorphologyFilter(order_by=order_by) if order_by is not None else CellMorphologyFilter()
+    )
+    assert _sort_is_creation_date_first(filter_model) is expected
 
 
 def test_router_update_raises_without_authorized_project_column(db, user_context_user_1):

@@ -23,7 +23,7 @@ def test_license_ordering(db, client, person_id):
             License(**item | {"created_by_id": person_id, "updated_by_id": person_id})
             for item in items
         ],
-        same_transaction=True,
+        force_same_creation_date=True,
     )
 
     response = client.get(ROUTE_LICENSE)
@@ -58,7 +58,7 @@ def test_cell_morphology_ordering(
     add_all_db(
         db,
         [CellMorphology(**item) for item in items],
-        same_transaction=True,
+        force_same_creation_date=True,
     )
 
     response = client.get(ROUTE_MORPHOLOGY)

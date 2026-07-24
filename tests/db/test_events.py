@@ -146,7 +146,9 @@ def test_asset_delete_rollback_does_not_delete_s3(real_db, asset1, mock_storage_
     mock_storage_delete.assert_not_called()
 
 
-def test_multiple_assets_deleted_in_single_transaction(real_db, asset1, asset2, mock_storage_delete):
+def test_multiple_assets_deleted_in_single_transaction(
+    real_db, asset1, asset2, mock_storage_delete
+):
     """All hard-deleted assets are cleaned up after commit."""
     real_db.delete(asset1)
     real_db.delete(asset2)
@@ -183,7 +185,9 @@ def test_multiple_flushes_accumulate_assets(real_db, asset1, asset2, mock_storag
     assert deleted_ids == {asset1.full_path, asset2.full_path}
 
 
-def test_after_rollback_clears_assets_to_delete_key(db, real_db, morphology_id, person_id, mock_storage_delete):
+def test_after_rollback_clears_assets_to_delete_key(
+    db, real_db, morphology_id, person_id, mock_storage_delete
+):
     """Clear session info key after rollback to allow future deletes."""
     # Insert via shared db so asset survives the real_db rollback
     asset = add_db(

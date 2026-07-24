@@ -47,8 +47,9 @@ class DatabaseSessionManager:
             raise RuntimeError(err)
         return self._engine
 
+    @staticmethod
     @contextmanager
-    def override_session(self, session: Session) -> Iterator[None]:
+    def override_session(session: Session) -> Iterator[None]:
         """Override the session used by all requests, for use in tests only."""
         token = _test_session_var.set(session)
         try:

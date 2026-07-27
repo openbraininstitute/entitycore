@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import boto3
@@ -48,7 +49,6 @@ from app.db.model import (
     Subject,
     TaskResult,
 )
-from app.db.session import DatabaseSessionManager  # ruff:ignore[typing-only-first-party-import]
 from app.db.types import (
     CellMorphologyGenerationType,
     EntityLifecycleStatus,
@@ -58,6 +58,7 @@ from app.db.types import (
     TaskResultType,
 )
 from app.dependencies import auth
+from app.dependencies.db import get_db
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
@@ -96,6 +97,9 @@ from .utils import (
     create_electrical_cell_recording_id_with_assets,
     create_ion_channel_recording_id_with_assets,
 )
+
+if TYPE_CHECKING:
+    from app.db.session import DatabaseSessionManager
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -365,7 +369,7 @@ def _override_embedding_generation(monkeypatch):
 
 
 @pytest.fixture(scope="session")
-def session_client(_create_buckets):
+def session_client(_create_buckets) -> Iterator[TestClient]:
     """Run the lifespan events.
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
@@ -465,11 +469,11 @@ def clients(
 
 
 @pytest.fixture(autouse=True)
-def db(session_client) -> Iterator[Session]:
+def db(session_client, monkeypatch) -> Iterator[Session]:
     """Yield a session that shares a transaction with all app requests for this test.
 
-    DatabaseSessionManager.override_session() makes every request use this same session,
-    so session.commit() in app code only flushes — the outer transaction is rolled back
+    ``get_db`` is overridden so every request uses this same session, meaning ``session.commit()``
+    in app code only flushes to a savepoint. The outer transaction is rolled back
     in teardown, cleaning up all test data without needing TRUNCATE.
     """
     manager: DatabaseSessionManager = session_client.app.state.database_session_manager
@@ -482,8 +486,14 @@ def db(session_client) -> Iterator[Session]:
             autoflush=False,
             join_transaction_mode="create_savepoint",
         )
-        with manager.override_session(session):
-            yield session
+
+        def get_db_override():
+            session.expire_all()
+            with session.begin_nested():
+                yield session
+
+        monkeypatch.setitem(app.dependency_overrides, get_db, get_db_override)
+        yield session
         session.close()
         transaction.rollback()
 

@@ -1,15 +1,13 @@
 import pytest
 from sqlalchemy import text
 
-from app.db.session import DatabaseSessionManager
+from app.db.session import configure_database_session_manager
 
 
 @pytest.fixture
-def manager(session_client):
+def manager():
     """A fresh DatabaseSessionManager using the same engine URL as the app, but independent."""
-    url = session_client.app.state.database_session_manager.engine.url
-    m = DatabaseSessionManager()
-    m.initialize(str(url))
+    m = configure_database_session_manager()
     yield m
     m.close()
 

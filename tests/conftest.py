@@ -58,7 +58,6 @@ from app.db.types import (
     TaskResultType,
 )
 from app.dependencies import auth
-from app.dependencies.db import get_db
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
@@ -472,9 +471,9 @@ def clients(
 def db(session_client) -> Iterator[Session]:
     """Yield a session that shares a transaction with all app requests for this test.
 
-    ``get_db`` is overridden so every request uses this same session, meaning ``session.commit()``
-    in app code only flushes to a savepoint. The outer transaction is rolled back
-    in teardown, cleaning up all test data without needing TRUNCATE.
+    DatabaseSessionManager.override_session() makes every request use this same session,
+    so session.commit() in app code only flushes to a savepoint. The outer transaction is
+    rolled back in teardown, cleaning up all test data without needing TRUNCATE.
     """
     manager: DatabaseSessionManager = session_client.app.state.database_session_manager
     with manager.engine.connect() as connection:
@@ -486,15 +485,8 @@ def db(session_client) -> Iterator[Session]:
             autoflush=False,
             join_transaction_mode="create_savepoint",
         )
-
-        def get_db_override():
-            session.expire_all()
-            with session.begin_nested():
-                yield session
-
-        app.dependency_overrides[get_db] = get_db_override
-        yield session
-        app.dependency_overrides.pop(get_db, None)
+        with manager.override_session(session):
+            yield session
         session.close()
         transaction.rollback()
 

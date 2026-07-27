@@ -16,6 +16,7 @@ class DatabaseSessionManager:
     def __init__(self) -> None:
         """Init the manager."""
         self._engine: Engine | None = None
+        self._test_session: Session | None = None
 
     def initialize(self, url: str, **kwargs) -> None:
         """Initialize the database engine."""
@@ -43,8 +44,25 @@ class DatabaseSessionManager:
         return self._engine
 
     @contextmanager
+    def override_session(self, session: Session) -> Iterator[None]:
+        """Override the session used by all requests, for use in tests only."""
+        self._test_session = session
+        try:
+            yield
+        finally:
+            self._test_session = None
+
+    @contextmanager
     def session(self) -> Iterator[Session]:
         """Yield a new database session."""
+        if (test_session := self._test_session) is not None:
+            # expire before each request so objects inserted by test setup are reloaded
+            # fresh from DB, preventing stale cached relationships (e.g. selectin) from
+            # being seen by the request handler
+            test_session.expire_all()
+            with test_session.begin_nested():
+                yield test_session
+            return
         with Session(
             self.engine,
             expire_on_commit=False,

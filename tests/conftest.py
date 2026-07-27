@@ -13,8 +13,10 @@ from fastapi.testclient import TestClient
 from moto import mock_aws
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from starlette.requests import Request
 from types_boto3_s3 import S3Client
 
+import app.dependencies.db as db_module
 from app.application import app
 from app.config import storages
 from app.db.model import (
@@ -468,12 +470,19 @@ def clients(
 
 
 @pytest.fixture(autouse=True)
-def db(session_client) -> Iterator[Session]:
+def db(session_client, monkeypatch) -> Iterator[Session]:
     """Yield a session that shares a transaction with all app requests for this test.
 
-    DatabaseSessionManager.override_session() makes every request use this same session,
-    so session.commit() in app code only flushes to a savepoint. The outer transaction is
-    rolled back in teardown, cleaning up all test data without needing TRUNCATE.
+    The session is bound to a connection with an open transaction.
+    join_transaction_mode="create_savepoint" allows the session to call commit()/rollback()
+    without error even though it's joined to an external transaction. The outer transaction
+    is rolled back in teardown, cleaning up all test data without needing TRUNCATE.
+
+    monkeypatch.setattr on _get_session is used instead of app.dependency_overrides because
+    a non-empty dependency_overrides causes FastAPI to re-analyze the full dependency graph
+    on every request (get_dependant called ~10x more), almost doubling the test suite runtime.
+    To switch back to dependency_overrides, replace the monkeypatch with:
+        monkeypatch.setitem(app.dependency_overrides, db_module.get_db, _patched_get_session)
     """
     manager: DatabaseSessionManager = session_client.app.state.database_session_manager
     with manager.engine.connect() as connection:
@@ -485,8 +494,18 @@ def db(session_client) -> Iterator[Session]:
             autoflush=False,
             join_transaction_mode="create_savepoint",
         )
-        with manager.override_session(session):
-            yield session
+
+        def _patched_get_session(request: Request):  # ruff:ignore[unused-function-argument]
+            # expire before each request so objects inserted by test setup are reloaded
+            # fresh from DB, preventing stale cached relationships (e.g. selectin) from
+            # being seen by the request handler
+            session.expire_all()
+            with session.begin_nested():
+                yield session
+
+        monkeypatch.setattr(db_module, "_get_session", _patched_get_session)
+
+        yield session
         session.close()
         transaction.rollback()
 

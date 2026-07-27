@@ -200,6 +200,8 @@ class TaskConfigType(StrEnum):
     optimized_emodel_analysis_validation__config = auto()
     circuit_synaptic_physiology_assignment__campaign = auto()
     circuit_synaptic_physiology_assignment__config = auto()
+    circuit_simplification__campaign = auto()
+    circuit_simplification__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -233,6 +235,8 @@ class TaskActivityType(StrEnum):
     optimized_emodel_analysis_validation__execution = auto()
     circuit_synaptic_physiology_assignment__config_generation = auto()
     circuit_synaptic_physiology_assignment__execution = auto()
+    circuit_simplification__config_generation = auto()
+    circuit_simplification__execution = auto()
 
 
 class AgentType(StrEnum):
@@ -306,6 +310,8 @@ class DerivationType(StrEnum):
           (generated). The optional ``label`` field on the derivation carries the SONATA
           ``model_template`` entry, by convention ``hoc:<template_name>``
           (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
+        circuit_simplification: Indicates that a circuit entity was derived by simplifying
+          the biophysical complexity of another circuit while preserving network connectivity.
         unspecified: Indicates a derivation that does not require a specific type.
     """
 
@@ -314,6 +320,7 @@ class DerivationType(StrEnum):
     circuit_rewiring = auto()
     emodel_circuit = auto()
     em_dense_reconstruction_dataset_cell_morphology = auto()
+    circuit_simplification = auto()
     unspecified = auto()
 
 
@@ -1292,6 +1299,7 @@ class TargetSimulator(StrEnum):
     brian2 = "Brian2"
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
+    nest = "NEST"
     neuron = "NEURON"
 
 

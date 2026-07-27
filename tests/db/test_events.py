@@ -21,8 +21,13 @@ def real_db(db):
     """
     connection = db.connection()
     savepoint = connection.begin_nested()
-    session = Session(bind=connection, expire_on_commit=False, autocommit=False, autoflush=False)
-    session.begin_nested()  # inner savepoint so session.rollback() only rolls back to here
+    session = Session(
+        connection,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+        join_transaction_mode="create_savepoint",
+    )
     yield session
     session.close()
     savepoint.rollback()

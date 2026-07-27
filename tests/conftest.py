@@ -476,7 +476,11 @@ def db(session_client) -> Iterator[Session]:
     with manager.engine.connect() as connection:
         transaction = connection.begin()
         session = Session(
-            bind=connection, expire_on_commit=False, autocommit=False, autoflush=False
+            connection,
+            expire_on_commit=False,
+            autocommit=False,
+            autoflush=False,
+            join_transaction_mode="create_savepoint",
         )
         with manager.override_session(session):
             yield session

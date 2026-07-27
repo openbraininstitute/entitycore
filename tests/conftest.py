@@ -469,7 +469,7 @@ def clients(
 
 
 @pytest.fixture(autouse=True)
-def db(session_client, monkeypatch) -> Iterator[Session]:
+def db(session_client) -> Iterator[Session]:
     """Yield a session that shares a transaction with all app requests for this test.
 
     ``get_db`` is overridden so every request uses this same session, meaning ``session.commit()``
@@ -492,8 +492,9 @@ def db(session_client, monkeypatch) -> Iterator[Session]:
             with session.begin_nested():
                 yield session
 
-        monkeypatch.setitem(app.dependency_overrides, get_db, get_db_override)
+        app.dependency_overrides[get_db] = get_db_override
         yield session
+        app.dependency_overrides.pop(get_db, None)
         session.close()
         transaction.rollback()
 

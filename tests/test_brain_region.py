@@ -189,9 +189,9 @@ def test_delete_one(db, clients, json_data):
     )
 
 
-def test_brain_region_id(db, client, client_admin, person_id, species_id):
+def test_brain_region_id(db, client, client_admin, user_id, species_id):
     hierarchy_name = utils.create_hiearchy_name(
-        db, name="test_hierarchy", species_id=species_id, created_by_id=person_id
+        db, name="test_hierarchy", species_id=species_id, created_by_id=user_id
     )
     utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
@@ -301,14 +301,14 @@ def test_brain_region_id(db, client, client_admin, person_id, species_id):
     assert len(response.json()["data"]) == 0
 
 
-def test_family_queries(db, client, subject_id, person_id, species_id, cell_morphology_protocol_id):
+def test_family_queries(db, client, subject_id, user_id, species_id, cell_morphology_protocol_id):
     hierarchy_name0 = utils.create_hiearchy_name(
-        db, name="hier0", species_id=species_id, created_by_id=person_id
+        db, name="hier0", species_id=species_id, created_by_id=user_id
     )
     brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
     hierarchy_name1 = utils.create_hiearchy_name(
-        db, name="hier1", species_id=species_id, created_by_id=person_id
+        db, name="hier1", species_id=species_id, created_by_id=user_id
     )
     brain_regions1 = utils.add_brain_region_hierarchy(db, SEARCH_HIERARCHY, hierarchy_name1.id)
 

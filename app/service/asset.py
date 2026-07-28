@@ -17,7 +17,7 @@ from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilterDep
 from app.queries import crud
-from app.queries.common import get_or_create_user_agent, router_read_many
+from app.queries.common import get_or_create_user, router_read_many
 from app.queries.utils import is_user_authorized_for_deletion
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
@@ -194,7 +194,7 @@ def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
         is_public=entity.authorized_public,
     )
 
-    db_agent = get_or_create_user_agent(repos.db, user_profile=user_profile)
+    db_agent = get_or_create_user(repos.db, user_profile=user_profile)
 
     with ensure_valid_schema(
         "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA

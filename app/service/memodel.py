@@ -16,8 +16,8 @@ from app.db.model import (
     EModel,
     MEModel,
     MEModelCalibrationResult,
-    Person,
     Subject,
+    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -188,8 +188,8 @@ def _read_many(
     morphology_alias = aliased(CellMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
 
     aliases: Aliases = {
         CellMorphology: morphology_alias,
@@ -197,7 +197,7 @@ def _read_many(
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

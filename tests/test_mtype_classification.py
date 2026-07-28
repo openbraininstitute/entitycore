@@ -15,13 +15,13 @@ ADMIN_ROUTE = "/admin/mtype-classification"
 
 
 @pytest.fixture
-def custom_mtype(db, person_id):
+def custom_mtype(db, user_id):
     return create_mtype(
         db,
         pref_label="my-custom-mtype",
         alt_label="my-custom-mtype",
         definition="My custom mtype",
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
 
 
@@ -170,13 +170,13 @@ def public_morphology_id(client_user_1, subject_id, brain_region_id, cell_morpho
     )
 
 
-def test_do_not_allow_private_classification(client, db, person_id, public_morphology_id):
+def test_do_not_allow_private_classification(client, db, user_id, public_morphology_id):
     mtype = create_mtype(
         db,
         pref_label="c1",
         alt_label="c1",
         definition="c1",
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     data = assert_request(
         client.post,

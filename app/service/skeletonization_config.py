@@ -6,8 +6,8 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    Person,
     SkeletonizationConfig,
+    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -153,14 +153,14 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
 
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

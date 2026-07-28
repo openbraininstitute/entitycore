@@ -8,10 +8,10 @@ from app.db.auth import (
     constrain_to_readable_entities_by_project,
 )
 from app.db.model import (
-    Person,
     Publication,
     ScientificArtifact,
     ScientificArtifactPublicationLink,
+    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -110,12 +110,12 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     publication_alias = aliased(Publication, flat=True, name="publication")
     aliases: Aliases = {
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

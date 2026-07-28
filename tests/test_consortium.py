@@ -78,7 +78,7 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     res = []
     for i in range(3):
         row = add_db(
@@ -86,8 +86,8 @@ def models(db, person_id):
             Consortium(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         res.append(row)
@@ -112,8 +112,8 @@ def test_filtering_sorting(client, models):
 
     data = req(
         {
-            "created_by__sub_id": USER_SUB_ID_1,
-            "updated_by__sub_id": USER_SUB_ID_1,
+            "created_by__id": USER_SUB_ID_1,
+            "updated_by__id": USER_SUB_ID_1,
             "order_by": "creation_date",
         }
     )

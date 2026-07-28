@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, Person, Subject
+from app.db.model import Agent, Contribution, Subject, User
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -139,9 +139,9 @@ def _read_many(
         Agent: {
             "contribution": aliased(Agent, flat=True),
         },
-        Person: {
-            "created_by": aliased(Person, flat=True),
-            "updated_by": aliased(Person, flat=True),
+        User: {
+            "created_by": aliased(User, flat=True),
+            "updated_by": aliased(User, flat=True),
         },
     }
 

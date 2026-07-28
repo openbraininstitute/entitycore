@@ -104,7 +104,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     db_models = [
         MODEL(
             **(
@@ -116,8 +116,8 @@ def models(db, json_data, person_id):
                     "release_version": i,
                     "dense_reconstruction_cell_id": i,
                     "mesh_type": ["static", "dynamic"][i % 2],
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             )
@@ -188,7 +188,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
                 "count": 1,
                 "id": ANY,
                 "label": ANY,
-                "type": "person",
+                "type": "created_by",
             },
         ],
         "updated_by": [
@@ -196,7 +196,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
                 "count": 1,
                 "id": ANY,
                 "label": ANY,
-                "type": "person",
+                "type": "updated_by",
             },
         ],
         "mtype": [],
@@ -220,7 +220,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 

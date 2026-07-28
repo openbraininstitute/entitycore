@@ -1,11 +1,8 @@
-from unittest.mock import ANY
-
 import pytest
 
 from app.db.model import Agent, Person
 
 from tests.utils import (
-    ADMIN_SUB_ID,
     MISSING_ID,
     MISSING_ID_COMPACT,
     USER_SUB_ID_1,
@@ -31,7 +28,6 @@ def _assert_read_response(data, json_data):
     assert data["given_name"] == json_data["given_name"]
     assert data["family_name"] == json_data["family_name"]
     assert "id" in data
-    assert data["sub_id"] == ANY
 
 
 def test_create_person(client, client_admin, json_data):
@@ -47,37 +43,6 @@ def test_create_person(client, client_admin, json_data):
     data = response.json()
     _assert_read_response(data, json_data)
     assert data["id"] == id_
-
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    data = response.json()["data"]
-
-    # Two people are expected, the registered one without a subject id
-    # and the new agent registered from the token with a subject id
-    assert len(data) == 2
-
-    created_from_data, created_from_token = _classify_agents(data)
-
-    assert created_from_data["given_name"] == json_data["given_name"]
-    assert created_from_data["id"] == id_
-    assert created_from_data["sub_id"] is None
-
-    assert created_from_token["pref_label"] == "Admin User"
-    assert created_from_token["sub_id"] == str(ADMIN_SUB_ID)
-
-    # If register again only the data agent added and the token agent is reused
-    response = client_admin.post(
-        ROUTE,
-        json=json_data,
-    )
-    assert response.status_code == 200
-
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    data = response.json()["data"]
-
-    assert len(data) == 3
-    assert sum(1 for d in data if d["sub_id"] is not None) == 1
 
     valid_orcids = [
         "https://orcid.org/0000-0002-1825-0097",
@@ -125,7 +90,6 @@ def test_create_person(client, client_admin, json_data):
 
 
 def test_read_many(clients, json_data):
-
     route = ROUTE
     admin_route = ADMIN_ROUTE
 
@@ -133,7 +97,7 @@ def test_read_many(clients, json_data):
 
     def _req(client, client_route):
         data = assert_request(client.get, url=client_route).json()["data"]
-        assert len(data) == 2
+        assert len(data) == 1
 
     # user that created the resource can read it
     _req(clients.user_1, route)
@@ -170,21 +134,14 @@ def test_delete_one(db, clients, json_data):
         admin_route=ADMIN_ROUTE,
         json_data=json_data,
         expected_counts_before={
-            Person: 2,
-            Agent: 2,
-        },
-        expected_counts_after={
             Person: 1,
             Agent: 1,
         },
+        expected_counts_after={
+            Person: 0,
+            Agent: 0,
+        },
     )
-
-
-def _classify_agents(data):
-    if data[0]["sub_id"] is None:
-        return data
-
-    return data[1], data[0]
 
 
 def test_missing(client):
@@ -202,7 +159,7 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     return add_all_db(
         db,
         [
@@ -211,23 +168,23 @@ def models(db, person_id):
                 family_name="Smith",
                 pref_label="John Smith",
                 orcid="https://orcid.org/0000-0001-1111-110X",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             Person(
                 given_name="john",
                 family_name="Cooper",
                 pref_label="John Cooper",
                 orcid="https://orcid.org/0000-0002-2222-2208",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             Person(
                 given_name="Beatrix",
                 family_name="John",
                 pref_label="Beatrix John",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         ],
     )
@@ -268,5 +225,5 @@ def test_filtering(client, models):
     assert len(data) == 2
     assert {d["pref_label"] for d in data} == {"John Smith", "John Cooper"}
 
-    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
-    assert len(data) == len(models) + 1  # +1 for person_id
+    data = _req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
+    assert len(data) == len(models)

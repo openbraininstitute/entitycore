@@ -13,8 +13,8 @@ from app.db.model import (
     Contribution,
     ExperimentalBoutonDensity,
     Measurement,
-    Person,
     Subject,
+    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -76,8 +76,8 @@ def _read_many(
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
     measurement_mean_alias = aliased(Measurement, flat=True)
     measurement_standard_error = aliased(Measurement, flat=True)
     measurement_sample_size_alias = aliased(Measurement, flat=True)
@@ -86,7 +86,7 @@ def _read_many(
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

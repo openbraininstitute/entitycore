@@ -15,13 +15,13 @@ ADMIN_ROUTE = "/admin/etype-classification"
 
 
 @pytest.fixture
-def custom_etype(db, person_id):
+def custom_etype(db, user_id):
     return create_etype(
         db,
         pref_label="my-custom-etype",
         alt_label="my-custom-etype",
         definition="My custom etype",
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
 
 
@@ -164,13 +164,13 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
     assert data["details"] == f"Cannot access entity {unauthorized_morph_id}"
 
 
-def test_do_not_allow_private_classification(client, db, person_id, emodel_id):
+def test_do_not_allow_private_classification(client, db, user_id, emodel_id):
     etype = create_etype(
         db,
         pref_label="c1",
         alt_label="c1",
         definition="c1",
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     data = assert_request(
         client.post,

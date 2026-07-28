@@ -14,12 +14,12 @@ class IdentifiableCreate(Schema):
 
 
 class IdentifiableRead(NestedIdentifiableRead):
-    created_by: NestedPersonRead
-    updated_by: NestedPersonRead
+    created_by: NestedUserRead
+    updated_by: NestedUserRead
 
 
-from app.schemas.agent import (  # ruff:ignore[module-import-not-at-top-of-file]
-    NestedPersonRead,  # ruff:ignore[typing-only-first-party-import]
+from app.schemas.user import (  # ruff:ignore[module-import-not-at-top-of-file]
+    NestedUserRead,  # ruff:ignore[typing-only-first-party-import]
 )
 
 IdentifiableRead.model_rebuild()

@@ -7,9 +7,9 @@ from app.db.model import (
     Agent,
     Contribution,
     MEModel,
-    Person,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
+    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -161,15 +161,15 @@ def _read_many(
     synaptome_alias = aliased(SingleNeuronSynaptome, flat=True)
     me_model_alias = aliased(MEModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
     aliases = {
         SingleNeuronSynaptome: synaptome_alias,
         MEModel: me_model_alias,
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

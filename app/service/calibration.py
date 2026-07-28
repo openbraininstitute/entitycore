@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Calibration, Entity, Person
+from app.db.model import Calibration, Entity, User
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -98,13 +98,13 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[CalibrationRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
     used_alias = aliased(Entity, flat=True)
     generated_alias = aliased(Entity, flat=True)
 
     aliases: Aliases = {
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

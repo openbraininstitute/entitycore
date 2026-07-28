@@ -202,7 +202,7 @@ def uploading_asset(client, entity) -> AssetRead:
 
 
 @pytest.fixture
-def asset_directory(db, root_circuit, person_id) -> Asset:
+def asset_directory(db, root_circuit, user_id) -> Asset:
     s3_path = _get_expected_full_path(entity=root_circuit, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -214,8 +214,8 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
         sha256_digest=None,
         meta={},
         entity_id=root_circuit.id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="sonata_circuit",
         storage_type=StorageType.aws_s3_internal,
     )
@@ -224,7 +224,7 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
 
 
 @pytest.fixture
-def private_asset_directory(db, circuit, person_id) -> Asset:
+def private_asset_directory(db, circuit, user_id) -> Asset:
     s3_path = _get_expected_full_path(entity=circuit, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -236,8 +236,8 @@ def private_asset_directory(db, circuit, person_id) -> Asset:
         sha256_digest=None,
         meta={},
         entity_id=circuit.id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="sonata_circuit",
         storage_type=StorageType.aws_s3_internal,
     )

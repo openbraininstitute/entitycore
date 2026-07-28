@@ -8,8 +8,8 @@ from app.db.model import (
     Agent,
     Contribution,
     IonChannelRecording,
-    Person,
     Subject,
+    User,
     ValidationResult,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -126,15 +126,15 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[IonChannelRecordingRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(User, flat=True)
+    updated_by_alias = aliased(User, flat=True)
     subject_alias = aliased(Subject, flat=True)
     validation_result_alias = aliased(ValidationResult, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        User: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

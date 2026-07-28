@@ -12,7 +12,7 @@ from tests.utils import add_db
 
 
 @pytest.fixture
-def asset1(db, morphology_id, person_id):
+def asset1(db, morphology_id, user_id):
     """First persisted Asset."""
     return add_db(
         db,
@@ -26,8 +26,8 @@ def asset1(db, morphology_id, person_id):
             sha256_digest=None,
             meta={},
             entity_id=morphology_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             label="morphology",
             storage_type=StorageType.aws_s3_internal,
         ),
@@ -35,7 +35,7 @@ def asset1(db, morphology_id, person_id):
 
 
 @pytest.fixture
-def asset2(db, morphology_id, person_id):
+def asset2(db, morphology_id, user_id):
     """Second persisted Asset."""
     return add_db(
         db,
@@ -49,8 +49,8 @@ def asset2(db, morphology_id, person_id):
             sha256_digest=None,
             meta={},
             entity_id=morphology_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             label="morphology",
             storage_type=StorageType.aws_s3_internal,
         ),
@@ -215,7 +215,7 @@ def test_partial_s3_failure_does_not_stop_others(db, asset1, asset2, mock_storag
     assert mock_storage_delete.call_count == 2
 
 
-def test_delete_asset_from_storage__created_status(person_id, morphology_id):
+def test_delete_asset_from_storage__created_status(user_id, morphology_id):
     """_delete_asset_from_storage calls delete_asset_storage_object for a non-uploading asset."""
     asset = Asset(
         path="foo",
@@ -227,8 +227,8 @@ def test_delete_asset_from_storage__created_status(person_id, morphology_id):
         sha256_digest=None,
         meta={},
         entity_id=morphology_id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="morphology",
         storage_type=StorageType.aws_s3_internal,
     )
@@ -243,7 +243,7 @@ def test_delete_asset_from_storage__created_status(person_id, morphology_id):
     )
 
 
-def test_delete_asset_from_storage__uploading_status(person_id, morphology_id):
+def test_delete_asset_from_storage__uploading_status(user_id, morphology_id):
     """_delete_asset_from_storage calls multipart_upload_abort for an uploading asset."""
     upload_id = "test-upload-id"
     asset = Asset(
@@ -257,8 +257,8 @@ def test_delete_asset_from_storage__uploading_status(person_id, morphology_id):
         sha256_digest=None,
         meta={},
         entity_id=morphology_id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="morphology",
         storage_type=StorageType.aws_s3_internal,
     )
@@ -302,7 +302,7 @@ def test_loguru_logging_on_s3_deletion_error(db, asset1, capture_loguru_messages
     assert "Simulated S3 failure" in log_msg
 
 
-def test_loguru_logging_on_multipart_abort_error(person_id, morphology_id, capture_loguru_messages):
+def test_loguru_logging_on_multipart_abort_error(user_id, morphology_id, capture_loguru_messages):
     """Check that Loguru records the exception when multipart abort fails."""
     asset = Asset(
         path="foo",
@@ -315,8 +315,8 @@ def test_loguru_logging_on_multipart_abort_error(person_id, morphology_id, captu
         sha256_digest=None,
         meta={},
         entity_id=morphology_id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="morphology",
         storage_type=StorageType.aws_s3_internal,
     )

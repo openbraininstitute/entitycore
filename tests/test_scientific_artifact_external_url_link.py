@@ -144,7 +144,7 @@ def test_authorization(
 
 
 @pytest.fixture
-def models(db, json_data, person_id, external_url, root_circuit, circuit):
+def models(db, json_data, user_id, external_url, root_circuit, circuit):
     results = add_all_db(
         db,
         [
@@ -153,8 +153,8 @@ def models(db, json_data, person_id, external_url, root_circuit, circuit):
                 | {
                     "external_url_id": external_url.id,
                     "scientific_artifact_id": root_circuit.id,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             ),
             ScientificArtifactExternalUrlLink(
@@ -162,8 +162,8 @@ def models(db, json_data, person_id, external_url, root_circuit, circuit):
                 | {
                     "external_url_id": external_url.id,
                     "scientific_artifact_id": circuit.id,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             ),
         ],
@@ -205,5 +205,5 @@ def test_filtering_sorting(client, models, external_url, root_circuit):
     assert len(data) == 1
     assert data[0]["scientific_artifact"]["id"] == str(root_circuit.id)
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)

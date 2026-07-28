@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="79dbeada57f3"
+SCRIPT_DB_VERSION="122ee418a384"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -249,6 +249,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM task_result AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_result.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
+\echo Dumping table user
+\copy (SELECT t0.* FROM user AS t0  WHERE TRUE) TO '$DATA_DIR/user.csv' WITH CSV HEADER;
 \echo Dumping table validation
 \copy (SELECT t0.* FROM validation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/validation.csv' WITH CSV HEADER;
 \echo Dumping table validation_result
@@ -265,7 +267,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="79dbeada57f3"
+SCRIPT_DB_VERSION="122ee418a384"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

@@ -171,7 +171,7 @@ def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, person_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, user_id):
     def create_model_function(_db, name, brain_region_id):
         return MODEL_CLASS(
             name=name,
@@ -180,15 +180,15 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, 
             subject_id=subject_id,
             license_id=None,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
 @pytest.fixture
-def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
+def models(db, json_data, user_id, brain_region_hierarchy_id, agents):
     json_data = json_data.copy()
     measurements = json_data.pop("measurements")
     organization, person, role = agents
@@ -199,8 +199,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
             Species(
                 name=f"species-{i}",
                 taxonomy_id=f"taxonomy-{i}",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(3)
@@ -220,8 +220,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 weight=1.5,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for i, sp in enumerate(species + species)
         ],
@@ -237,8 +237,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 color_hex_triplet="FF0000",
                 parent_structure_id=None,
                 hierarchy_id=brain_region_hierarchy_id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(len(subjects))
@@ -255,8 +255,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 | {
                     "subject_id": subject.id,
                     "name": f"d-{density_ids[i]}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                     "brain_region_id": brain_regions[i].id,
                 }
@@ -284,8 +284,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 entity_id=density.id,
                 role_id=role.id,
                 agent_id=(person.id, organization.id)[i % 2],
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
 
@@ -295,8 +295,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 pref_label=f"m{i}",
                 alt_label=f"m{i}",
                 definition="d",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         add_db(
@@ -304,8 +304,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
             MTypeClassification(
                 entity_id=density.id,
                 mtype_class_id=mtype.id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
             ),
@@ -316,8 +316,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 pref_label=f"e{i}",
                 alt_label=f"e{i}",
                 definition="d",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         add_db(
@@ -325,8 +325,8 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
             ETypeClassification(
                 entity_id=density.id,
                 etype_class_id=etype.id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
             ),
@@ -522,7 +522,7 @@ def test_sorting_and_filtering(client, models):
         data = req({"etype__pref_label__in": ["e1", "e2"], "order_by": ordering_field})
         assert len(data) == 2
 
-        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
         assert len(data) == len(models)
 
         data = req({"ilike_search": "*description*"})

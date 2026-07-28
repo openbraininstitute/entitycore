@@ -156,7 +156,7 @@ def test_delete_one(db, clients, public_json_data):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     return add_all_db(
         db,
         [
@@ -164,8 +164,8 @@ def models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "r-1",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             ),
@@ -173,8 +173,8 @@ def models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "r-2",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             ),
@@ -182,8 +182,8 @@ def models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "r-3",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             ),
@@ -195,7 +195,7 @@ def test_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"ilike_search": "*description*"})

@@ -5,7 +5,6 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import (
-    Agent,
     Annotation,
     Asset,
     CellMorphology,
@@ -18,6 +17,7 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
+    User,
 )
 from app.db.types import EntityType
 
@@ -140,14 +140,14 @@ def test_delete_one(db, clients, json_data):
 
 
 @pytest.fixture
-def entity_id_cascades(db, clients, json_data, person_id, role_id, mtype_class_id):
+def entity_id_cascades(db, clients, json_data, user_id, person_id, role_id, mtype_class_id):
     entity_id = add_db(
         db,
         CellMorphology(
             **json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -157,23 +157,23 @@ def entity_id_cascades(db, clients, json_data, person_id, role_id, mtype_class_i
         entity_id=entity_id,
         agent_id=person_id,
         role_id=role_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     create_mtype_classification(
         db,
         entity_id=entity_id,
         mtype_class_id=mtype_class_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     add_annotation(
         db,
         entity_id=entity_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     add_measurement_annotation(
         db,
         entity_id=entity_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     upload_entity_asset(
         client=clients.user_1,
@@ -244,14 +244,14 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
+def test_query_cell_morphology(db, client, brain_region_id, user_id, cell_morphology_protocol_id):
     species1 = add_db(
         db,
         Species(
             name="TestSpecies1",
             taxonomy_id="0",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -260,8 +260,8 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
         Species(
             name="TestSpecies2",
             taxonomy_id="1",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -272,8 +272,8 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
             name="TestStrain1",
             species_id=species1.id,
             taxonomy_id="0",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -283,8 +283,8 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
             name="TestStrain2",
             species_id=species2.id,
             taxonomy_id="1",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -314,8 +314,8 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
                     weight=1.5,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                 ),
             )
             morphology_id = create_cell_morphology_id(
@@ -332,7 +332,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
     count = 11
     create_morphologies(count)
 
-    agent = db.get(Agent, db.get(CellMorphology, morphology_ids[0]).created_by_id)
+    user = db.get(User, db.get(CellMorphology, morphology_ids[0]).created_by_id)
 
     response = client.get(ROUTE, params={"page_size": 10})
 
@@ -413,17 +413,17 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
         "created_by": [
             {
                 "count": 11,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "created_by",
             },
         ],
         "updated_by": [
             {
                 "count": 11,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "updated_by",
             },
         ],
         "cell_morphology_protocol": [
@@ -469,17 +469,17 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
         "created_by": [
             {
                 "count": 11,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "created_by",
             },
         ],
         "updated_by": [
             {
                 "count": 11,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "updated_by",
             },
         ],
         "cell_morphology_protocol": [
@@ -516,17 +516,17 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
         "created_by": [
             {
                 "count": 6,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "created_by",
             },
         ],
         "updated_by": [
             {
                 "count": 6,
-                "id": str(agent.id),
-                "label": agent.pref_label,
-                "type": str(agent.type),
+                "id": str(user.id),
+                "label": user.pref_label,
+                "type": "updated_by",
             },
         ],
         "cell_morphology_protocol": [
@@ -614,7 +614,7 @@ def test_query_cell_morphology_species_join(
                 "count": 1,
                 "id": registered["created_by"]["id"],
                 "label": registered["created_by"]["pref_label"],
-                "type": registered["created_by"]["type"],
+                "type": "created_by",
             },
         ],
         "updated_by": [
@@ -622,7 +622,7 @@ def test_query_cell_morphology_species_join(
                 "count": 1,
                 "id": registered["created_by"]["id"],
                 "label": registered["created_by"]["pref_label"],
-                "type": registered["created_by"]["type"],
+                "type": "updated_by",
             },
         ],
         "cell_morphology_protocol": [
@@ -658,14 +658,14 @@ def test_authorization(
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
-def test_pagination(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
+def test_pagination(db, client, brain_region_id, user_id, cell_morphology_protocol_id):
     species0 = add_db(
         db,
         Species(
             name="TestSpecies0",
             taxonomy_id="0",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -674,8 +674,8 @@ def test_pagination(db, client, brain_region_id, person_id, cell_morphology_prot
         Species(
             name="TestSpecies1",
             taxonomy_id="1",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -685,8 +685,8 @@ def test_pagination(db, client, brain_region_id, person_id, cell_morphology_prot
             name="Strain0",
             taxonomy_id="strain0",
             species_id=species0.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -696,8 +696,8 @@ def test_pagination(db, client, brain_region_id, person_id, cell_morphology_prot
             name="Strain1",
             taxonomy_id="strain1",
             species_id=species1.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             embedding=EmbeddingMixin.SIZE * [0.1],
         ),
     )
@@ -719,8 +719,8 @@ def test_pagination(db, client, brain_region_id, person_id, cell_morphology_prot
                 weight=1.5,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         create_cell_morphology_id(
@@ -765,7 +765,7 @@ def test_pagination(db, client, brain_region_id, person_id, cell_morphology_prot
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphology_protocol_id):
+def test_filter(db, client, brain_region_id, user_id, subject_id, cell_morphology_protocol_id):
     """Test filtering cell morphologies by different parameters."""
     morphology_ids = []
     for i in range(5):
@@ -784,8 +784,8 @@ def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphol
                 pref_label=f"m{i}",
                 alt_label=f"m{i}",
                 definition="d",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         add_db(
@@ -793,8 +793,8 @@ def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphol
             MTypeClassification(
                 entity_id=morphology_id,
                 mtype_class_id=mtype.id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
             ),
@@ -871,7 +871,7 @@ def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphol
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == 5
 
@@ -919,7 +919,7 @@ def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphol
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, person_id, subject_id, cell_morphology_protocol
+    db, client, brain_region_hierarchy_id, user_id, subject_id, cell_morphology_protocol
 ):
     def create_model_function(_db, name, brain_region_id):
         return CellMorphology(
@@ -931,8 +931,8 @@ def test_brain_region_filter(
             legacy_id="Test Legacy ID",
             license_id=None,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             cell_morphology_protocol_id=str(cell_morphology_protocol.id),
         )
 

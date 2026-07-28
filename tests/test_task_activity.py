@@ -277,7 +277,7 @@ def test_filtering(client, models, task_config_id, morphology_id_1, morphology_i
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 

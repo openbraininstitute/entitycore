@@ -31,14 +31,14 @@ def json_data(brain_atlas_id, brain_region_id):
 
 
 @pytest.fixture
-def model(db, json_data, person_id):
+def model(db, json_data, user_id):
     return add_db(
         db,
         MODEL(
             **json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": str(PROJECT_ID),
             },
         ),

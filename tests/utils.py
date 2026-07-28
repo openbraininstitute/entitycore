@@ -877,7 +877,6 @@ def create_person(
     pref_label: str,
     given_name: str | None = None,
     family_name: str | None = None,
-    sub_id: str | None = None,
     created_by_id: uuid.UUID | None = None,
 ):
     agent_id = create_uuid()
@@ -887,7 +886,6 @@ def create_person(
         given_name=given_name,
         family_name=family_name,
         pref_label=pref_label,
-        sub_id=sub_id,
         created_by_id=created_by_id or agent_id,
         updated_by_id=created_by_id or agent_id,
     )

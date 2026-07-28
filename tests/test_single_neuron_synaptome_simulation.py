@@ -3,7 +3,7 @@ import uuid
 
 import pytest
 
-from app.db.model import Agent, MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
+from app.db.model import MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation, User
 from app.db.types import EntityType
 from app.filters.single_neuron_synaptome_simulation import SingleNeuronSynaptomeSimulationFilter
 
@@ -57,23 +57,23 @@ def _create_synaptome_id(
 
 
 @pytest.fixture
-def synaptome_id(db, memodel_id, brain_region_id, person_id):
+def synaptome_id(db, memodel_id, brain_region_id, user_id):
     return _create_synaptome_id(
         db,
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
         authorized_public=False,
     )
 
 
 @pytest.fixture
-def public_synaptome_id(db, public_memodel_id, brain_region_id, person_id):
+def public_synaptome_id(db, public_memodel_id, brain_region_id, user_id):
     return _create_synaptome_id(
         db,
         memodel_id=public_memodel_id,
         brain_region_id=brain_region_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
         authorized_public=True,
     )
 
@@ -269,20 +269,20 @@ def test_authorization(client_user_1, client_user_2, client_no_project, public_j
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
-def test_pagination(db, client, brain_region_id, memodel_id, person_id):
+def test_pagination(db, client, brain_region_id, memodel_id, user_id):
     synaptome_1_id = _create_synaptome_id(
         db,
         name="syn-1",
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
     synaptome_2_id = _create_synaptome_id(
         db,
         name="syn-2",
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
 
     def create(count):
@@ -312,14 +312,14 @@ def test_pagination(db, client, brain_region_id, memodel_id, person_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, person_id):
+def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, user_id):
     brain_region_ids = [
         create_brain_region(
             db,
             brain_region_hierarchy_id,
             annotation_value=i,
             name=f"region-{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -330,7 +330,7 @@ def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, person_id):
             description=f"description-{i}",
             brain_region_id=brain_region_ids[i],
             memodel_id=memodel_id,
-            created_by_id=person_id,
+            created_by_id=user_id,
         )
         for i in range(2)
     ]
@@ -353,7 +353,7 @@ def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, person_id):
 def test_facets(db, client, faceted_ids):
     brain_region_ids, synaptome_ids, sim_ids = faceted_ids
 
-    agent = db.get(Agent, db.get(MODEL, sim_ids[0]).created_by_id)
+    agent = db.get(User, db.get(MODEL, sim_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,
@@ -384,10 +384,10 @@ def test_facets(db, client, faceted_ids):
         },
     ]
     assert facets["created_by"] == [
-        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": "created_by"}
     ]
     assert facets["updated_by"] == [
-        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": "updated_by"}
     ]
 
     data = assert_request(
@@ -413,15 +413,15 @@ def test_facets(db, client, faceted_ids):
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
     assert facets["created_by"] == [
-        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
+        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": "created_by"}
     ]
     assert facets["updated_by"] == [
-        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
+        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": "updated_by"}
     ]
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, person_id
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, user_id
 ):
     def create_model_function(db, name, brain_region_id):
         me_model_id = str(
@@ -435,8 +435,8 @@ def test_brain_region_filter(
                     emodel_id=emodel_id,
                     morphology_id=morphology_id,
                     species_id=species_id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     validation_status="created",
                 ),
             ).id
@@ -451,8 +451,8 @@ def test_brain_region_filter(
                     brain_region_id=brain_region_id,
                     seed=1,
                     authorized_project_id=PROJECT_ID,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                 ),
             ).id
         )
@@ -466,8 +466,8 @@ def test_brain_region_filter(
             synaptome_id=synaptome_id,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
@@ -507,7 +507,7 @@ def test_sorting_filtering(client, faceted_ids):
         data = req({"me_model__species__name": "Test Species", "order_by": ordering_field})
         assert len(data) == n_models
 
-        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
         assert len(data) == n_models
 
         data = req({"ilike_search": "sim-desc*", "order_by": ordering_field})

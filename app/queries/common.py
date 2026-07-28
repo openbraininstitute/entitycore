@@ -40,7 +40,7 @@ from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.queries.utils import (
     create_associations_to_entities,
-    get_or_create_user_agent,
+    get_or_create_user,
     is_user_authorized_for_deletion,
 )
 from app.schemas.activity import ActivityCreate, ActivityUpdate
@@ -103,7 +103,7 @@ def router_create_activity_one[T: Schema, I: Activity](
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user_agent(db, user_context.profile)
+    db_agent = get_or_create_user(db, user_context.profile)
     created_by_id = updated_by_id = db_agent.id
     project_id = user_context.project_id
 
@@ -174,7 +174,7 @@ def router_create_one[T: Schema, I: Identifiable](
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user_agent(db, user_context.profile)
+    db_agent = get_or_create_user(db, user_context.profile)
     created_by_id = updated_by_id = db_agent.id
 
     project_id = (
@@ -454,7 +454,7 @@ def router_update_one[T: Schema, I: Identifiable](
     )
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user_agent(db, user_context.profile)
+        db_agent = get_or_create_user(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
         db_model_instance.update_date = sa.func.now()
 
@@ -566,7 +566,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
         setattr(db_model_instance, key, value)
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user_agent(db, user_context.profile)
+        db_agent = get_or_create_user(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
         db_model_instance.update_date = sa.func.now()
 

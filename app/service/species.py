@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import Person, Species
+from app.db.model import Species, User
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -80,9 +80,9 @@ def read_many(
     embedding = None
 
     aliases: Aliases = {
-        Person: {
-            "created_by": aliased(Person, flat=True),
-            "updated_by": aliased(Person, flat=True),
+        User: {
+            "created_by": aliased(User, flat=True),
+            "updated_by": aliased(User, flat=True),
         }
     }
 

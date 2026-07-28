@@ -119,11 +119,11 @@ def test_delete_one(db, clients, json_data):
         json_data=json_data,
         expected_counts_before={
             Organization: 1,
-            Agent: 2,
+            Agent: 1,
         },
         expected_counts_after={
             Organization: 0,
-            Agent: 1,
+            Agent: 0,
         },
     )
 
@@ -143,7 +143,7 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     res = []
     for i in range(3):
         row = add_db(
@@ -152,8 +152,8 @@ def models(db, person_id):
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
                 ror_id=["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94", None][i],
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         res.append(row)
@@ -188,5 +188,5 @@ def test_filtering_sorting(client, models):
     assert len(data) == 2
     assert {d["pref_label"] for d in data} == {"org-0", "org-1"}
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)

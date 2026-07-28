@@ -195,7 +195,7 @@ def test_schema_constraints(client, json_data):
 
 
 @pytest.fixture
-def models(db, person_id, species_id):
+def models(db, user_id, species_id):
     names = [
         "foo",
         "boo",
@@ -212,8 +212,8 @@ def models(db, person_id, species_id):
             species_id=species_id,
             age_value=timedelta(days=i + 1),
             age_period="postnatal",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_project_id=PROJECT_ID,
             creation_date=f"2025-01-01 00:00:{i:02}",
         )
@@ -250,7 +250,7 @@ def test_filtering_sorting(client, models):
     data = req({"name__in": ["foo", "boo"], "order_by": "-creation_date"})
     assert [d["name"] for d in data] == ["boo", "foo"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"ilike_search": "*description*"})

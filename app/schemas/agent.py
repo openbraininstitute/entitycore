@@ -1,7 +1,5 @@
 from app.db.types import AgentType
-from app.schemas.base import (
-    Schema,
-)
+from app.schemas.base import Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 from app.utils.pydantic_validators import ORCID, ROR_ID

@@ -108,7 +108,7 @@ def create_one(
 
 def update_one(
     db: SessionDep,
-    user_context: UserContextDep,
+    user_context: AdminContextDep,
     id_: uuid.UUID,
     json_model: OrganizationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> OrganizationRead:

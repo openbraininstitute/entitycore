@@ -23,8 +23,8 @@ def json_data():
     }
 
 
-def test_create(client, client_admin, json_data):
-    response = client_admin.post(ROUTE, json=json_data)
+def test_create(client, json_data):
+    response = client.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
     assert data["pref_label"] == json_data["pref_label"]

@@ -151,8 +151,6 @@ def _read_many(
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
         },
         User: {
             "created_by": created_by_alias,

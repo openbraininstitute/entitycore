@@ -72,8 +72,14 @@ def _read_many(
     created_by_alias = aliased(User, flat=True, name="created_by_alias")
     updated_by_alias = aliased(User, flat=True, name="updated_by_alias")
     aliases: Aliases = {
-        Entity: {"used": used_alias, "generated": generated_alias},
-        User: {"created_by": created_by_alias, "updated_by": updated_by_alias},
+        Entity: {
+            "used": used_alias,
+            "generated": generated_alias,
+        },
+        User: {
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
+        },
     }
     # `used`/`generated` are always joined below, so they are not declared here to
     # avoid duplicate joins. `created_by`/`updated_by` are added on demand.

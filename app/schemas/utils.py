@@ -29,13 +29,17 @@ def make_update_schema(
     - ``None`` (omitted): use ``DEFAULT_EXCLUDED_FIELDS``
     - empty set: no exclusions (admin opt-out)
     - non-empty set: ``DEFAULT_EXCLUDED_FIELDS | excluded_fields``
+
+    ``preserved_fields``: fields that stay required with their create-schema default instead of
+    becoming optional. Useful when a field must not be omitted from the update payload by mistake
+    (e.g. ``generation_type`` on cell morphology protocols).
     """
 
     def make_optional(field):
         return Annotated[field.annotation | None, Field(default=None)]
 
     if excluded_fields is None:
-        excluded = set(DEFAULT_EXCLUDED_FIELDS)
+        excluded = DEFAULT_EXCLUDED_FIELDS
     elif not excluded_fields:
         excluded = set()
     else:

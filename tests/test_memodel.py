@@ -20,7 +20,6 @@ from app.schemas.me_model import MEModelRead
 from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
-    USER_SUB_ID_1,
     assert_request,
     check_brain_region_filter,
     check_deletion_cascades,
@@ -764,7 +763,7 @@ def test_brain_region_filter(
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
-def test_sorting_filtering(client, faceted_memodels):
+def test_sorting_filtering(client, faceted_memodels, user_id):
     n_models = len(faceted_memodels.memodels)
 
     def req(query):
@@ -795,7 +794,7 @@ def test_sorting_filtering(client, faceted_memodels):
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
 
-        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
+        data = req({"created_by__id": str(user_id), "updated_by__id": str(user_id)})
         assert len(data) == n_models
 
     data = req({"brain_region__name": "region0", "order_by": "-name"})

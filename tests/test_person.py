@@ -44,6 +44,15 @@ def test_create_person(client, client_admin, json_data):
     _assert_read_response(data, json_data)
     assert data["id"] == id_
 
+    response = client.get(ROUTE)
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    assert len(data) == 1
+    person = data[0]
+    assert person["given_name"] == json_data["given_name"]
+    assert person["id"] == id_
+
     valid_orcids = [
         "https://orcid.org/0000-0002-1825-0097",
         "https://orcid.org/0000-0003-1234-5674",

@@ -27,9 +27,9 @@ def upgrade() -> None:
     op.create_table(
         "user",
         sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column("given_name", sa.String(), nullable=True),
         sa.Column("family_name", sa.String(), nullable=True),
-        sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),

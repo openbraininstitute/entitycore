@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from moto import mock_aws
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from types_boto3_s3 import S3Client
 
@@ -48,6 +49,7 @@ from app.db.model import (
     SimulationResult,
     Subject,
     TaskResult,
+    User,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import (
@@ -493,11 +495,14 @@ def _db_cleanup(db):
 def user_id(db):
     uid = UUID(USER_SUB_ID_1)
     db.execute(
-        text(
-            'INSERT INTO "user" (id, given_name, family_name, pref_label) '
-            "VALUES (:id, :given_name, :family_name, :pref_label) ON CONFLICT DO NOTHING"
-        ),
-        {"id": uid, "given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
+        insert(User)
+        .values(
+            id=uid,
+            pref_label="jd courcol",
+            given_name="jd",
+            family_name="courcol",
+        )
+        .on_conflict_do_nothing()
     )
     db.commit()
     return uid
@@ -505,12 +510,11 @@ def user_id(db):
 
 @pytest.fixture
 def person_id(db, user_id):
-    """A Person agent (contributor) linked to the platform user."""
     return utils.create_person(
         db,
-        pref_label="jd courcol",
-        given_name="jd",
-        family_name="courcol",
+        pref_label="generic person",
+        given_name="Generic",
+        family_name="Person",
         created_by_id=user_id,
     ).id
 
@@ -751,11 +755,6 @@ CreateIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def custom_user_sub_id():
-    return "00000000-0000-0000-0000-000000000005"
-
-
-@pytest.fixture
 def agents(db: Session, user_id):
     organization_1 = add_db(
         db,
@@ -781,7 +780,7 @@ def agents(db: Session, user_id):
 
 
 def add_contributions(
-    db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID, created_by_id=None
+    db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID, created_by_id: UUID
 ):
     agent_1, agent_2, role = agents
     add_db(
@@ -790,8 +789,8 @@ def add_contributions(
             agent_id=agent_1.id,
             role_id=role.id,
             entity_id=entity_id,
-            created_by_id=created_by_id or agent_1.id,
-            updated_by_id=created_by_id or agent_1.id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
     add_db(
@@ -800,8 +799,8 @@ def add_contributions(
             agent_id=agent_2.id,
             role_id=role.id,
             entity_id=entity_id,
-            created_by_id=created_by_id or agent_1.id,
-            updated_by_id=created_by_id or agent_1.id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
 

@@ -125,9 +125,9 @@ class User(TimestampMixin, Base):
     __tablename__ = "user"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)  # == Keycloak sub_id
+    pref_label: Mapped[str] = mapped_column(index=True)
     given_name: Mapped[str | None]
     family_name: Mapped[str | None]
-    pref_label: Mapped[str] = mapped_column(index=True)
 
 
 class Identifiable(TimestampMixin, Base):

@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
-from app.db.model import Derivation, DerivationType, Entity, Person
+from app.db.model import Derivation, DerivationType, Entity, User
 from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -69,11 +69,11 @@ def _read_many(
     project_ids = user_context.authorized_project_ids
     used_alias = aliased(Entity, flat=True, name="used_alias")
     generated_alias = aliased(Entity, flat=True, name="generated_alias")
-    created_by_alias = aliased(Person, flat=True, name="created_by_alias")
-    updated_by_alias = aliased(Person, flat=True, name="updated_by_alias")
+    created_by_alias = aliased(User, flat=True, name="created_by_alias")
+    updated_by_alias = aliased(User, flat=True, name="updated_by_alias")
     aliases: Aliases = {
         Entity: {"used": used_alias, "generated": generated_alias},
-        Person: {"created_by": created_by_alias, "updated_by": updated_by_alias},
+        User: {"created_by": created_by_alias, "updated_by": updated_by_alias},
     }
     # `used`/`generated` are always joined below, so they are not declared here to
     # avoid duplicate joins. `created_by`/`updated_by` are added on demand.

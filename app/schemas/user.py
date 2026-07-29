@@ -1,7 +1,6 @@
 import uuid
 
 from app.schemas.base import Schema, TimestapMixin
-from app.schemas.utils import make_update_schema
 
 
 class UserBase(Schema):
@@ -16,10 +15,3 @@ class NestedUserRead(UserBase, TimestapMixin):
 
 class UserRead(UserBase, TimestapMixin):
     id: uuid.UUID
-
-
-UserAdminUpdate = make_update_schema(
-    UserBase,
-    "UserAdminUpdate",
-    excluded_fields=set(),
-)  # pyright: ignore [reportInvalidTypeForm]

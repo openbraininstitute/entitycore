@@ -44,9 +44,9 @@ def test_create_contribution(
 
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["given_name"] == "jd"
-    assert data["agent"]["family_name"] == "courcol"
-    assert data["agent"]["pref_label"] == "jd courcol"
+    assert data["agent"]["given_name"] == "Generic"
+    assert data["agent"]["family_name"] == "Person"
+    assert data["agent"]["pref_label"] == "generic person"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -58,8 +58,9 @@ def test_create_contribution(
 
     data = assert_request(client.get, url=f"{ROUTE}/{contribution_id}").json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["given_name"] == "jd"
-    assert data["agent"]["family_name"] == "courcol"
+    assert data["agent"]["given_name"] == "Generic"
+    assert data["agent"]["family_name"] == "Person"
+    assert data["agent"]["pref_label"] == "generic person"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -92,8 +93,18 @@ def test_create_contribution(
     facets = resp["facets"]
     assert len(facets["contribution"]) == 2
     assert facets["contribution"] == [
-        {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
-        {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
+        {
+            "id": str(organization_id),
+            "label": "ACME",
+            "type": "organization",
+            "count": 1,
+        },
+        {
+            "id": str(person_id),
+            "label": "generic person",
+            "type": "person",
+            "count": 1,
+        },
     ]
 
 

@@ -194,7 +194,7 @@ def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
         is_public=entity.authorized_public,
     )
 
-    db_agent = get_or_create_user(repos.db, user_profile=user_profile)
+    db_user = get_or_create_user(repos.db, user_profile=user_profile)
 
     with ensure_valid_schema(
         "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
@@ -211,8 +211,8 @@ def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
             entity_type=entity.type,
             storage_type=storage_type,
             parent_id=parent_id,
-            created_by_id=db_agent.id,
-            updated_by_id=db_agent.id,
+            created_by_id=db_user.id,
+            updated_by_id=db_user.id,
         )
         validate_asset_label(
             asset_create,

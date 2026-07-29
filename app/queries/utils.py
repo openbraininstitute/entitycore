@@ -15,7 +15,7 @@ from app.schemas.auth import UserContext, UserProfile
 
 
 def get_or_create_user(db: Session, user_profile: UserProfile) -> User:
-    if db_user := get_user(db, user_profile.subject):
+    if db_user := get_user(db, subject_id=user_profile.subject):
         return db_user
 
     db_user = User(
@@ -33,7 +33,7 @@ def get_or_create_user(db: Session, user_profile: UserProfile) -> User:
 
 def get_user(db: Session, subject_id: uuid.UUID) -> User | None:
     query = sa.select(User).where(User.id == subject_id)
-    return db.execute(query).scalars().first()
+    return db.execute(query).scalars().one_or_none()
 
 
 def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]

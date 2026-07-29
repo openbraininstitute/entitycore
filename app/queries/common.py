@@ -103,8 +103,8 @@ def router_create_activity_one[T: Schema, I: Activity](
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user(db, user_context.profile)
-    created_by_id = updated_by_id = db_agent.id
+    db_user = get_or_create_user(db, user_context.profile)
+    created_by_id = updated_by_id = db_user.id
     project_id = user_context.project_id
 
     # do not inlcude used_ids/generated_ids because they are relationships and need to be added in
@@ -174,8 +174,8 @@ def router_create_one[T: Schema, I: Identifiable](
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user(db, user_context.profile)
-    created_by_id = updated_by_id = db_agent.id
+    db_user = get_or_create_user(db, user_context.profile)
+    created_by_id = updated_by_id = db_user.id
 
     project_id = (
         user_context.project_id
@@ -454,8 +454,8 @@ def router_update_one[T: Schema, I: Identifiable](
     )
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user(db, user_context.profile)
-        db_model_instance.updated_by_id = db_agent.id
+        db_user = get_or_create_user(db, user_context.profile)
+        db_model_instance.updated_by_id = db_user.id
         db_model_instance.update_date = sa.func.now()
 
     db.flush()
@@ -566,8 +566,8 @@ def router_update_activity_one[T: BaseModel, I: Activity](
         setattr(db_model_instance, key, value)
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user(db, user_context.profile)
-        db_model_instance.updated_by_id = db_agent.id
+        db_user = get_or_create_user(db, user_context.profile)
+        db_model_instance.updated_by_id = db_user.id
         db_model_instance.update_date = sa.func.now()
 
     create_associations_to_entities(

@@ -6,7 +6,7 @@ from app.db.model import Species, Strain
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin, IdFilterMixin, NameFilterMixin
-from app.filters.person import CreatorFilterMixin
+from app.filters.user import CreatorFilterMixin
 
 
 class NestedSpeciesFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

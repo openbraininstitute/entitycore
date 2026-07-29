@@ -11,7 +11,7 @@ from app.filters.common import (
     ILikeSearchFilterMixin,
     NameFilterMixin,
 )
-from app.filters.person import CreatorFilterMixin
+from app.filters.user import CreatorFilterMixin
 
 
 class IonChannelFilterMixin(

@@ -3,7 +3,7 @@ from typing import Annotated
 from app.db.model import Organization
 from app.dependencies.filter import FilterDepends
 from app.filters.common import AgentFilter
-from app.filters.person import CreatorFilterMixin
+from app.filters.user import CreatorFilterMixin
 from app.utils.pydantic_validators import ROR_ID
 
 

@@ -12,7 +12,7 @@ from app.filters.common import (
     NestedAgentFilterDep,
 )
 from app.filters.entity import NestedEntityFilter, NestedEntityFilterDep
-from app.filters.person import CreatorFilterMixin
+from app.filters.user import CreatorFilterMixin
 
 NestedContributionFilter = NestedAgentFilter
 NestedContributionFilterDep = FilterDepends(with_prefix("contribution", NestedAgentFilter))

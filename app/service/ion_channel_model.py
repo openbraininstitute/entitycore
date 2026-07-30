@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, Ion, IonChannelModel, Subject, User
+from app.db.model import Agent, Contribution, Ion, IonChannelModel, PlatformUser, Subject
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandDep,
@@ -74,15 +74,15 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[IonChannelModelExpanded]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(User, flat=True)
-    updated_by_alias = aliased(User, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     subject_alias = aliased(Subject, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
         },
-        User: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

@@ -9,16 +9,16 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.auth import select_unauthorized_entities
-from app.db.model import Identifiable, User
+from app.db.model import Identifiable, PlatformUser
 from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
 
 
-def get_or_create_user(db: Session, user_profile: UserProfile) -> User:
+def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
     if db_user := get_user(db, subject_id=user_profile.subject):
         return db_user
 
-    db_user = User(
+    db_user = PlatformUser(
         id=user_profile.subject,
         pref_label=user_profile.name,
         given_name=user_profile.given_name,
@@ -31,8 +31,8 @@ def get_or_create_user(db: Session, user_profile: UserProfile) -> User:
     return db_user
 
 
-def get_user(db: Session, subject_id: uuid.UUID) -> User | None:
-    query = sa.select(User).where(User.id == subject_id)
+def get_user(db: Session, subject_id: uuid.UUID) -> PlatformUser | None:
+    query = sa.select(PlatformUser).where(PlatformUser.id == subject_id)
     return db.execute(query).scalars().one_or_none()
 
 

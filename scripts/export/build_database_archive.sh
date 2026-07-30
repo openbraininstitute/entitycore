@@ -199,6 +199,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM organization AS t0  WHERE TRUE) TO '$DATA_DIR/organization.csv' WITH CSV HEADER;
 \echo Dumping table person
 \copy (SELECT t0.* FROM person AS t0  WHERE TRUE) TO '$DATA_DIR/person.csv' WITH CSV HEADER;
+\echo Dumping table platform_user
+\copy (SELECT t0.* FROM platform_user AS t0  WHERE TRUE) TO '$DATA_DIR/platform_user.csv' WITH CSV HEADER;
 \echo Dumping table publication
 \copy (SELECT t0.* FROM publication AS t0  WHERE TRUE) TO '$DATA_DIR/publication.csv' WITH CSV HEADER;
 \echo Dumping table role
@@ -249,8 +251,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM task_result AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_result.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
-\echo Dumping table user
-\copy (SELECT t0.* FROM user AS t0  WHERE TRUE) TO '$DATA_DIR/user.csv' WITH CSV HEADER;
 \echo Dumping table validation
 \copy (SELECT t0.* FROM validation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/validation.csv' WITH CSV HEADER;
 \echo Dumping table validation_result

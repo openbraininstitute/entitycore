@@ -42,6 +42,7 @@ from app.db.model import (
     MTypeClassification,
     Organization,
     PlaceholderCellMorphologyProtocol,
+    PlatformUser,
     Publication,
     Role,
     Simulation,
@@ -49,7 +50,6 @@ from app.db.model import (
     SimulationResult,
     Subject,
     TaskResult,
-    User,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import (
@@ -495,7 +495,7 @@ def _db_cleanup(db):
 def user_id(db):
     uid = UUID(USER_SUB_ID_1)
     db.execute(
-        insert(User)
+        insert(PlatformUser)
         .values(
             id=uid,
             pref_label="jd courcol",

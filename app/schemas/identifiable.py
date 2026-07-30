@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from app.schemas.base import Schema, TimestapMixin
-from app.schemas.user import NestedUserRead
+from app.schemas.platform_user import NestedPlatformUserRead
 
 
 class NestedIdentifiableRead(Schema, TimestapMixin):
@@ -13,5 +13,5 @@ class IdentifiableCreate(Schema):
 
 
 class IdentifiableRead(NestedIdentifiableRead):
-    created_by: NestedUserRead
-    updated_by: NestedUserRead
+    created_by: NestedPlatformUserRead
+    updated_by: NestedPlatformUserRead

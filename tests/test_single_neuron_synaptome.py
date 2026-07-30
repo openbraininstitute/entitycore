@@ -6,8 +6,8 @@ import pytest
 from app.db.model import (
     Contribution,
     MEModel,
+    PlatformUser,
     SingleNeuronSynaptome,
-    User,
 )
 from app.db.types import EntityType
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilter
@@ -302,7 +302,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
 def test_facets(db, client, faceted_ids):
     brain_region_ids, memodel_ids, syn_ids = faceted_ids
 
-    agent = db.get(User, db.get(MODEL, syn_ids[0]).created_by_id)
+    agent = db.get(PlatformUser, db.get(MODEL, syn_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,

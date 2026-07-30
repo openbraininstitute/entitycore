@@ -11,7 +11,7 @@ from app.filters.common import (
     IdFilterMixin,
 )
 from app.filters.entity import NestedEntityFilter
-from app.filters.user import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 NestedUsedFilterDep = FilterDepends(with_prefix("used", NestedEntityFilter))
 NestedGeneratedFilterDep = FilterDepends(with_prefix("generated", NestedEntityFilter))

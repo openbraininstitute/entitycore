@@ -3,15 +3,15 @@ import uuid
 from app.schemas.base import Schema, TimestapMixin
 
 
-class UserBase(Schema):
+class PlatformUserBase(Schema):
     given_name: str | None = None
     family_name: str | None = None
     pref_label: str
 
 
-class NestedUserRead(UserBase, TimestapMixin):
+class NestedPlatformUserRead(PlatformUserBase, TimestapMixin):
     id: uuid.UUID
 
 
-class UserRead(UserBase, TimestapMixin):
+class PlatformUserRead(PlatformUserBase, TimestapMixin):
     id: uuid.UUID

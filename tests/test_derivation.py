@@ -5,7 +5,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.config import settings
-from app.db.model import Derivation, User
+from app.db.model import Derivation, PlatformUser
 from app.db.types import DerivationType, EntityType
 from app.errors import ApiErrorCode
 from app.filters.derivation import DerivationFilter
@@ -381,7 +381,7 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
     """
     alice = add_db(
         db,
-        User(
+        PlatformUser(
             id=uuid.uuid4(),
             pref_label="alice",
             given_name="Alice",
@@ -390,7 +390,7 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
     )
     bob = add_db(
         db,
-        User(
+        PlatformUser(
             id=uuid.uuid4(),
             pref_label="bob",
             given_name="Bob",

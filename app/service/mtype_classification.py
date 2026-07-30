@@ -9,7 +9,7 @@ from app.db.auth import constrain_to_readable_entities_by_project
 from app.db.model import (
     Entity,
     MTypeClassification,
-    User,
+    PlatformUser,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -112,10 +112,10 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[MTypeClassificationRead]:
-    created_by_alias = aliased(User, flat=True)
-    updated_by_alias = aliased(User, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     aliases: Aliases = {
-        User: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

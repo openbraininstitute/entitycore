@@ -4,7 +4,7 @@ import pytest
 import sqlalchemy as sa
 
 from app.db import model, utils as test_module
-from app.db.model import User
+from app.db.model import PlatformUser
 from app.queries.utils import get_or_create_user, get_user
 from app.schemas.auth import UserProfile
 
@@ -39,7 +39,7 @@ def test_get_or_create_user__creates(db):
     assert user.pref_label == "Jane Smith"
     assert user.given_name == "John"
     assert user.family_name == "Doe"
-    assert db.get(User, sub) is not None
+    assert db.get(PlatformUser, sub) is not None
 
 
 def test_get_or_create_user__idempotent(db):
@@ -47,7 +47,9 @@ def test_get_or_create_user__idempotent(db):
     u1 = get_or_create_user(db, _profile(sub))
     u2 = get_or_create_user(db, _profile(sub))
     assert u1.id == u2.id
-    count = db.execute(sa.select(sa.func.count()).select_from(User).where(User.id == sub)).scalar()
+    count = db.execute(
+        sa.select(sa.func.count()).select_from(PlatformUser).where(PlatformUser.id == sub)
+    ).scalar()
     assert count == 1
 
 

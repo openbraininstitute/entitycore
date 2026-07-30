@@ -1,4 +1,4 @@
-"""Split User from Person
+"""Split PlatformUser from Person
 
 Revision ID: 122ee418a384
 Revises: 79dbeada57f3
@@ -115,7 +115,7 @@ def upgrade() -> None:
     op.execute("SET statement_timeout = 0")
     op.execute("SET lock_timeout = 0")
     op.create_table(
-        "user",
+        "platform_user",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column("given_name", sa.String(), nullable=True),
@@ -132,10 +132,14 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_user")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_platform_user")),
     )
-    op.create_index(op.f("ix_user_creation_date"), "user", ["creation_date"], unique=False)
-    op.create_index(op.f("ix_user_pref_label"), "user", ["pref_label"], unique=False)
+    op.create_index(
+        op.f("ix_platform_user_creation_date"), "platform_user", ["creation_date"], unique=False
+    )
+    op.create_index(
+        op.f("ix_platform_user_pref_label"), "platform_user", ["pref_label"], unique=False
+    )
     # Drop the unique index on person.sub_id before backfilling duplicates
     op.drop_index(op.f("ix_person_sub_id"), table_name="person")
     # Backfill sub_id for persons that are referenced as created_by_id/updated_by_id but have none
@@ -151,7 +155,7 @@ def upgrade() -> None:
     """)
     # Populate user table from all persons that now have a sub_id, one row per distinct sub_id
     op.execute("""
-        INSERT INTO "user" (id, given_name, family_name, pref_label, creation_date, update_date)
+        INSERT INTO platform_user (id, given_name, family_name, pref_label, creation_date, update_date)
         SELECT DISTINCT ON (p.sub_id)
             p.sub_id, p.given_name, p.family_name, a.pref_label, a.creation_date, a.update_date
         FROM person p
@@ -171,7 +175,7 @@ def upgrade() -> None:
             WHERE p_c.id = t.created_by_id
               AND p_u.id = t.updated_by_id
         """)
-    _create_fks("user")
+    _create_fks("platform_user")
     op.drop_column("person", "sub_id")
 
 
@@ -180,10 +184,10 @@ def downgrade() -> None:
     # restored after merging duplicate persons (twins/near-twins) into a single user.
     # FK columns (created_by_id/updated_by_id) will point to user.id values after downgrade,
     # but the agent FK constraints are restored so the schema is valid for further migrations.
-    _drop_fks("user")
+    _drop_fks("platform_user")
     _create_fks("agent")
     op.add_column("person", sa.Column("sub_id", sa.UUID(), autoincrement=False, nullable=True))
     op.create_index(op.f("ix_person_sub_id"), "person", ["sub_id"], unique=True)
-    op.drop_index(op.f("ix_user_pref_label"), table_name="user")
-    op.drop_index(op.f("ix_user_creation_date"), table_name="user")
-    op.drop_table("user")
+    op.drop_index(op.f("ix_platform_user_pref_label"), table_name="platform_user")
+    op.drop_index(op.f("ix_platform_user_creation_date"), table_name="platform_user")
+    op.drop_table("platform_user")

@@ -4,7 +4,7 @@ from app.db.model import Person
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, PrefLabelMixin
-from app.filters.user import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 from app.utils.pydantic_validators import ORCID
 
 

@@ -6,13 +6,13 @@ from fastapi_filter import with_prefix
 from pydantic import Field
 from sqlalchemy import Select
 
-from app.db.model import User
+from app.db.model import PlatformUser
 from app.dependencies.filter import FilterDepends
 from app.filters.base import Aliases, CustomFilter
 from app.filters.common import IdFilterMixin, PrefLabelMixin
 
 
-class NestedUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
+class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     given_name: str | None = None
     given_name__ilike: str | None = None
     family_name: str | None = None
@@ -21,7 +21,7 @@ class NestedUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     sub_id__in: list[uuid.UUID] | None = Field(Query(None, deprecated=True))
 
     class Constants(CustomFilter.Constants):
-        model = User
+        model = PlatformUser
 
     def filter(self, query: Select, aliases: Aliases | None = None) -> Select:
         """Remap deprecated sub_id/sub_id__in to id/id__in for backward compatibility."""
@@ -34,10 +34,10 @@ class NestedUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         return super().filter(query, aliases)
 
 
-NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedUserFilter))
-NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", NestedUserFilter))
+NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedPlatformUserFilter))
+NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", NestedPlatformUserFilter))
 
 
 class CreatorFilterMixin:
-    created_by: Annotated[NestedUserFilter | None, NestedCreatedByFilterDep] = None
-    updated_by: Annotated[NestedUserFilter | None, NestedUpdatedByFilterDep] = None
+    created_by: Annotated[NestedPlatformUserFilter | None, NestedCreatedByFilterDep] = None
+    updated_by: Annotated[NestedPlatformUserFilter | None, NestedUpdatedByFilterDep] = None

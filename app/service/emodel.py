@@ -10,8 +10,8 @@ from app.db.model import (
     Contribution,
     EModel,
     IonChannelModel,
+    PlatformUser,
     Subject,
-    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -170,15 +170,15 @@ def _read_many(
 ) -> ListResponse[EModelReadExpanded]:
     morphology_alias = aliased(CellMorphology, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(User, flat=True)
-    updated_by_alias = aliased(User, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     ion_channel_model_alias = aliased(IonChannelModel, flat=True)
     aliases: Aliases = {
         CellMorphology: morphology_alias,
         Agent: {
             "contribution": agent_alias,
         },
-        User: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

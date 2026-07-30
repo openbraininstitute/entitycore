@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import MeasurementLabel, User
+from app.db.model import MeasurementLabel, PlatformUser
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -77,9 +77,9 @@ def read_many(
     filter_model: MeasurementLabelFilterDep,
 ) -> ListResponse[MeasurementLabelRead]:
     aliases: Aliases = {
-        User: {
-            "created_by": aliased(User, flat=True),
-            "updated_by": aliased(User, flat=True),
+        PlatformUser: {
+            "created_by": aliased(PlatformUser, flat=True),
+            "updated_by": aliased(PlatformUser, flat=True),
         }
     }
     facet_keys = filter_keys = [

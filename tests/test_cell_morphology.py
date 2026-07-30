@@ -14,10 +14,10 @@ from app.db.model import (
     MeasurementAnnotation,
     MTypeClass,
     MTypeClassification,
+    PlatformUser,
     Species,
     Strain,
     Subject,
-    User,
 )
 from app.db.types import EntityType
 
@@ -332,7 +332,7 @@ def test_query_cell_morphology(db, client, brain_region_id, user_id, cell_morpho
     count = 11
     create_morphologies(count)
 
-    user = db.get(User, db.get(CellMorphology, morphology_ids[0]).created_by_id)
+    user = db.get(PlatformUser, db.get(CellMorphology, morphology_ids[0]).created_by_id)
 
     response = client.get(ROUTE, params={"page_size": 10})
 

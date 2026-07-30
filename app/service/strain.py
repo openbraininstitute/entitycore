@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import Strain, User
+from app.db.model import PlatformUser, Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -36,9 +36,9 @@ def read_many(
     semantic_search: str | None = None,
 ) -> ListResponse[StrainRead]:
     aliases: Aliases = {
-        User: {
-            "created_by": aliased(User, flat=True),
-            "updated_by": aliased(User, flat=True),
+        PlatformUser: {
+            "created_by": aliased(PlatformUser, flat=True),
+            "updated_by": aliased(PlatformUser, flat=True),
         }
     }
 

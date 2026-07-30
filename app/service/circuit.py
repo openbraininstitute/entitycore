@@ -8,8 +8,8 @@ from app.db.model import (
     Agent,
     Circuit,
     Contribution,
+    PlatformUser,
     Subject,
-    User,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -160,15 +160,15 @@ def _read_many(
 ) -> ListResponse[CircuitRead]:
     subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(User, flat=True)
-    updated_by_alias = aliased(User, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
 
     aliases: Aliases = {
         Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
         },
-        User: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

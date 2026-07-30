@@ -119,10 +119,10 @@ class LegacyMixin:
     legacy_self: Mapped[STRING_LIST | None]
 
 
-class User(TimestampMixin, Base):
+class PlatformUser(TimestampMixin, Base):
     """Platform user, identified by their Keycloak subject UUID."""
 
-    __tablename__ = "user"
+    __tablename__ = "platform_user"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)  # == Keycloak sub_id
     pref_label: Mapped[str] = mapped_column(index=True)
@@ -137,14 +137,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def created_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("user.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def created_by(cls) -> Mapped["User"]:
+    def created_by(cls) -> Mapped["PlatformUser"]:
         return relationship(
-            "User",
-            primaryjoin=lambda: cls.created_by_id == foreign(User.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.created_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )
@@ -152,14 +152,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def updated_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("user.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def updated_by(cls) -> Mapped["User"]:
+    def updated_by(cls) -> Mapped["PlatformUser"]:
         return relationship(
-            "User",
-            primaryjoin=lambda: cls.updated_by_id == foreign(User.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.updated_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )

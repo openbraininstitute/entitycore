@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import IonChannel, User
+from app.db.model import IonChannel, PlatformUser
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import (
     FacetsDep,
@@ -88,10 +88,10 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelRead]:
-    created_by_alias = aliased(User, flat=True)
-    updated_by_alias = aliased(User, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     aliases: Aliases = {
-        User: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

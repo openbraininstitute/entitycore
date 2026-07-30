@@ -384,8 +384,6 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
         PlatformUser(
             id=uuid.uuid4(),
             pref_label="alice",
-            given_name="Alice",
-            family_name="Anderson",
         ),
     )
     bob = add_db(
@@ -393,8 +391,6 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
         PlatformUser(
             id=uuid.uuid4(),
             pref_label="bob",
-            given_name="Bob",
-            family_name="Brown",
         ),
     )
 
@@ -495,10 +491,6 @@ def test_filtering_ordering(client, derivation_filter_models):
     assert len(req({"created_by__pref_label": "alice"})) == 3
     assert len(req({"created_by__pref_label__in": ["alice", "bob"]})) == n_total
     assert len(req({"created_by__pref_label__ilike": "%lic%"})) == 3
-    assert len(req({"created_by__given_name": "Bob"})) == 3
-    assert len(req({"created_by__given_name__ilike": "%ob%"})) == 3
-    assert len(req({"created_by__family_name": "Anderson"})) == 3
-    assert len(req({"created_by__family_name__ilike": "%der%"})) == 3
     # `updated_by` mirrors `created_by` here (same agent per row).
     assert len(req({"updated_by__pref_label": "bob"})) == 3
     assert len(req({"updated_by__pref_label__ilike": "%b%"})) == 3

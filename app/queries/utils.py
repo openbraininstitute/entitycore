@@ -21,8 +21,6 @@ def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
     db_user = PlatformUser(
         id=user_profile.subject,
         pref_label=user_profile.name,
-        given_name=user_profile.given_name,
-        family_name=user_profile.family_name,
     )
 
     db.add(db_user)

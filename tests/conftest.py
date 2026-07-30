@@ -499,8 +499,6 @@ def user_id(db):
         .values(
             id=uid,
             pref_label="jd courcol",
-            given_name="jd",
-            family_name="courcol",
         )
         .on_conflict_do_nothing()
     )

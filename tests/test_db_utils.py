@@ -29,7 +29,7 @@ def test_authorized_project_id_declaring_class(cls, parent_cls):
 
 
 def _profile(sub: uuid.UUID, name: str = "John Doe") -> UserProfile:
-    return UserProfile(subject=sub, name=name, given_name="John", family_name="Doe")
+    return UserProfile(subject=sub, name=name)
 
 
 def test_get_or_create_user__creates(db):
@@ -37,8 +37,6 @@ def test_get_or_create_user__creates(db):
     user = get_or_create_user(db, _profile(sub, name="Jane Smith"))
     assert user.id == sub
     assert user.pref_label == "Jane Smith"
-    assert user.given_name == "John"
-    assert user.family_name == "Doe"
     assert db.get(PlatformUser, sub) is not None
 
 

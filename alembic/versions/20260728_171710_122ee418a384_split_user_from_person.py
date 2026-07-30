@@ -118,8 +118,6 @@ def upgrade() -> None:
         "platform_user",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
-        sa.Column("given_name", sa.String(), nullable=True),
-        sa.Column("family_name", sa.String(), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -155,9 +153,9 @@ def upgrade() -> None:
     """)
     # Populate user table from all persons that now have a sub_id, one row per distinct sub_id
     op.execute("""
-        INSERT INTO platform_user (id, given_name, family_name, pref_label, creation_date, update_date)
+        INSERT INTO platform_user (id, pref_label, creation_date, update_date)
         SELECT DISTINCT ON (p.sub_id)
-            p.sub_id, p.given_name, p.family_name, a.pref_label, a.creation_date, a.update_date
+            p.sub_id, a.pref_label, a.creation_date, a.update_date
         FROM person p
         JOIN agent a ON a.id = p.id
         WHERE p.sub_id IS NOT NULL

@@ -13,10 +13,6 @@ from app.filters.common import IdFilterMixin, PrefLabelMixin
 
 
 class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
-    given_name: str | None = None
-    given_name__ilike: str | None = None
-    family_name: str | None = None
-    family_name__ilike: str | None = None
     sub_id: uuid.UUID | None = Field(Query(None, deprecated=True))
     sub_id__in: list[uuid.UUID] | None = Field(Query(None, deprecated=True))
 

@@ -236,3 +236,13 @@ def test_filtering(client, models):
 
     data = _req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
+
+    data = _req({"created_by__id__in": [USER_SUB_ID_1], "updated_by__id__in": [USER_SUB_ID_1]})
+    assert len(data) == len(models)
+
+    # backward compat: sub_id is an alias for id
+    data = _req({"created_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)
+
+    data = _req({"created_by__sub_id__in": [USER_SUB_ID_1]})
+    assert len(data) == len(models)

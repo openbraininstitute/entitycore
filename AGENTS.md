@@ -136,13 +136,23 @@ Examples: `2026.7.13`, `2026.8.0`.
    git push origin <tag>
    ```
 6. Confirm the `Build and publish the Docker image` workflow started for the new tag.
-7. Tell the user they can run **deploy** once the image is published.
+7. If the user only said **release**, tell them they can run **deploy** once the image is published.
+   If they also said **deploy**, continue with the Deploy workflow below using the new tag (do not wait for a separate "deploy" message).
+
+## Release and deploy (combined)
+
+Triggered when the user message includes both **release** and **deploy** (e.g. "release and deploy").
+
+1. Run the full **Release** workflow (preview → wait for approval → tag → push).
+2. Immediately after the tag is pushed, run the **Deploy** workflow for that same tag (default `staging` unless the user named environments).
+3. Return both results: the new tag / publish workflow status, and the terraform PR URL.
+4. Note that the Docker image may still be building when the deploy PR is opened; merging the terraform PR should wait until the image is in ECR.
 
 ## Deploy (entitycore → terraform)
 
-Triggered by the user message **deploy**.
+Triggered by the user message **deploy**, or as the second step of **release and deploy**.
 
-Requires a **released** entitycore tag (Docker image already in ECR). If no tag is given, use the latest git tag on `main`.
+Requires a **released** entitycore tag. Prefer waiting until the Docker image is in ECR before merging the terraform PR; opening the PR may happen right after the tag is pushed when combined with release. If no tag is given, use the latest git tag on `main`.
 
 ### Target repository
 

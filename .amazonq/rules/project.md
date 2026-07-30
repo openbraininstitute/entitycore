@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from AGENTS.md — do not edit directly, run: make sync-rules -->
+
 # Entitycore — Agent Rules
 
 ## Stack

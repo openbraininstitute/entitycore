@@ -1173,6 +1173,23 @@ def check_global_read_many(
     _req(clients.admin, admin_route)
 
 
+def _assert_update_rejects_extra_fields(client, url: str, *, extra_payload: dict | None = None):
+    """Update schemas use extra='forbid'; unknown/excluded fields must return 422."""
+    assert_request(
+        client.patch,
+        url=url,
+        json={"__unknown_field__": "x"},
+        expected_status_code=422,
+    )
+    if extra_payload:
+        assert_request(
+            client.patch,
+            url=url,
+            json=extra_payload,
+            expected_status_code=422,
+        )
+
+
 def check_global_update_one(
     *,
     route: str,
@@ -1200,6 +1217,8 @@ def check_global_update_one(
     ).json()
     assert data["message"] == "Service admin role required"
 
+    _assert_update_rejects_extra_fields(clients.admin, f"{route}/{model_id}")
+
     # update using admin client and regular route
     _patch_compare(clients.admin.patch, f"{route}/{model_id}", patch_payload)
 
@@ -1214,6 +1233,8 @@ def check_global_update_one(
         expected_status_code=403,
     ).json()
     assert data["message"] == "Service admin role required"
+
+    _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{model_id}")
 
     # update using admin client and admin route
     _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", patch_payload)
@@ -1404,6 +1425,13 @@ def check_entity_update_one(
         _patch_compare(clients.user_1, f"{route}/{private_1_id}", optional_payload)
         _patch_compare(clients.user_1, f"{route}/{private_1_id}", dict.fromkeys(optional_payload))
 
+    # user update schema forbids unknown fields and default-excluded fields
+    _assert_update_rejects_extra_fields(
+        clients.user_1,
+        f"{route}/{private_1_id}",
+        extra_payload={"authorized_public": True},
+    )
+
     # only admin client can hit admin endpoint
     data = assert_request(
         clients.user_1.patch,
@@ -1413,6 +1441,11 @@ def check_entity_update_one(
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    # admin update schema forbids unknown fields but allows authorized_public
+    _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{private_1_id}")
+    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": True})
+    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": False})
 
     _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", patch_payload)
 

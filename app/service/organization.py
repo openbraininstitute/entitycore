@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
 from app.db.model import Organization, User
-from app.dependencies.auth import AdminContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.organization import OrganizationFilterDep
@@ -94,7 +94,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> OrganizationRead:
 
 
 def create_one(
-    organization: OrganizationCreate, db: SessionDep, user_context: AdminContextDep
+    organization: OrganizationCreate, db: SessionDep, user_context: UserContextDep
 ) -> OrganizationRead:
     return app.queries.common.router_create_one(
         db=db,

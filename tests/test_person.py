@@ -30,8 +30,8 @@ def _assert_read_response(data, json_data):
     assert "id" in data
 
 
-def test_create_person(client, client_admin, json_data):
-    response = client_admin.post(ROUTE, json=json_data)
+def test_create_person(client, json_data):
+    response = client.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
     _assert_read_response(data, json_data)
@@ -60,7 +60,7 @@ def test_create_person(client, client_admin, json_data):
 
     for orcid in valid_orcids:
         data = assert_request(
-            client_admin.post,
+            client.post,
             url=ROUTE,
             json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid[-4:]}"},
         ).json()
@@ -76,7 +76,7 @@ def test_create_person(client, client_admin, json_data):
 
     for orcid in invalid_orcids:
         data = assert_request(
-            client_admin.post,
+            client.post,
             url=ROUTE,
             json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid}"},
             expected_status_code=422,
@@ -85,12 +85,12 @@ def test_create_person(client, client_admin, json_data):
 
     orcid = "https://orcid.org/0000-0004-5678-9012"
     assert_request(
-        client_admin.post,
+        client.post,
         url=ROUTE,
         json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-1"},
     ).json()
     data = assert_request(
-        client_admin.post,
+        client.post,
         url=ROUTE,
         json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-2"},
         expected_status_code=409,
@@ -102,7 +102,7 @@ def test_read_many(clients, json_data):
     route = ROUTE
     admin_route = ADMIN_ROUTE
 
-    assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+    assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
 
     def _req(client, client_route):
         data = assert_request(client.get, url=client_route).json()["data"]

@@ -547,19 +547,25 @@ def test_update_one(db, clients, root_circuit, circuit, user_id):
     data = assert_request(
         clients.user_2.patch,
         url=f"{ROUTE}/{did}",
-        json={"derivation_type": DerivationType.unspecified.value},
+        json={"label": "label-u2"},
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # excluded fields are rejected (not silently ignored)
+    assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{did}",
+        json={"derivation_type": DerivationType.unspecified.value, "label": "label-u1"},
+        expected_status_code=422,
+    )
 
     # user_1 owns the generated entity -> update succeeds
     data = assert_request(
         clients.user_1.patch,
         url=f"{ROUTE}/{did}",
-        json={"derivation_type": DerivationType.unspecified.value, "label": "label-u1"},
+        json={"label": "label-u1"},
     ).json()
-
-    # derivation_type is excluded from updates
     assert data["derivation_type"] == DerivationType.circuit_extraction
     assert data["label"] == "label-u1"
     assert data["updated_by"]["id"] == str(user_id)
@@ -580,18 +586,24 @@ def test_update_one(db, clients, root_circuit, circuit, user_id):
     data = assert_request(clients.user_1.get, url=f"{ROUTE}/{did}").json()
     assert data["label"] == "label-u1"
 
-    # admin on admin route bypasses writable-entity checks
-    data = assert_request(
+    # excluded fields are rejected on admin route too
+    assert_request(
         clients.admin.patch,
         url=f"{ADMIN_ROUTE}/{did}",
         json={
             "label": "label-admin",
             "derivation_type": DerivationType.circuit_rewiring.value,
         },
+        expected_status_code=422,
+    )
+
+    # admin on admin route bypasses writable-entity checks
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{did}",
+        json={"label": "label-admin"},
     ).json()
     assert data["label"] == "label-admin"
-
-    # excluded attribute
     assert data["derivation_type"] == DerivationType.circuit_extraction
 
     data = assert_request(clients.user_1.get, url=f"{ROUTE}/{did}").json()

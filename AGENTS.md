@@ -103,3 +103,88 @@ Use `tests/test_species.py` or `tests/test_subject.py` as reference for new enti
 ### S3 / Assets in Tests
 - Mocked with `moto` (`mock_aws`), session-scoped
 - Use `upload_entity_asset(client, entity_type, entity_id, files, label)` to attach files
+
+## Release (entitycore)
+
+Triggered by the user message **release**.
+
+### Calver format
+
+`YYYY.M.N` — year, month (no zero-padding), sequential counter within the month starting at `0`.
+Examples: `2026.7.13`, `2026.8.0`.
+
+### Next tag algorithm
+
+1. `YEAR` = current UTC year, `MONTH` = current UTC month (1–12).
+2. List tags matching `YEAR.MONTH.*`; take the highest `N`.
+3. Next tag = `YEAR.MONTH.(N+1)`, or `YEAR.MONTH.0` if none exist for this month.
+
+### Workflow (approval required)
+
+**Do not create or push a tag until the user explicitly approves.**
+
+1. Ensure `main` is checked out and up to date with `origin/main`.
+2. Find the latest tag: `git describe --tags --abbrev=0`.
+3. **Show a release preview** and stop for approval:
+   - Proposed tag (from the algorithm above).
+   - Commits since the latest tag: `git log <latest-tag>..main --oneline`.
+   - Image that will be built: `public.ecr.aws/openbraininstitute/entitycore:<tag>` (see `.github/workflows/publish.yml`).
+4. Wait for explicit user approval (e.g. "yes", "approve", "go ahead").
+5. After approval only:
+   ```bash
+   git tag <tag>
+   git push origin <tag>
+   ```
+6. Confirm the `Build and publish the Docker image` workflow started for the new tag.
+7. Tell the user they can run **deploy** once the image is published.
+
+## Deploy (entitycore → terraform)
+
+Triggered by the user message **deploy**.
+
+Requires a **released** entitycore tag (Docker image already in ECR). If no tag is given, use the latest git tag on `main`.
+
+### Target repository
+
+`https://github.com/openbraininstitute/aws-terraform-deployment`
+
+### Image URL format
+
+```
+public.ecr.aws/openbraininstitute/entitycore:<tag>
+```
+
+Update the `entitycore_svc_image_url` variable in the relevant `*.tfvars` files.
+
+| File | Environment |
+|------|-------------|
+| `staging.tfvars` | staging |
+| `production.tfvars` | production |
+| `sandbox-nse.tfvars` | sandbox NSE |
+| `sandbox-hpc.tfvars` | sandbox HPC |
+| `sandbox-benchmarks.tfvars` | sandbox benchmarks |
+
+**Ask which environment(s) to update** if the user did not specify. Default to `staging` only.
+
+### Workflow
+
+1. Confirm the tag and target environment(s).
+2. Clone or update the terraform repo (sibling dir or temp):
+   ```bash
+   gh repo clone openbraininstitute/aws-terraform-deployment /tmp/aws-terraform-deployment
+   cd /tmp/aws-terraform-deployment && git checkout main && git pull
+   ```
+3. Create branch `entitycore-<tag>` (or `bump-entitycore-<tag>`).
+4. In each chosen `*.tfvars`, set:
+   ```
+   entitycore_svc_image_url = "public.ecr.aws/openbraininstitute/entitycore:<tag>"
+   ```
+5. Commit, push, and open a PR:
+   ```bash
+   git checkout -b entitycore-<tag>
+   git add <changed-tfvars>
+   git commit -m "Update entitycore to <tag>"
+   git push -u origin entitycore-<tag>
+   gh pr create --title "Update entitycore to <tag>" --body "Bump entitycore_svc_image_url to <tag>."
+   ```
+6. Return the PR URL to the user.

@@ -106,99 +106,21 @@ Use `tests/test_species.py` or `tests/test_subject.py` as reference for new enti
 - Mocked with `moto` (`mock_aws`), session-scoped
 - Use `upload_entity_asset(client, entity_type, entity_id, files, label)` to attach files
 
-## Release (entitycore)
+## Release
 
-Triggered by the user message **release**.
+Triggered by **release**. Tag format `YYYY.M.N` (UTC year/month, no zero-pad; `N` = next after highest `YEAR.MONTH.*`, or `0`).
 
-### Calver format
+1. Update `main` from `origin/main`.
+2. Preview and **stop for approval**: next tag, `git log <latest>..main --oneline`, image `public.ecr.aws/openbraininstitute/entitycore:<tag>`. Do not release until approved.
+3. `gh release create <tag> --generate-notes --target main`
+4. Confirm Docker publish workflow started; return release URL.
+5. If the message also includes **deploy**, continue with Deploy using this tag; otherwise tell the user they can **deploy** after the image is published.
 
-`YYYY.M.N` — year, month (no zero-padding), sequential counter within the month starting at `0`.
-Examples: `2026.7.13`, `2026.8.0`.
+## Deploy
 
-### Next tag algorithm
+Triggered by **deploy**, or right after Release when both were requested. Tag = given tag, else latest on `main`. Image may still be building; merge terraform PR only after ECR has the image.
 
-1. `YEAR` = current UTC year, `MONTH` = current UTC month (1–12).
-2. List tags matching `YEAR.MONTH.*`; take the highest `N`.
-3. Next tag = `YEAR.MONTH.(N+1)`, or `YEAR.MONTH.0` if none exist for this month.
+Repo: `openbraininstitute/aws-terraform-deployment`. Set `entitycore_svc_image_url = "public.ecr.aws/openbraininstitute/entitycore:<tag>"` in the chosen `*.tfvars` (`staging.tfvars`, `production.tfvars`, `sandbox-nse.tfvars`, `sandbox-hpc.tfvars`, `sandbox-benchmarks.tfvars`). Ask for envs if unspecified; default **staging**.
 
-### Workflow (approval required)
-
-**Do not create the GitHub Release until the user explicitly approves.**
-
-1. Ensure `main` is checked out and up to date with `origin/main`.
-2. Find the latest tag: `git describe --tags --abbrev=0`.
-3. **Show a release preview** and stop for approval:
-   - Proposed tag (from the algorithm above).
-   - Commits since the latest tag: `git log <latest-tag>..main --oneline`.
-   - Image that will be built: `public.ecr.aws/openbraininstitute/entitycore:<tag>` (see `.github/workflows/publish.yml`).
-   - Note that GitHub will auto-generate the release title and notes.
-4. Wait for explicit user approval (e.g. "yes", "approve", "go ahead").
-5. After approval only, create a GitHub Release (same as the UI “Generate release notes” → Publish):
-   ```bash
-   gh release create <tag> --generate-notes --target main
-   ```
-   This creates the tag on `main`, publishes the release with auto-generated notes, and triggers the Docker publish workflow.
-6. Confirm the `Build and publish the Docker image` workflow started for the new tag.
-7. Return the release URL (`gh release view <tag> --json url -q .url`).
-8. If the user only said **release**, tell them they can run **deploy** once the image is published.
-   If they also said **deploy**, continue with the Deploy workflow below using the new tag (do not wait for a separate "deploy" message).
-
-## Release and deploy (combined)
-
-Triggered when the user message includes both **release** and **deploy** (e.g. "release and deploy").
-
-1. Run the full **Release** workflow (preview → wait for approval → GitHub Release with auto-generated notes).
-2. Immediately after the release is published, run the **Deploy** workflow for that same tag (default `staging` unless the user named environments).
-3. Return both results: the release URL / publish workflow status, and the terraform PR URL.
-4. Note that the Docker image may still be building when the deploy PR is opened; merging the terraform PR should wait until the image is in ECR.
-
-## Deploy (entitycore → terraform)
-
-Triggered by the user message **deploy**, or as the second step of **release and deploy**.
-
-Requires a **released** entitycore tag. Prefer waiting until the Docker image is in ECR before merging the terraform PR; opening the PR may happen right after the GitHub Release is published when combined with release. If no tag is given, use the latest git tag on `main`.
-
-### Target repository
-
-`https://github.com/openbraininstitute/aws-terraform-deployment`
-
-### Image URL format
-
-```
-public.ecr.aws/openbraininstitute/entitycore:<tag>
-```
-
-Update the `entitycore_svc_image_url` variable in the relevant `*.tfvars` files.
-
-| File | Environment |
-|------|-------------|
-| `staging.tfvars` | staging |
-| `production.tfvars` | production |
-| `sandbox-nse.tfvars` | sandbox NSE |
-| `sandbox-hpc.tfvars` | sandbox HPC |
-| `sandbox-benchmarks.tfvars` | sandbox benchmarks |
-
-**Ask which environment(s) to update** if the user did not specify. Default to `staging` only.
-
-### Workflow
-
-1. Confirm the tag and target environment(s).
-2. Clone or update the terraform repo (sibling dir or temp):
-   ```bash
-   gh repo clone openbraininstitute/aws-terraform-deployment /tmp/aws-terraform-deployment
-   cd /tmp/aws-terraform-deployment && git checkout main && git pull
-   ```
-3. Create branch `entitycore-<tag>` (or `bump-entitycore-<tag>`).
-4. In each chosen `*.tfvars`, set:
-   ```
-   entitycore_svc_image_url = "public.ecr.aws/openbraininstitute/entitycore:<tag>"
-   ```
-5. Commit, push, and open a PR:
-   ```bash
-   git checkout -b entitycore-<tag>
-   git add <changed-tfvars>
-   git commit -m "Update entitycore to <tag>"
-   git push -u origin entitycore-<tag>
-   gh pr create --title "Update entitycore to <tag>" --body "Bump entitycore_svc_image_url to <tag>."
-   ```
-6. Return the PR URL to the user.
+1. Clone/update repo on `main`, branch `entitycore-<tag>`.
+2. Update tfvars, commit `Update entitycore to <tag>`, push, `gh pr create` with that title; return PR URL.

@@ -454,7 +454,7 @@ def router_update_one[T: Schema, I: Identifiable](
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.clock_timestamp()
+        db_model_instance.update_date = sa.func.statement_timestamp()
 
     create_associations_to_entities(
         db=db,
@@ -566,7 +566,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.clock_timestamp()
+        db_model_instance.update_date = sa.func.statement_timestamp()
 
     create_associations_to_entities(
         db=db,

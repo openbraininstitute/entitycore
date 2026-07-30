@@ -1,4 +1,4 @@
-"""Use clock_timestamp for creation_date and update_date
+"""Use statement_timestamp for creation_date and update_date
 
 Revision ID: 318a78fa6cfb
 Revises: 79dbeada57f3
@@ -53,8 +53,8 @@ _TABLES = [
 
 def upgrade() -> None:
     for table in _TABLES:
-        op.alter_column(table, "creation_date", server_default=sa.text("clock_timestamp()"))
-        op.alter_column(table, "update_date", server_default=sa.text("clock_timestamp()"))
+        op.alter_column(table, "creation_date", server_default=sa.text("statement_timestamp()"))
+        op.alter_column(table, "update_date", server_default=sa.text("statement_timestamp()"))
 
 
 def downgrade() -> None:

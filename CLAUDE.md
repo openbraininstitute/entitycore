@@ -105,3 +105,22 @@ Use `tests/test_species.py` or `tests/test_subject.py` as reference for new enti
 ### S3 / Assets in Tests
 - Mocked with `moto` (`mock_aws`), session-scoped
 - Use `upload_entity_asset(client, entity_type, entity_id, files, label)` to attach files
+
+## Release
+
+Triggered by **release**. Tag format `YYYY.M.N` (UTC year/month, no zero-pad; `N` = next after highest `YEAR.MONTH.*`, or `0`).
+
+1. Update `main` from `origin/main`.
+2. Preview and **stop for approval**: next tag, `git log <latest>..main --oneline`, image `public.ecr.aws/openbraininstitute/entitycore:<tag>`. Do not release until approved.
+3. `gh release create <tag> --generate-notes --target main`
+4. Confirm Docker publish workflow started; return release URL.
+5. If the message also includes **deploy**, continue with Deploy using this tag; otherwise tell the user they can **deploy** after the image is published.
+
+## Deploy
+
+Triggered by **deploy**, or right after Release when both were requested. Tag = given tag, else latest on `main`. Image may still be building; merge terraform PR only after ECR has the image.
+
+Repo: `openbraininstitute/aws-terraform-deployment`. Set `entitycore_svc_image_url = "public.ecr.aws/openbraininstitute/entitycore:<tag>"` in the chosen `*.tfvars` (`staging.tfvars`, `production.tfvars`, `sandbox-nse.tfvars`, `sandbox-hpc.tfvars`, `sandbox-benchmarks.tfvars`). Ask for envs if unspecified; default **staging**.
+
+1. Clone/update repo on `main`, branch `entitycore-<tag>`.
+2. Update tfvars, commit `Update entitycore to <tag>`, push, `gh pr create` with that title; return PR URL.

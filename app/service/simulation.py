@@ -47,6 +47,7 @@ def _load(query: sa.Select):
         joinedload(Simulation.updated_by),
         selectinload(Simulation.assets),
         selectinload(Simulation.contributions),
+        selectinload(Simulation.recording_arrays),
         raiseload("*"),
     )
 

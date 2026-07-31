@@ -16,6 +16,7 @@ import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
+from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 from app.config import storages
@@ -306,13 +307,12 @@ def add_db(db, row):
     return row
 
 
-def add_all_db(db, rows, *, force_same_creation_date=False):
+def add_all_db(db: Session, rows, *, same_timestamps=False):
     """Add all the rows to the db and flush to make them visible within the transaction."""
-    if force_same_creation_date:
-        # Set all creation_dates to the same value to test stable tie-breaking by id
-        ts = datetime.now(UTC)
-        for row in rows:
-            row.creation_date = ts
+    ts = datetime.now(UTC)
+    for i, row in enumerate(rows):
+        delta = timedelta(microseconds=0 if same_timestamps else i)
+        row.creation_date = row.update_date = ts + delta
     db.add_all(rows)
     db.flush()
     for row in rows:

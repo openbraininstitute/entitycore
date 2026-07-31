@@ -1,8 +1,8 @@
 """Use statement_timestamp for creation_date and update_date
 
 Revision ID: 318a78fa6cfb
-Revises: 79dbeada57f3
-Create Date: 2026-07-24 09:36:36.170953
+Revises: 7bb31ca36dbe
+Create Date: 2026-07-31 09:36:36.170953
 
 """
 
@@ -17,7 +17,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "318a78fa6cfb"
-down_revision: Union[str, None] = "79dbeada57f3"
+down_revision: Union[str, None] = "7bb31ca36dbe"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

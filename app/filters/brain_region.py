@@ -68,10 +68,18 @@ def filter_by_region(
     model,
     brain_region_id: uuid.UUID,
     direction: WithinBrainRegionDirection,
-):
-    brain_region_query = get_family_query(brain_region_id=brain_region_id, direction=direction)
-    query = query.join(brain_region_query, model.brain_region_id == brain_region_query.c.id)
-    return query
+) -> tuple[sa.Select, sa.CTE]:
+    region_ids_cte = get_family_query(brain_region_id=brain_region_id, direction=direction)
+    candidate_artifacts = (
+        sa.select(model.id, model.creation_date)
+        .join(region_ids_cte, model.brain_region_id == region_ids_cte.c.id)
+        .cte("candidate_artifacts")
+        .prefix_with("MATERIALIZED")
+    )
+    return (
+        query.join(candidate_artifacts, model.id == candidate_artifacts.c.id),
+        candidate_artifacts,
+    )
 
 
 class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

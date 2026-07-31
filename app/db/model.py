@@ -105,12 +105,12 @@ class Base(DeclarativeBase):
 class TimestampMixin:
     creation_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.statement_timestamp(),
         index=True,
     )
     update_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.statement_timestamp(),
     )
 
 
@@ -1659,6 +1659,21 @@ class SimulationCampaign(
     }
 
 
+class SimulatableExtracellularRecordingArrayToSimulation(Base):
+    __tablename__ = "simulatable_extracellular_recording_array__simulation"
+
+    simulatable_extracellular_recording_array_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            f"{EntityType.simulatable_extracellular_recording_array}.id", ondelete="CASCADE"
+        ),
+        primary_key=True,
+    )
+    simulation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.simulation}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
 class Simulation(Entity, NameDescriptionVectorMixin):
     """Represents a simulation entity in the database.
 
@@ -1674,6 +1689,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         entity (Entity): The entity this simulation is associated with.
         number_neurons (int): Number of neurons to be simulated
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
+        recording_arrays: Simulatable extracellular recording arrays used by this simulation.
     """
 
     __tablename__ = EntityType.simulation.value
@@ -1697,6 +1713,13 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         default={},
         nullable=False,
         server_default="{}",
+    )
+    recording_arrays: Mapped[list["SimulatableExtracellularRecordingArray"]] = relationship(
+        "SimulatableExtracellularRecordingArray",
+        primaryjoin=(
+            "Simulation.id == SimulatableExtracellularRecordingArrayToSimulation.simulation_id"
+        ),
+        secondary="simulatable_extracellular_recording_array__simulation",
     )
 
     __mapper_args__ = {  # ruff:ignore[mutable-class-default]

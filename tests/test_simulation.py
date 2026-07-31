@@ -1,7 +1,8 @@
 import pytest
 
 from app.db.model import Simulation, SimulationCampaign
-from app.db.types import EntityType
+from app.db.types import ElectrodeType, EntityType
+from app.types import EntityRoute
 
 from .utils import (
     PROJECT_ID,
@@ -50,6 +51,7 @@ def _assert_read_response(data, json_data):
     assert "authorized_public" in data
     assert "authorized_project_id" in data
     assert "assets" in data
+    assert "recording_arrays" in data
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.simulation
@@ -60,6 +62,28 @@ def _assert_read_response(data, json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+    assert data["recording_arrays"] == []
+
+
+def test_create_one_with_recording_arrays(client, json_data, root_circuit):
+    array_route = f"/{EntityRoute.simulatable_extracellular_recording_array}"
+    arrays = [
+        assert_request(
+            client.post,
+            url=array_route,
+            json={
+                "name": f"array-{i}",
+                "description": f"array-description-{i}",
+                "electrode_type": ElectrodeType.custom,
+                "circuit_id": str(root_circuit.id),
+            },
+        ).json()
+        for i in range(2)
+    ]
+    payload = json_data | {"recording_arrays": [{"id": array["id"]} for array in arrays]}
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    _assert_read_response(data, payload)
+    assert {array["id"] for array in data["recording_arrays"]} == {array["id"] for array in arrays}
 
 
 def test_update_one(clients, public_json_data):

@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ValidationError
 
 from app.errors import ApiError, ApiErrorCode
@@ -14,9 +14,9 @@ def make_http_request(
     json: dict | None = None,
     parameters: dict | None = None,
     headers: dict | None = None,
-    http_client: httpx.Client,
+    http_client: httpx2.Client,
     ignored_errors: set[int] | None = None,
-) -> httpx.Response:
+) -> httpx2.Response:
     """Make a HTTP request.
 
     Args:
@@ -25,7 +25,7 @@ def make_http_request(
         json: json request payload.
         parameters: query parameters.
         headers: request headers.
-        http_client: instance of httpx.Client.
+        http_client: instance of httpx2.Client.
         ignored_errors: status_code errors that should not raise an error.
 
     Returns:
@@ -40,7 +40,7 @@ def make_http_request(
             params=parameters,
             follow_redirects=True,
         )
-    except httpx.RequestError as e:
+    except httpx2.RequestError as e:
         L.opt(depth=1).warning("HTTP request error in {} {}: {!r}", method, url, e)
         raise ApiError(
             message="HTTP request error",
@@ -58,7 +58,7 @@ def make_http_request(
     return response
 
 
-def deserialize_response[T: BaseModel](response: httpx.Response, model_class: type[T]) -> T:
+def deserialize_response[T: BaseModel](response: httpx2.Response, model_class: type[T]) -> T:
     """Deserialize the response using a Pydantic model, or raise an error."""
     try:
         return model_class.model_validate_json(response.content)

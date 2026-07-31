@@ -4,7 +4,7 @@ import re
 from http import HTTPStatus
 from uuid import UUID
 
-import httpx
+import httpx2
 import pytest
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import ValidationError
@@ -82,16 +82,15 @@ def test_get_admin_virtual_lab_client_ignores_user_context(
 
 
 def test_get_virtual_lab_by_project_success(
-    httpx_mock,
+    httpx2_mock,
     user_context_admin,
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
     virtual_lab_id = UUID(VIRTUAL_LAB_ID)
-    httpx_mock.add_response(
-        url=_virtual_lab_project_url(virtual_lab_api_url, project_id),
-        json=_mapping_response_json(project_id, virtual_lab_id),
+    httpx2_mock.get(_virtual_lab_project_url(virtual_lab_api_url, project_id)).respond(
+        json=_mapping_response_json(project_id, virtual_lab_id)
     )
 
     client = test_module.get_admin_virtual_lab_client(
@@ -104,21 +103,20 @@ def test_get_virtual_lab_by_project_success(
         project_id=project_id,
         virtual_lab_id=virtual_lab_id,
     )
-    request = httpx_mock.get_request()
+    request = httpx2_mock.calls.last.request
     assert request.method == "GET"
     assert request.headers["Authorization"] == f"Bearer {TOKEN_ADMIN}"
 
 
 def test_get_virtual_lab_by_project_http_status_error(
-    httpx_mock,
+    httpx2_mock,
     user_context_admin,
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
-    httpx_mock.add_response(
-        url=_virtual_lab_project_url(virtual_lab_api_url, project_id),
-        status_code=HTTPStatus.NOT_FOUND,
+    httpx2_mock.get(_virtual_lab_project_url(virtual_lab_api_url, project_id)).respond(
+        HTTPStatus.NOT_FOUND
     )
 
     client = test_module.get_admin_virtual_lab_client(
@@ -136,12 +134,12 @@ def test_get_virtual_lab_by_project_http_status_error(
 
 @pytest.mark.usefixtures("virtual_lab_api_url")
 def test_get_virtual_lab_by_project_request_error(
-    httpx_mock,
+    httpx2_mock,
     user_context_admin,
     admin_bearer_credentials,
 ):
     project_id = UUID(PROJECT_ID)
-    httpx_mock.add_exception(httpx.ConnectError("connection refused"))
+    httpx2_mock.get().mock(side_effect=httpx2.ConnectError("connection refused"))
 
     client = test_module.get_admin_virtual_lab_client(
         user_context_admin,
@@ -157,15 +155,14 @@ def test_get_virtual_lab_by_project_request_error(
 
 
 def test_get_virtual_lab_by_project_invalid_mapping_payload(
-    httpx_mock,
+    httpx2_mock,
     user_context_admin,
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
-    httpx_mock.add_response(
-        url=_virtual_lab_project_url(virtual_lab_api_url, project_id),
-        json={"data": {"project_id": "not-a-uuid", "virtual_lab_id": str(UUID(VIRTUAL_LAB_ID))}},
+    httpx2_mock.get(_virtual_lab_project_url(virtual_lab_api_url, project_id)).respond(
+        json={"data": {"project_id": "not-a-uuid", "virtual_lab_id": str(UUID(VIRTUAL_LAB_ID))}}
     )
 
     client = test_module.get_admin_virtual_lab_client(
@@ -178,15 +175,14 @@ def test_get_virtual_lab_by_project_invalid_mapping_payload(
 
 
 def test_get_virtual_lab_by_project_missing_data_key(
-    httpx_mock,
+    httpx2_mock,
     user_context_admin,
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
-    httpx_mock.add_response(
-        url=_virtual_lab_project_url(virtual_lab_api_url, project_id),
-        json={"unexpected": "shape"},
+    httpx2_mock.get(_virtual_lab_project_url(virtual_lab_api_url, project_id)).respond(
+        json={"unexpected": "shape"}
     )
 
     client = test_module.get_admin_virtual_lab_client(
@@ -199,18 +195,17 @@ def test_get_virtual_lab_by_project_missing_data_key(
 
 
 def test_admin_virtual_lab_client_direct_instantiation(
-    httpx_mock,
+    httpx2_mock,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
-    httpx_mock.add_response(
-        url=re.compile(rf"{re.escape(virtual_lab_api_url)}/virtual-labs/projects/.+/virtual-lab"),
-        json=_mapping_response_json(project_id),
-    )
+    httpx2_mock.get(
+        url__regex=rf"{re.escape(virtual_lab_api_url)}/virtual-labs/projects/.+/virtual-lab"
+    ).respond(json=_mapping_response_json(project_id))
 
     client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token="direct-token")  # ruff:ignore[hardcoded-password-func-arg]
     mapping = client.get_virtual_lab_by_project(project_id)
 
     assert mapping.project_id == project_id
     assert mapping.virtual_lab_id == UUID(VIRTUAL_LAB_ID)
-    assert httpx_mock.get_request().headers["Authorization"] == "Bearer direct-token"
+    assert httpx2_mock.calls.last.request.headers["Authorization"] == "Bearer direct-token"

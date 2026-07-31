@@ -54,9 +54,10 @@ def virtual_lab_api_url(monkeypatch):
 
 
 @pytest.fixture
-def mock_virtual_lab_project_mapping(httpx_mock, virtual_lab_api_url):
-    httpx_mock.add_response(
-        url=f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab",
+def mock_virtual_lab_project_mapping(httpx2_mock, virtual_lab_api_url):
+    httpx2_mock.get(
+        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
+    ).respond(
         json={
             "data": {
                 "project_id": PROJECT_ID,
@@ -597,12 +598,11 @@ def test_upload_entity_asset_admin_s3_failure(client_admin, entity):
 
 
 def test_upload_entity_asset_admin_virtual_lab_api_failure(
-    client_admin, entity, httpx_mock, virtual_lab_api_url
+    client_admin, entity, httpx2_mock, virtual_lab_api_url
 ):
-    httpx_mock.add_response(
-        url=f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab",
-        status_code=HTTPStatus.NOT_FOUND,
-    )
+    httpx2_mock.get(
+        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
+    ).respond(HTTPStatus.NOT_FOUND)
     with FILE_EXAMPLE_PATH.open("rb") as f:
         response = client_admin.post(
             f"/admin{route(entity.type)}/{entity.id}/assets",

@@ -5,8 +5,11 @@ from app.schemas.base import (
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
-from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityCreate, NestedEntityRead
 from app.schemas.me_model import NestedMEModel
+from app.schemas.simulatable_extracellular_recording_array import (
+    NestedSimulatableExtracellularRecordingArrayRead,
+)
 from app.schemas.synaptome import NestedSynaptome
 from app.schemas.utils import make_update_schema
 
@@ -79,7 +82,7 @@ class SimulationBaseMixin(NameDescriptionMixin):
 
 
 class SimulationCreate(SimulationBaseMixin, EntityCreate):
-    pass
+    recording_arrays: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
 
 
 SimulationUserUpdate = make_update_schema(SimulationCreate, "SimulationUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -99,4 +102,4 @@ class SimulationRead(
     SimulationBaseMixin,
     EntityRead,
 ):
-    pass
+    recording_arrays: list[NestedSimulatableExtracellularRecordingArrayRead]

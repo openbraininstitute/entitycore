@@ -1,8 +1,8 @@
 """Split PlatformUser from Person
 
 Revision ID: 122ee418a384
-Revises: 79dbeada57f3
-Create Date: 2026-07-28 17:17:10.942746
+Revises: 318a78fa6cfb
+Create Date: 2026-07-31 17:17:10.942746
 
 
 """
@@ -17,7 +17,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "122ee418a384"
-down_revision: Union[str, None] = "79dbeada57f3"
+down_revision: Union[str, None] = "318a78fa6cfb"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -121,13 +121,13 @@ def upgrade() -> None:
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=sa.text("statement_timestamp()"),
             nullable=False,
         ),
         sa.Column(
             "update_date",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=sa.text("statement_timestamp()"),
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_platform_user")),

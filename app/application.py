@@ -34,6 +34,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         settings.ENVIRONMENT,
     )
     database_session_manager = configure_database_session_manager()
+    app.state.database_session_manager = database_session_manager
     http_client = httpx.Client()
     try:
         yield {

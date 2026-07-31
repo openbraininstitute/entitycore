@@ -16,6 +16,7 @@ import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
+from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 from app.config import storages
@@ -299,26 +300,21 @@ def create_skeletonization_config_id(
 
 
 def add_db(db, row):
-    """Add one row to the db and commit the transaction."""
+    """Add one row to the db and flush to make it visible within the transaction."""
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
 
-def add_all_db(db, rows, *, same_transaction=False):
-    """Add all the rows to the db and commit the transaction.
-
-    If same_transaction is True, all records are inserted in the same transaction,
-    and the creation_date and update_date might be always the same.
-    """
-    if same_transaction:
-        db.add_all(rows)
-        db.commit()
-    else:
-        for row in rows:
-            db.add(row)
-            db.commit()
+def add_all_db(db: Session, rows, *, same_timestamps=False):
+    """Add all the rows to the db and flush to make them visible within the transaction."""
+    ts = datetime.now(UTC)
+    for i, row in enumerate(rows):
+        delta = timedelta(microseconds=0 if same_timestamps else i)
+        row.creation_date = row.update_date = ts + delta
+    db.add_all(rows)
+    db.flush()
     for row in rows:
         db.refresh(row)
     return rows
@@ -892,7 +888,7 @@ def create_person(
         updated_by_id=created_by_id or agent_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 

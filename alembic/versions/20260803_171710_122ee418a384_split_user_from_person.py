@@ -1,8 +1,8 @@
 """Split PlatformUser from Person
 
 Revision ID: 122ee418a384
-Revises: 318a78fa6cfb
-Create Date: 2026-07-31 17:17:10.942746
+Revises: ebfe59df7092
+Create Date: 2026-08-03 17:17:10.942746
 
 
 """
@@ -17,7 +17,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "122ee418a384"
-down_revision: Union[str, None] = "318a78fa6cfb"
+down_revision: Union[str, None] = "ebfe59df7092"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

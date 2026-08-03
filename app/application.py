@@ -34,6 +34,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         settings.ENVIRONMENT,
     )
     database_session_manager = configure_database_session_manager()
+    app.state.database_session_manager = database_session_manager
     http_client = httpx.Client()
     try:
         yield {
@@ -45,7 +46,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         L.info("Ignored {} in lifespan", err)
     finally:
         database_session_manager.close()
-        http_client.close()  # noqa: ASYNC212
+        http_client.close()  # ruff:ignore[blocking-http-call-httpx-in-async-function]
         L.info("Stopping application")
 
 

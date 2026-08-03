@@ -1,4 +1,4 @@
-import hashlib  # noqa: INP001
+import hashlib  # ruff:ignore[implicit-namespace-package]
 import json
 import logging
 import re
@@ -32,7 +32,7 @@ OUTPUT_PLACEHOLDERS = {
 }
 
 
-def normalize(obj, placeholders):  # noqa: PLR0911
+def normalize(obj, placeholders):  # ruff:ignore[too-many-return-statements]
     # Replace volatile fields but keep structure
     if isinstance(obj, dict):
         return {k: normalize(v, placeholders) for k, v in obj.items()}
@@ -92,7 +92,7 @@ def dump_output(content) -> str:
 def extract(source: Path, component: str | None, output: Path) -> None:
     comp_regex = re.compile(component) if component else None
     for path in source.glob("*.json"):
-        try:
+        try:  # ruff:ignore[too-many-statements-in-try-clause]
             data = json.loads(path.read_text())
             request = data["request"]
             response = data["response"]

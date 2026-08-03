@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import boto3
@@ -11,10 +12,11 @@ import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from starlette.requests import Request
 from types_boto3_s3 import S3Client
 
+import app.dependencies.db as db_module
 from app.application import app
 from app.config import storages
 from app.db.model import (
@@ -22,7 +24,6 @@ from app.db.model import (
     AnalysisNotebookEnvironment,
     AnalysisNotebookResult,
     AnalysisNotebookTemplate,
-    Base,
     BrainAtlas,
     CellMorphology,
     Circuit,
@@ -50,7 +51,6 @@ from app.db.model import (
     Subject,
     TaskResult,
 )
-from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import (
     CellMorphologyGenerationType,
     EntityLifecycleStatus,
@@ -99,14 +99,17 @@ from .utils import (
     create_ion_channel_recording_id_with_assets,
 )
 
+if TYPE_CHECKING:
+    from app.db.session import DatabaseSessionManager
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _setup_env_variables():
     # Mock AWS Credentials for moto
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
-    os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # ruff:ignore[hardcoded-password-string]
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # ruff:ignore[hardcoded-password-string]
+    os.environ["AWS_SESSION_TOKEN"] = "testing"  # ruff:ignore[hardcoded-password-string]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -346,7 +349,7 @@ def _override_check_user_info(
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
@@ -356,7 +359,7 @@ def _override_check_user_info(
 def _override_embedding_generation(monkeypatch):
     """Mock the embedding generation to avoid making actual OpenAI API calls during tests."""
 
-    def mock_generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:  # noqa: ARG001
+    def mock_generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:  # ruff:ignore[unused-function-argument]
         """Return a fixed-size embedding vector filled with 0.1 values."""
         return [0.1] * EmbeddingMixin.SIZE
 
@@ -367,7 +370,7 @@ def _override_embedding_generation(monkeypatch):
 
 
 @pytest.fixture(scope="session")
-def session_client(_create_buckets):
+def session_client(_create_buckets) -> Iterator[TestClient]:
     """Run the lifespan events.
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
@@ -466,26 +469,45 @@ def clients(
     )
 
 
-@pytest.fixture(scope="session")
-def database_session_manager() -> Iterator[DatabaseSessionManager]:
-    manager = configure_database_session_manager()
-    yield manager
-    manager.close()
-
-
-@pytest.fixture
-def db(database_session_manager) -> Iterator[Session]:
-    with database_session_manager.session() as session:
-        yield session
-
-
 @pytest.fixture(autouse=True)
-def _db_cleanup(db):
-    yield
-    db.rollback()
-    query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
-    db.execute(query)
-    db.commit()
+def db(session_client, monkeypatch) -> Iterator[Session]:
+    """Yield a session that shares a transaction with all app requests for this test.
+
+    The session is bound to a connection with an open transaction.
+    join_transaction_mode="create_savepoint" allows the session to call commit()/rollback()
+    without error even though it's joined to an external transaction. The outer transaction
+    is rolled back in teardown, cleaning up all test data without needing TRUNCATE.
+
+    monkeypatch.setattr on _get_session is used instead of app.dependency_overrides because
+    a non-empty dependency_overrides causes FastAPI to re-analyze the full dependency graph
+    on every request (get_dependant called ~10x more), almost doubling the test suite runtime.
+    To switch back to dependency_overrides, replace the monkeypatch with:
+        monkeypatch.setitem(app.dependency_overrides, db_module.get_db, _patched_get_session)
+    """
+    manager: DatabaseSessionManager = session_client.app.state.database_session_manager
+    with manager.engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(
+            connection,
+            expire_on_commit=False,
+            autocommit=False,
+            autoflush=False,
+            join_transaction_mode="create_savepoint",
+        )
+
+        def _patched_get_session(request: Request):  # ruff:ignore[unused-function-argument]
+            # expire before each request so objects inserted by test setup are reloaded
+            # fresh from DB, preventing stale cached relationships (e.g. selectin) from
+            # being seen by the request handler
+            session.expire_all()
+            with session.begin_nested():
+                yield session
+
+        monkeypatch.setattr(db_module, "_get_session", _patched_get_session)
+
+        yield session
+        session.close()
+        transaction.rollback()
 
 
 @pytest.fixture
@@ -514,7 +536,7 @@ def organization_id(db, person_id):
         updated_by_id=person_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row.id
 
@@ -528,7 +550,7 @@ def role_id(db, person_id):
         updated_by_id=person_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row.id
 

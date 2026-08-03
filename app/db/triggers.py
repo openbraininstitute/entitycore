@@ -58,7 +58,7 @@ def _truncate_identifier(name: str) -> str:
     if len(name) <= MAX_IDENTIFIER_LENGTH:
         return name
 
-    checksum = hashlib.sha1(name.encode()).hexdigest()[:8]  # noqa: S324
+    checksum = hashlib.sha1(name.encode()).hexdigest()[:8]  # ruff:ignore[hashlib-insecure-hash-function]
 
     max_length = MAX_IDENTIFIER_LENGTH
     truncated = name[: max_length - 9]
@@ -142,7 +142,7 @@ def unauthorized_private_reference_function(model: type[Entity], field_name: str
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-        """,  # noqa: S608
+        """,  # ruff:ignore[hardcoded-sql-expression]
     )
 
 

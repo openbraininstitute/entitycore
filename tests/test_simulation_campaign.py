@@ -295,7 +295,7 @@ def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuit
     return campaigns
 
 
-def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multiple_circuits):  # ruff:ignore[unused-function-argument]
     first_circuit_id = str(multiple_circuits[0].id)
 
     data = assert_request(client.get, url=ROUTE, params={"entity_id": first_circuit_id}).json()[
@@ -320,7 +320,7 @@ def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multipl
     assert data[0]["name"] == "campaign-circuit-1"
 
 
-def test_filter_by_circuit_name(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+def test_filter_by_circuit_name(client, campaigns_with_different_circuits, multiple_circuits):  # ruff:ignore[unused-function-argument]
     data = assert_request(
         client.get, url=ROUTE, params={"circuit__name": "micro-circuit-1", "with_facets": True}
     ).json()["data"]
@@ -336,7 +336,7 @@ def test_filter_by_circuit_name(client, campaigns_with_different_circuits, multi
     assert data[0]["name"] == "campaign-circuit-1"
 
 
-def test_filter_by_circuit_scale(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+def test_filter_by_circuit_scale(client, campaigns_with_different_circuits, multiple_circuits):  # ruff:ignore[unused-function-argument]
     data = assert_request(
         client.get,
         url=ROUTE,
@@ -373,8 +373,8 @@ def test_filter_by_circuit_scale(client, campaigns_with_different_circuits, mult
 
 def test_filter_by_circuit_build_category(
     client,
-    campaigns_with_different_circuits,  # noqa: ARG001
-    multiple_circuits,  # noqa: ARG001
+    campaigns_with_different_circuits,  # ruff:ignore[unused-function-argument]
+    multiple_circuits,  # ruff:ignore[unused-function-argument]
 ):
     data = assert_request(
         client.get,

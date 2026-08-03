@@ -48,7 +48,7 @@ def _mapping_response_json(
 
 
 def test_virtual_lab_client_initialization(virtual_lab_api_url):
-    client = VirtualLabClient(base_url=virtual_lab_api_url, token="user-token")  # noqa: S106
+    client = VirtualLabClient(base_url=virtual_lab_api_url, token="user-token")  # ruff:ignore[hardcoded-password-func-arg]
     assert str(client._http_client.base_url) == virtual_lab_api_url
     assert client._http_client.headers["Authorization"] == "Bearer user-token"
 
@@ -208,7 +208,7 @@ def test_admin_virtual_lab_client_direct_instantiation(
         json=_mapping_response_json(project_id),
     )
 
-    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token="direct-token")  # noqa: S106
+    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token="direct-token")  # ruff:ignore[hardcoded-password-func-arg]
     mapping = client.get_virtual_lab_by_project(project_id)
 
     assert mapping.project_id == project_id

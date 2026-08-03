@@ -237,7 +237,7 @@ def _with_subquery[I: Identifiable](
     - using pagination and requesting a large offset, and
     - needing many columns for building the results, but not all of them are needed for filtering.
     """
-    order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
+    order_by_clauses = data_query._order_by_clauses  # ruff:ignore[private-member-access]
     # dict of modifiers as found in UnaryExpression.
     modifiers = {
         operators.desc_op: lambda x: x.desc(),
@@ -280,7 +280,7 @@ def _with_subquery[I: Identifiable](
     )
 
 
-def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
+def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-arguments]
     *,
     db: Session,
     db_model_class: type[I],
@@ -364,7 +364,7 @@ def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):
         # Remove existing ordering clauses
-        data_query._order_by_clauses = ()  # noqa: SLF001
+        data_query._order_by_clauses = ()  # ruff:ignore[private-member-access]
 
         # Order by L2 distance first, then by ID to guarantee uniqueness
         data_query = data_query.order_by(
@@ -421,7 +421,7 @@ def router_update_one[T: Schema, I: Identifiable](
     apply_operations: ApplyOperations | None = None,
     check_authorized_project: bool,
 ):
-    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
+    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class, {})
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
@@ -448,28 +448,26 @@ def router_update_one[T: Schema, I: Identifiable](
 
     db_model_instance = update_model(
         model=db_model_instance,
-        data=json_model.model_dump(
-            exclude_unset=True, exclude=set(nested_relationships) if nested_relationships else None
-        ),
+        data=json_model.model_dump(exclude_unset=True, exclude=set(nested_relationships)),
     )
 
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_model_instance.update_date = sa.func.statement_timestamp()
+
+    create_associations_to_entities(
+        db=db,
+        parent=db_model_instance,
+        json_model=json_model,
+        nested_relationships=nested_relationships,
+        project_id=getattr(db_model_instance, "authorized_project_id", None),
+        action="update",
+    )
 
     db.flush()
-    db.refresh(db_model_instance)
-
-    if nested_relationships:
-        create_associations_to_entities(
-            db=db,
-            parent=db_model_instance,
-            json_model=json_model,
-            nested_relationships=nested_relationships,
-            project_id=getattr(db_model_instance, "authorized_project_id", None),
-            action="update",
-        )
+    relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+    db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
 
     return response_schema_class.model_validate(db_model_instance)
 
@@ -568,7 +566,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     if db.is_modified(db_model_instance):
         db_agent = get_or_create_user_agent(db, user_context.profile)
         db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_model_instance.update_date = sa.func.statement_timestamp()
 
     create_associations_to_entities(
         db=db,
@@ -580,6 +578,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     )
 
     db.flush()
-    db.refresh(db_model_instance)
+    relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+    db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
 
     return response_schema_class.model_validate(db_model_instance)

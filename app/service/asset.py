@@ -1,4 +1,5 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http import HTTPStatus
 from pathlib import Path
 from typing import cast
@@ -15,29 +16,36 @@ from app.db.utils import allowed_asset_labels_for
 from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilterDep
-from app.logger import L
 from app.queries import crud
 from app.queries.common import get_or_create_user_agent, router_read_many
 from app.queries.utils import is_user_authorized_for_deletion
 from app.repository.group import RepositoryGroup
-from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetCreate,
     AssetRead,
     AssetReadWithUploadMeta,
+    AssetRegister,
     DetailedFileList,
     DirectoryUploadRequest,
+    MultipartDirectoryFileRequest,
     MultipartDirectoryUploadRequest,
     MultipartDirectoryUploadResponse,
-    ToUploadPart,
+    MultipartUploadInitiateRequest,
     UploadMeta,
-    UploadMetaRead,
     validate_asset_label,
     validate_relative_path,
 )
 from app.schemas.auth import UserContext, UserProfile
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
+from app.service.asset_helpers import (
+    build_asset_read_with_upload_meta,
+    complete_asset_s3,
+    complete_empty_asset_s3,
+    generate_upload_presigned_urls,
+    initiate_multipart_upload,
+)
+from app.types import EntityRoute
 from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
@@ -46,15 +54,12 @@ from app.utils.s3 import (
     check_object,
     generate_presigned_url,
     list_directory_with_details,
-    multipart_compute_upload_plan,
-    multipart_upload_complete,
-    multipart_upload_create_part_presigned_url,
-    multipart_upload_initiate,
-    multipart_upload_list_parts,
     upload_to_s3,
     validate_filename,
     validate_filesize,
+    validate_multipart_filesize,
 )
+from app.utils.virtual_lab import resolve_virtual_lab_id
 
 
 def get_entity_assets(
@@ -141,7 +146,7 @@ def get_writable_entity_db_asset(
     return asset
 
 
-def create_entity_asset_unverified(  # noqa: PLR0913
+def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
     repos: RepositoryGroup,
     *,
     entity: Entity,
@@ -158,7 +163,7 @@ def create_entity_asset_unverified(  # noqa: PLR0913
     full_path: str | None = None,
     status: AssetStatus = AssetStatus.CREATED,
     parent_id: uuid.UUID | None = None,
-) -> AssetRead:
+) -> Asset:
     """Create an asset for the specified entity object, that is assumed to be writable.
 
     Args:
@@ -218,15 +223,14 @@ def create_entity_asset_unverified(  # noqa: PLR0913
         f"full_path {asset_create.full_path!r} already exists",
         error_code=ApiErrorCode.ASSET_DUPLICATED,
     ):
-        asset_db = repos.asset.create_entity_asset(
+        return repos.asset.create_entity_asset(
             entity_id=entity.id,
             asset=asset_create,
             status=status,
         )
-    return AssetRead.model_validate(asset_db)
 
 
-def create_entity_asset(  # noqa: PLR0913
+def create_entity_asset(  # ruff:ignore[too-many-arguments]
     repos: RepositoryGroup,
     *,
     user_context: UserContext,
@@ -270,32 +274,25 @@ def create_entity_asset(  # noqa: PLR0913
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
-        project_id=entity.authorized_project_id
-    )
-    if virtual_lab_id is None:
-        msg = "Virtual lab id not found from project id in user groups."
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    return AssetRead.model_validate(
+        create_entity_asset_unverified(
+            repos,
+            entity=entity,
+            filename=filename,
+            content_type=content_type,
+            size=size,
+            sha256_digest=sha256_digest,
+            meta=meta,
+            label=label,
+            is_directory=is_directory,
+            storage_type=storage_type,
+            full_path=full_path,
+            status=status,
+            parent_id=parent_id,
+            user_profile=user_context.profile,
+            virtual_lab_id=virtual_lab_id,
         )
-    return create_entity_asset_unverified(
-        repos,
-        entity=entity,
-        filename=filename,
-        content_type=content_type,
-        size=size,
-        sha256_digest=sha256_digest,
-        meta=meta,
-        label=label,
-        is_directory=is_directory,
-        storage_type=storage_type,
-        full_path=full_path,
-        status=status,
-        parent_id=parent_id,
-        user_profile=user_context.profile,
-        virtual_lab_id=virtual_lab_id,
     )
 
 
@@ -406,6 +403,7 @@ def delete_asset_unverified(
     """Delete an asset from the db withouth checking authorization.
 
     In case of directory asset with children registered in the db, they are deleted on cascade.
+
     Asset storage object is deleted via `app.db.events`.
     """
     # TODO: Only directories registered with multipart upload have the children in the db, but
@@ -434,17 +432,8 @@ def entity_asset_directory_upload(
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
-        project_id=entity.authorized_project_id
-    )
-    if virtual_lab_id is None:
-        msg = "Virtual lab id not found from project id in user groups."
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    asset_read = create_entity_asset_unverified(
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    asset_db = create_entity_asset_unverified(
         repos,
         entity=entity,
         filename=str(files.directory_name),
@@ -484,7 +473,203 @@ def entity_asset_directory_upload(
 
         urls[path] = AnyUrl(url)
 
-    return asset_read, urls
+    return AssetRead.model_validate(asset_db), urls
+
+
+def register_entity_asset_unverified(
+    repos: RepositoryGroup,
+    *,
+    entity: Entity,
+    virtual_lab_id: uuid.UUID,
+    user_profile: UserProfile,
+    storage_client_factory: StorageClientFactory,
+    asset: AssetRegister,
+) -> AssetRead:
+    """Register an asset already in cloud, without checking authorization."""
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+    try:
+        check_result = check_object(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=asset.full_path,
+            is_directory=asset.is_directory,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to check object") from e
+    if not check_result["exists"]:
+        raise ApiError(
+            message="Object does not exist in S3",
+            error_code=ApiErrorCode.ASSET_NOT_FOUND,
+            http_status_code=HTTPStatus.CONFLICT,
+            details={
+                "bucket": storage.bucket,
+                "region": storage.region,
+                "s3_key": asset.full_path,
+            },
+        )
+    return AssetRead.model_validate(
+        create_entity_asset_unverified(
+            repos,
+            entity=entity,
+            filename=asset.path,
+            content_type=asset.content_type,
+            size=-1,  # considered unknown for already existing assets
+            sha256_digest=None,  # considered unknown for already existing assets
+            meta=asset.meta,
+            label=asset.label,
+            is_directory=asset.is_directory,
+            storage_type=storage.type,
+            full_path=asset.full_path,
+            user_profile=user_profile,
+            virtual_lab_id=virtual_lab_id,
+        )
+    )
+
+
+def multipart_upload_initiate_unverified(
+    repos: RepositoryGroup,
+    *,
+    entity: Entity,
+    virtual_lab_id: uuid.UUID,
+    user_profile: UserProfile,
+    s3_client: S3Client,
+    storage: StorageUnion,
+    json_model: MultipartUploadInitiateRequest,
+) -> AssetReadWithUploadMeta:
+    """Initiate a multipart file upload, without checking authorization."""
+    if not validate_multipart_filesize(json_model.filesize):
+        raise ApiError(
+            message=f"File not allowed because bigger than {settings.S3_MULTIPART_UPLOAD_MAX_SIZE}",
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    if not validate_filename(json_model.filename):
+        raise ApiError(
+            message=f"Invalid file name {json_model.filename!r}",
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    try:
+        content_type = get_content_type(json_model)
+    except ValueError as e:
+        raise ApiError(
+            message=(
+                f"Invalid content type for file {json_model.filename}. "
+                f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
+                f"Exception: {e}"
+            ),
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from None
+    asset_read = AssetRead.model_validate(
+        create_entity_asset_unverified(
+            repos,
+            entity=entity,
+            filename=json_model.filename,
+            content_type=content_type,
+            size=json_model.filesize,
+            sha256_digest=json_model.sha256_digest,
+            meta=None,
+            label=json_model.label,
+            is_directory=False,
+            storage_type=storage.type,
+            status=AssetStatus.UPLOADING,
+            user_profile=user_profile,
+            virtual_lab_id=virtual_lab_id,
+        )
+    )
+    return _entity_asset_multipart_upload_initiate(
+        repos=repos,
+        s3_client=s3_client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        asset_id=asset_read.id,
+        bucket=storage.bucket,
+        s3_key=asset_read.full_path,
+        filesize=json_model.filesize,
+        content_type=content_type,
+        preferred_part_count=json_model.preferred_part_count,
+    )
+
+
+def register_entity_asset(
+    repos: RepositoryGroup,
+    *,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    asset: AssetRegister,
+) -> AssetRead:
+    """Register an asset already in cloud."""
+    entity = entity_service.get_writable_entity_by_context(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    return register_entity_asset_unverified(
+        repos,
+        entity=entity,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
+        storage_client_factory=storage_client_factory,
+        asset=asset,
+    )
+
+
+def multipart_upload_initiate(
+    repos: RepositoryGroup,
+    *,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    json_model: MultipartUploadInitiateRequest,
+) -> AssetReadWithUploadMeta:
+    """Initiate a multipart file upload."""
+    entity = entity_service.get_writable_entity_by_context(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    storage = storages[StorageType.aws_s3_internal]
+    s3_client = storage_client_factory(storage)
+    return multipart_upload_initiate_unverified(
+        repos,
+        entity=entity,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
+        s3_client=s3_client,
+        storage=storage,
+        json_model=json_model,
+    )
+
+
+def list_directory_unverified(
+    *,
+    asset: AssetRead,
+    storage_client_factory: StorageClientFactory,
+) -> DetailedFileList:
+    """Return the list of files in a directory asset, without checking authorization."""
+    if not asset.is_directory:
+        raise ApiError(
+            message="Asset is not a directory, cannot be listed",
+            error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+    ret = list_directory_with_details(
+        s3_client,
+        bucket_name=storage.bucket,
+        prefix=asset.full_path,
+    )
+    return DetailedFileList.model_validate({"files": ret})
 
 
 def list_directory(
@@ -495,7 +680,6 @@ def list_directory(
     asset_id: uuid.UUID,
     storage_client_factory: StorageClientFactory,
 ) -> DetailedFileList:
-
     asset = get_entity_asset(
         repos,
         user_context=user_context,
@@ -503,25 +687,10 @@ def list_directory(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    if not asset.is_directory:
-        raise ApiError(
-            message="Asset is not a directory, cannot be listed",
-            error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    storage = storages[asset.storage_type]
-    s3_client = storage_client_factory(storage)
-
-    ret = list_directory_with_details(
-        s3_client,
-        bucket_name=storage.bucket,
-        prefix=asset.full_path,
-    )
-
-    return DetailedFileList.model_validate({"files": ret})
+    return list_directory_unverified(asset=asset, storage_client_factory=storage_client_factory)
 
 
-def entity_asset_multipart_upload_initiate(
+def _entity_asset_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
     entity_type: EntityType,
@@ -531,7 +700,7 @@ def entity_asset_multipart_upload_initiate(
     s3_key: str,
     bucket: str,
     filesize: int,
-    content_type: str,
+    content_type: ContentType,
     preferred_part_count: int,
 ) -> AssetReadWithUploadMeta:
     """Initiate a multipart upload for an existing entity asset.
@@ -551,47 +720,33 @@ def entity_asset_multipart_upload_initiate(
             asset_id=asset_id,
         )
 
-    storage = storages[asset.storage_type]
-
-    upload_id = multipart_upload_initiate(
+    upload_meta = initiate_multipart_upload(
         s3_client=s3_client,
         s3_key=s3_key,
         bucket=bucket,
         content_type=content_type,
-    )
-    part_size, part_count = multipart_compute_upload_plan(
         filesize=filesize,
         preferred_part_count=preferred_part_count,
     )
-    parts = [
-        ToUploadPart(
-            part_number=part_number,
-            url=multipart_upload_create_part_presigned_url(
-                s3_client=s3_client,
-                bucket=storage.bucket,
-                s3_key=asset.full_path,
-                upload_id=upload_id,
-                part_number=part_number,
-            ),
-        )
-        for part_number in range(1, part_count + 1)
-    ]
     asset.status = AssetStatus.UPLOADING
-    asset.upload_meta = UploadMeta(
-        upload_id=upload_id,
-        part_size=part_size,
-        part_count=part_count,
-    ).model_dump()
+    asset.upload_meta = upload_meta.model_dump()
     repos.db.flush()
 
-    # The presigned urls are not stored in the db because not needed and potentially too numerous
-    # The upload_id is not provided in the response because it is not needed by the client
+    parts = generate_upload_presigned_urls(s3_client=s3_client, asset=asset)
+    return build_asset_read_with_upload_meta(asset, parts)
 
-    base_asset_read = AssetRead.model_validate(asset)
-    upload_meta = UploadMetaRead(part_size=part_size, parts=parts)
-    return AssetReadWithUploadMeta.model_validate(
-        {**base_asset_read.model_dump(), "upload_meta": upload_meta.model_dump()}
-    )
+
+def multipart_upload_complete_unverified(
+    repos: RepositoryGroup,
+    asset_db: Asset,
+    storage_client_factory: StorageClientFactory,
+) -> AssetRead:
+    """Complete a multipart upload for an asset, without checking authorization."""
+    storage = storages[asset_db.storage_type]
+    complete_asset_s3(asset=asset_db, storage=storage, s3_client=storage_client_factory(storage))
+    asset_db.status = AssetStatus.CREATED
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)
 
 
 def entity_asset_multipart_upload_complete(
@@ -601,8 +756,7 @@ def entity_asset_multipart_upload_complete(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for an existing entity asset."""
     asset_db = get_writable_entity_db_asset(
@@ -612,182 +766,7 @@ def entity_asset_multipart_upload_complete(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    upload_meta = UploadMeta.model_validate(asset_db.upload_meta) if asset_db.upload_meta else None
-
-    if asset_db.status != AssetStatus.UPLOADING or upload_meta is None:
-        raise ApiError(
-            message="Asset is not uploading. Operation cannot be performed.",
-            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
-    # parts that have been already uploaded to s3
-    uploaded_parts = multipart_upload_list_parts(
-        s3_client=s3_client,
-        bucket=storage.bucket,
-        s3_key=asset_db.full_path,
-        upload_id=upload_meta.upload_id,
-    )
-
-    # verify that expected and uploaded agree
-    uploaded_part_numbers = {p["PartNumber"] for p in uploaded_parts}
-    expected_part_numbers = set(range(1, upload_meta.part_count + 1))
-
-    if uploaded_part_numbers != expected_part_numbers:
-        raise ApiError(
-            message=(
-                "Expected parts are not uploaded. "
-                f"Expected: {len(expected_part_numbers)}, Actual: {len(uploaded_part_numbers)}"
-            ),
-            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
-
-    upload_size = sum(p["Size"] for p in uploaded_parts)
-    upload_expected_size = asset_db.size
-
-    if upload_size != upload_expected_size:
-        raise ApiError(
-            message=(
-                "Total from multipart upload parts sizes does not match expected size. "
-                f"Expected: {upload_expected_size}, Actual: {upload_size}"
-            ),
-            error_code=ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
-
-    multipart_upload_complete(
-        s3_client=s3_client,
-        s3_key=asset_db.full_path,
-        upload_id=upload_meta.upload_id,
-        bucket=storage.bucket,
-        parts=uploaded_parts,
-    )
-
-    asset_db.status = AssetStatus.CREATED
-    repos.db.flush()
-    return AssetRead.model_validate(asset_db)
-
-
-def entity_asset_empty_upload_initiate(
-    *,
-    repos: RepositoryGroup,
-    entity_type: EntityType,
-    entity_id: uuid.UUID,
-    asset_id: uuid.UUID,
-    s3_client: S3Client,
-) -> AssetReadWithUploadMeta:
-    """Initiate a multipart upload for an existing entity asset.
-
-    This function can be used to upload empty files, since it isn't possible with multipart upload.
-
-    The `upload_meta` in the db will contain:
-    `{"part_size": 0, "upload_id": "", "part_count": 0}`
-
-    The returned `upload_meta` will contain:
-    `{"part_size": 0, "parts": [{"part_number": 0, "url": "<presigned_url>"}]}`
-
-    In this way the client can process the presigned url in the same way as for multipart uploads.
-    """
-    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = repos.asset.get_entity_asset(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=asset_id,
-        )
-
-    storage = storages[asset.storage_type]
-
-    upload_id = ""
-    asset.status = AssetStatus.UPLOADING
-    asset.upload_meta = UploadMeta(
-        upload_id=upload_id,
-        part_size=0,
-        part_count=0,
-    ).model_dump()
-    repos.db.flush()
-
-    url = generate_presigned_url(
-        s3_client=s3_client,
-        operation="put_object",
-        bucket_name=storage.bucket,
-        s3_key=asset.full_path,
-    )
-    if url is None:
-        raise ApiError(
-            message=f"Could not create presigned url for {asset.full_path}",
-            error_code=ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    parts = [ToUploadPart(part_number=0, url=url)]
-    base_asset_read = AssetRead.model_validate(asset)
-    upload_meta = UploadMetaRead(part_size=0, parts=parts)
-    return AssetReadWithUploadMeta.model_validate(
-        {**base_asset_read.model_dump(), "upload_meta": upload_meta.model_dump()}
-    )
-
-
-def entity_asset_empty_upload_complete(
-    *,
-    repos: RepositoryGroup,
-    user_context: UserContext,
-    entity_type: EntityType,
-    entity_id: uuid.UUID,
-    asset_id: uuid.UUID,
-    storage: StorageUnion,
-    s3_client: S3Client,
-) -> AssetRead:
-    """Complete a multipart upload for an existing entity asset."""
-    asset_db = get_writable_entity_db_asset(
-        repos,
-        user_context=user_context,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        asset_id=asset_id,
-    )
-    upload_meta = UploadMeta.model_validate(asset_db.upload_meta) if asset_db.upload_meta else None
-
-    if asset_db.status != AssetStatus.UPLOADING or upload_meta is None:
-        raise ApiError(
-            message="Asset is not uploading. Operation cannot be performed.",
-            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
-    # check that the file exists and is empty
-    try:
-        check_result = check_object(
-            s3_client,
-            bucket_name=storage.bucket,
-            s3_key=asset_db.full_path,
-            is_directory=False,
-        )
-    except Exception as e:
-        raise ApiError(
-            message="Failed to check object.",
-            error_code=ApiErrorCode.GENERIC_ERROR,
-            http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-        ) from e
-
-    if not check_result["exists"]:
-        raise ApiError(
-            message="Uploaded empty file not found.",
-            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
-    if check_result["size"] != 0:
-        raise ApiError(
-            message=(
-                "Uploaded empty file does not match expected size. "
-                f"Expected: 0, Actual: {check_result['size']}"
-            ),
-            error_code=ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
-
-    asset_db.status = AssetStatus.CREATED
-    repos.db.flush()
-    return AssetRead.model_validate(asset_db)
+    return multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)
 
 
 def download_entity_asset(
@@ -877,6 +856,95 @@ def create_asset_download_redirect(
     return RedirectResponse(url=url)
 
 
+def directory_multipart_upload_initiate_unverified(
+    repos: RepositoryGroup,
+    entity: Entity,
+    virtual_lab_id: uuid.UUID,
+    s3_client: S3Client,
+    storage: StorageUnion,
+    json_model: MultipartDirectoryUploadRequest,
+    user_profile: UserProfile,
+) -> MultipartDirectoryUploadResponse:
+    """Initiate a multipart directory upload without checking authorization.
+
+    Return presigned urls for all parts.
+    """
+    # create asset to fail early if full path already in progress or registered
+    parent = create_entity_asset_unverified(
+        repos=repos,
+        entity=entity,
+        filename=json_model.directory_name,
+        content_type=ContentType.directory,
+        size=-1,  # no size
+        sha256_digest=None,
+        meta=json_model.meta,
+        label=json_model.label,
+        is_directory=True,
+        storage_type=storage.type,
+        status=AssetStatus.UPLOADING,
+        parent_id=None,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_profile,
+    )
+
+    # Phase 1: create all asset DB records (sequential)
+    file_assets: list[tuple[Asset, MultipartDirectoryFileRequest]] = []
+    for initiate_payload in json_model.files:
+        try:
+            content_type = get_content_type(initiate_payload, verbose=False)
+        except ValueError:
+            content_type = ContentType.other
+        asset_db = create_entity_asset_unverified(
+            repos=repos,
+            entity=entity,
+            filename=str(Path(json_model.directory_name, initiate_payload.filename)),
+            content_type=content_type,
+            size=initiate_payload.filesize,
+            sha256_digest=initiate_payload.sha256_digest,
+            meta=None,
+            label=initiate_payload.label,
+            is_directory=False,
+            storage_type=storage.type,
+            status=AssetStatus.UPLOADING,
+            parent_id=parent.id,
+            user_profile=user_profile,
+            virtual_lab_id=virtual_lab_id,
+        )
+        file_assets.append((asset_db, initiate_payload))
+
+    # Phase 2: initiate multipart uploads (in parallel)
+    upload_metas: dict[uuid.UUID, UploadMeta] = {}
+    if file_assets:
+        max_workers = min(settings.S3_MAX_WORKERS, len(file_assets))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    initiate_multipart_upload,
+                    s3_client=s3_client,
+                    s3_key=str(asset_db.full_path),
+                    bucket=storage.bucket,
+                    content_type=asset_db.content_type,
+                    filesize=initiate_payload.filesize,
+                    preferred_part_count=initiate_payload.preferred_part_count,
+                ): asset_db.id
+                for asset_db, initiate_payload in file_assets
+            }
+            for future in as_completed(futures):
+                upload_metas[futures[future]] = future.result()
+
+    # Phase 3: write upload_meta to DB and generate presigned URLs (sequential)
+    result: list[AssetReadWithUploadMeta] = []
+    for asset_db, _ in file_assets:
+        asset_db.upload_meta = upload_metas[asset_db.id].model_dump()
+        parts = generate_upload_presigned_urls(s3_client=s3_client, asset=asset_db)
+        result.append(build_asset_read_with_upload_meta(asset_db, parts))
+
+    return MultipartDirectoryUploadResponse(
+        asset=AssetRead.model_validate(parent),
+        files=result,
+    )
+
+
 def entity_asset_directory_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
@@ -897,87 +965,52 @@ def entity_asset_directory_multipart_upload_initiate(
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
-        project_id=entity.authorized_project_id
-    )
-    if virtual_lab_id is None:
-        msg = "Virtual lab id not found from project id in user groups."
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    # create asset to fail early if full path already in progress or registered
-    parent = create_entity_asset_unverified(
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    return directory_multipart_upload_initiate_unverified(
         repos=repos,
         entity=entity,
-        filename=json_model.directory_name,
-        content_type=ContentType.directory,
-        size=-1,  # no size
-        sha256_digest=None,
-        meta=json_model.meta,
-        label=json_model.label,
-        is_directory=True,
-        storage_type=storage.type,
-        status=AssetStatus.UPLOADING,
-        parent_id=None,
         virtual_lab_id=virtual_lab_id,
+        s3_client=s3_client,
+        storage=storage,
+        json_model=json_model,
         user_profile=user_context.profile,
     )
-    asset_read_with_upload_meta_list: list[AssetReadWithUploadMeta] = []
-    for initiate_payload in json_model.files:
-        try:
-            content_type = get_content_type(initiate_payload, verbose=False)
-        except ValueError:
-            # fallback to generic content-type, as there aren't restrictions for directory content
-            content_type = ContentType.other
-        # create the asset entry in the db for each file
-        asset_read = create_entity_asset_unverified(
-            repos=repos,
-            entity=entity,
-            filename=str(Path(json_model.directory_name, initiate_payload.filename)),
-            content_type=content_type,
-            size=initiate_payload.filesize,
-            sha256_digest=initiate_payload.sha256_digest,
-            meta=None,
-            label=initiate_payload.label,  # same as json_model.label
-            is_directory=False,
-            storage_type=storage.type,
-            status=AssetStatus.UPLOADING,
-            parent_id=parent.id,
-            user_profile=user_context.profile,
-            virtual_lab_id=virtual_lab_id,
+
+
+def directory_multipart_upload_complete_unverified(
+    repos: RepositoryGroup,
+    asset_db: Asset,
+    storage_client_factory: StorageClientFactory,
+) -> AssetRead:
+    """Complete a multipart upload for a directory asset, without checking authorization."""
+    if asset_db.status != AssetStatus.UPLOADING:
+        raise ApiError(
+            message="Directory asset is not uploading. Operation cannot be performed.",
+            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-        if initiate_payload.filesize > 0:
-            # create presigned urls using the part count hint and filesize
-            # asset schemas is updated with the upload metadata
-            # Note: User already authorized when creating the asset
-            asset_read_with_upload_meta = entity_asset_multipart_upload_initiate(
-                repos=repos,
-                s3_client=s3_client,
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=asset_read.id,
-                bucket=storage.bucket,
-                s3_key=asset_read.full_path,
-                filesize=initiate_payload.filesize,
-                content_type=content_type,
-                preferred_part_count=initiate_payload.preferred_part_count,
-            )
-        else:
-            # create a simple presigned url for an empty file that cannot be uploaded with multipart
-            asset_read_with_upload_meta = entity_asset_empty_upload_initiate(
-                repos=repos,
-                s3_client=s3_client,
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=asset_read.id,
-            )
-        asset_read_with_upload_meta_list.append(asset_read_with_upload_meta)
-    return MultipartDirectoryUploadResponse(
-        asset=parent,
-        files=asset_read_with_upload_meta_list,
-    )
+    storage = storages[asset_db.storage_type]
+    s3_client = storage_client_factory(storage)
+    pending_children = [child for child in asset_db.children if child.status != AssetStatus.CREATED]
+    if pending_children:
+        max_workers = min(settings.S3_MAX_WORKERS, len(pending_children))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(
+                    complete_asset_s3 if child.size > 0 else complete_empty_asset_s3,
+                    asset=child,
+                    storage=storage,
+                    s3_client=s3_client,
+                )
+                for child in pending_children
+            ]
+            for future in as_completed(futures):
+                future.result()
+        for child in pending_children:
+            child.status = AssetStatus.CREATED
+    asset_db.status = AssetStatus.CREATED
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)
 
 
 def entity_asset_directory_multipart_upload_complete(
@@ -987,8 +1020,7 @@ def entity_asset_directory_multipart_upload_complete(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    storage: StorageUnion,
-    s3_client: S3Client,
+    storage_client_factory: StorageClientFactory,
 ) -> AssetRead:
     """Complete a multipart upload for an existing directory asset."""
     asset_db = get_writable_entity_db_asset(
@@ -998,38 +1030,4 @@ def entity_asset_directory_multipart_upload_complete(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    if asset_db.status != AssetStatus.UPLOADING:
-        raise ApiError(
-            message="Directory asset is not uploading. Operation cannot be performed.",
-            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    for child in asset_db.children:
-        if child.status == AssetStatus.CREATED:
-            L.debug("Child asset upload already completed, skipping completion for id {}", child.id)
-            continue
-        if child.size > 0:
-            entity_asset_multipart_upload_complete(
-                repos=repos,
-                user_context=user_context,
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=child.id,
-                storage=storage,
-                s3_client=s3_client,
-            )
-            L.debug("Child asset upload completed for id {}", child.id)
-        else:
-            entity_asset_empty_upload_complete(
-                repos=repos,
-                user_context=user_context,
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=child.id,
-                storage=storage,
-                s3_client=s3_client,
-            )
-            L.debug("Empty child asset upload verified for id {}", child.id)
-    asset_db.status = AssetStatus.CREATED
-    repos.db.flush()
-    return AssetRead.model_validate(asset_db)
+    return directory_multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)

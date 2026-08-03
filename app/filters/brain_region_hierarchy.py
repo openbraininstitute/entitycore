@@ -8,11 +8,11 @@ from app.filters.species import SpeciesFilterMixin
 
 
 class BrainRegionHierarchyFilter(SpeciesFilterMixin, IdFilterMixin, NameFilterMixin, CustomFilter):
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = BrainRegionHierarchy
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
 BrainRegionHierarchyFilterDep = Annotated[

@@ -10,6 +10,7 @@ from app.db.model import (
     IonChannelRecording,
     Person,
     Subject,
+    ValidationResult,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -128,6 +129,7 @@ def _read_many(
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
     subject_alias = aliased(Subject, flat=True)
+    validation_result_alias = aliased(ValidationResult, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
@@ -137,6 +139,9 @@ def _read_many(
             "updated_by": updated_by_alias,
         },
         Subject: subject_alias,
+        ValidationResult: {
+            "validation_result": validation_result_alias,
+        },
     }
     facet_keys = [
         "brain_region",
@@ -156,6 +161,7 @@ def _read_many(
         "subject.species",
         "subject.strain",
         "ion_channel",
+        "validation_result",
     ]
 
     name_to_facet_query_params, filter_joins = query_params_factory(

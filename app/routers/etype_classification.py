@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 import app.service.etype_classification as service
 from app.routers.admin import router as admin_router
-from app.routers.types import AssociationRoute
+from app.types import AssociationRoute
 
 # TODO: Implement rest of endpoints and use common router
 ROUTE = AssociationRoute.etype_classification

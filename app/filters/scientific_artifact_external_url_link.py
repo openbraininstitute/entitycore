@@ -17,7 +17,7 @@ class ScientificArtifactExternalUrlLinkFilter(
     CreatorFilterMixin,
     CustomFilter,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     external_url: Annotated[
         NestedExternalUrlFilter | None,
@@ -31,7 +31,7 @@ class ScientificArtifactExternalUrlLinkFilter(
 
     class Constants(CustomFilter.Constants):
         model = ScientificArtifactExternalUrlLink
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
         ]

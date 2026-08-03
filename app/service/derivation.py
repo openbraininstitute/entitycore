@@ -30,7 +30,6 @@ from app.queries.common import (
 from app.queries.entity import get_accessible_entity, get_writable_entity
 from app.queries.factory import query_params_factory
 from app.queries.utils import is_user_authorized_for_deletion
-from app.routers.types import EntityRoute
 from app.schemas.derivation import (
     DerivationAdminUpdate,
     DerivationCreate,
@@ -40,6 +39,7 @@ from app.schemas.derivation import (
 from app.schemas.entity import BasicEntityRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.types import EntityRoute
 from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:

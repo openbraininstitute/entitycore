@@ -21,11 +21,11 @@ class SimulatableExtracellularRecordingArrayFilter(
     electrode_type: ElectrodeType | None = None
     circuit_id: UUID | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = SimulatableExtracellularRecordingArray
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 SimulatableExtracellularRecordingArrayFilterDep = Annotated[

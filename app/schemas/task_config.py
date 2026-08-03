@@ -21,7 +21,7 @@ class TaskConfigCreate(EntityCreate, TaskConfigBaseMixin):
     inputs: Annotated[
         list[NestedEntityCreate],
         Field(description="List of input entities (only ids)."),
-    ] = []  # noqa: RUF012
+    ] = []  # ruff:ignore[mutable-class-default]
 
 
 TaskConfigUserUpdate = make_update_schema(
@@ -47,4 +47,4 @@ class TaskConfigRead(
     inputs: Annotated[
         list[NestedEntityRead],
         Field(description="List of input entities."),
-    ] = []  # noqa: RUF012
+    ] = []  # ruff:ignore[mutable-class-default]

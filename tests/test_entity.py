@@ -103,7 +103,7 @@ def test_count_entities_validation_errors(client):
     assert response.status_code == 422
 
 
-def test_count_entities_by_type_single_type(client, morphology_id):  # noqa: ARG001
+def test_count_entities_by_type_single_type(client, morphology_id):  # ruff:ignore[unused-function-argument]
     """Test counting entities for a single entity type."""
     response = assert_request(
         client.get,
@@ -119,8 +119,8 @@ def test_count_entities_by_type_single_type(client, morphology_id):  # noqa: ARG
 def test_count_entities_by_type_multiple_types(
     db,
     client,
-    morphology_id,  # noqa: ARG001
-    emodel_id,  # noqa: ARG001
+    morphology_id,  # ruff:ignore[unused-function-argument]
+    emodel_id,  # ruff:ignore[unused-function-argument]
     brain_region_id,
     subject_id,
     person_id,

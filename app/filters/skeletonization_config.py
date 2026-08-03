@@ -27,11 +27,11 @@ class SkeletonizationConfigFilter(
     em_cell_mesh_id: uuid.UUID | None = None
     em_cell_mesh_id__in: list[uuid.UUID] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = SkeletonizationConfig
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 SkeletonizationConfigFilterDep = Annotated[

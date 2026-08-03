@@ -30,6 +30,10 @@ It requires:
 - [pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html)
 - [makeself](https://github.com/megastep/makeself)
 
+
+Since the script needs to write temporary files into a directory with enough free space, it's possible to override the default location of the temporary directory by setting the env variable `TMPDIR` to the **absolute** path of an existing custom directory.
+
+
 To read the source database, the env variables `PG*` must be set accordingly:
 
 ```
@@ -46,11 +50,29 @@ MAKESELF_BIN: specify the makeself executable if not in the path.
 For example, if psql has been installed on Mac with brew and you need a specific version:
 
 ```
+TMPDIR=/path/to/temp \
 PGPORT=5433 PGDATABASE=entitycore \
 PSQL_BIN=/opt/homebrew/opt/postgresql@17/bin/psql \
 PG_DUMP_BIN=/opt/homebrew/opt/postgresql@17/bin/pg_dump \
 ./scripts/export/build_database_archive.sh
 ```
+
+### Copy the dump from one machine to another
+
+To copy from one machine to another and keep a local copy, you can adjust and run the following command:
+
+```
+ssh obi-production 'cat $HOME/install_db.run' \
+  | tee ./install_db.run \
+  | ssh obi-staging 'cat > $HOME/install_db.run'
+```
+
+or to copy without keeping a local copy:
+
+```
+scp obi-production:~/install_db.run obi-staging:~/install_db.run'
+```
+
 
 ### Import the public data into a new database
 

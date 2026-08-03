@@ -1,12 +1,13 @@
 import math
 import os
+import threading
 import uuid
 from pathlib import Path
 from typing import IO, Protocol, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
-import boto3
+import boto3.session
 import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
@@ -27,6 +28,8 @@ from app.utils.common import clip
 
 PUBLIC_ASSET_PREFIX = "public/"
 PRIVATE_ASSET_PREFIX = "private/"
+
+_thread_local = threading.local()
 
 
 class CheckObjectResult(TypedDict):
@@ -96,7 +99,7 @@ def validate_multipart_filesize(filesize: int) -> bool:
 
 
 def get_s3_client(storage: StorageUnion) -> S3Client:
-    """Return a new S3 client (not thread-safe).
+    """Return a thread-local S3 client, creating it on first use per thread.
 
     Boto should get credentials from ~/.aws/credentials or the environment.
     In particular, the following keys are required:
@@ -107,16 +110,34 @@ def get_s3_client(storage: StorageUnion) -> S3Client:
 
     Implements StorageClientFactory.
 
+    ``boto3.client()`` uses a shared default session and must not be called concurrently
+    from multiple threads, as it may cause response ordering issues or interpreter failures
+    from underlying SSL modules.
+
+    A thread-local client avoids both that problem and the overhead of creating a new
+    session+client per request.
+
+    See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/clients.html
+
     Args:
         storage: Storage configuration.
     """
-    if storage.is_open:
-        # For open storage, we use unsigned requests
-        config = botocore.client.Config(signature_version=botocore.UNSIGNED)
-    else:
-        # For internal storage, we use signed requests
-        config = botocore.client.Config()
-    return boto3.client("s3", region_name=storage.region, config=config)
+    clients: dict = getattr(_thread_local, "s3_clients", None) or {}
+    if storage.type not in clients:
+        if storage.is_open:
+            config = botocore.client.Config(
+                signature_version=botocore.UNSIGNED,
+                max_pool_connections=settings.S3_MAX_WORKERS,
+            )
+        else:
+            config = botocore.client.Config(
+                max_pool_connections=settings.S3_MAX_WORKERS,
+            )
+        clients[storage.type] = boto3.session.Session().client(
+            "s3", region_name=storage.region, config=config
+        )
+        _thread_local.s3_clients = clients
+    return clients[storage.type]
 
 
 def upload_to_s3(
@@ -144,7 +165,7 @@ def upload_to_s3(
                 max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
             ),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
         return False
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
@@ -161,7 +182,7 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
     """
     try:
         response = s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while deleting file from s3://{}/{}", bucket_name, s3_key)
         return False
     # if using versioning-enabled buckets, we could store the version id for recovery
@@ -206,7 +227,7 @@ def generate_presigned_url(
         if settings.S3_PRESIGNED_URL_NETLOC:
             parsed = urlparse(url)
             url = urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return url
 
@@ -325,7 +346,7 @@ def list_directory_with_details(
         if "Contents" not in page:
             continue
         for obj in page["Contents"]:
-            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # noqa: PT018, S101
+            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # ruff:ignore[pytest-composite-assertion, assert]
             name = str(Path(obj["Key"]).relative_to(prefix))
             files[name] = {
                 "name": name,
@@ -395,7 +416,7 @@ def copy_file(
                 max_concurrency=settings.S3_MULTIPART_COPY_MAX_CONCURRENCY,
             ),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception(
             "Error while copying file from s3://{}/{} to s3://{}/{}",
             src_bucket_name,

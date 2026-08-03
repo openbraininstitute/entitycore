@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
 from app.db.model import Consortium, Person
-from app.dependencies.auth import AdminContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.consortium import ConsortiumFilterDep
@@ -94,7 +94,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> ConsortiumRead:
 
 
 def create_one(
-    json_model: ConsortiumCreate, db: SessionDep, user_context: AdminContextDep
+    json_model: ConsortiumCreate, db: SessionDep, user_context: UserContextDep
 ) -> ConsortiumRead:
     return app.queries.common.router_create_one(
         db=db,
@@ -130,7 +130,7 @@ admin_update_one = update_one
 def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
 ) -> DeleteResponse:
     return app.queries.common.router_admin_delete_one(
         id_=id_,

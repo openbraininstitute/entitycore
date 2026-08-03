@@ -16,7 +16,7 @@ class SkeletonizationCampaignCreate(
     SkeletonizationCampaignBaseMixin,
     EntityCreate,
 ):
-    input_meshes: list[NestedEntityCreate] = []  # noqa: RUF012
+    input_meshes: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
 
 
 SkeletonizationCampaignUserUpdate = make_update_schema(

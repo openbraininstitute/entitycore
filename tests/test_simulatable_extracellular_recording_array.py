@@ -2,7 +2,7 @@ import pytest
 
 from app.db.model import SimulatableExtracellularRecordingArray
 from app.db.types import ElectrodeType, EntityType
-from app.routers.types import EntityRoute
+from app.types import EntityRoute
 
 from .utils import (
     PROJECT_ID,

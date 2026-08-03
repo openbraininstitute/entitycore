@@ -91,7 +91,7 @@ def _find_linked_authenticated_resources(table: Table) -> list[JoinInfo]:
     """Iterate over the foreign keys and return the list of JoinInfo."""
     linked: list[JoinInfo] = []
     for column in table.columns:
-        assert column.nullable is not None  # noqa: S101
+        assert column.nullable is not None  # ruff:ignore[assert]
         for fk in column.foreign_keys:
             other = TABLES[fk.column.table.name].class_
             if issubclass(other, Entity):
@@ -145,7 +145,7 @@ def _export_with_joins(tablename: str, joins: list[JoinInfo], *, authorized: boo
         SELECT t0.* FROM {tablename} AS t0
         {join_clauses}
         WHERE {where_clauses or "TRUE"}
-        """  # noqa: S608
+        """  # ruff:ignore[hardcoded-sql-expression]
 
 
 def get_automatic_queries() -> dict[str, str]:

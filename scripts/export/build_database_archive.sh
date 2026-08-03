@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="480ae265c9e9"
+SCRIPT_DB_VERSION="318a78fa6cfb"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -211,6 +211,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM scientific_artifact_publication_link AS t0 JOIN entity AS t1 ON t1.id=t0.scientific_artifact_id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/scientific_artifact_publication_link.csv' WITH CSV HEADER;
 \echo Dumping table simulatable_extracellular_recording_array
 \copy (SELECT t0.* FROM simulatable_extracellular_recording_array AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.circuit_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/simulatable_extracellular_recording_array.csv' WITH CSV HEADER;
+\echo Dumping table simulatable_extracellular_recording_array__simulation
+\copy (SELECT t0.* FROM simulatable_extracellular_recording_array__simulation AS t0 JOIN entity AS t1 ON t1.id=t0.simulatable_extracellular_recording_array_id JOIN entity AS t2 ON t2.id=t0.simulation_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/simulatable_extracellular_recording_array__simulation.csv' WITH CSV HEADER;
 \echo Dumping table simulation
 \copy (SELECT t0.* FROM simulation AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.simulation_campaign_id JOIN entity AS t3 ON t3.id=t0.entity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false AND t3.authorized_public IS NOT false) TO '$DATA_DIR/simulation.csv' WITH CSV HEADER;
 \echo Dumping table simulation_campaign
@@ -265,7 +267,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="480ae265c9e9"
+SCRIPT_DB_VERSION="318a78fa6cfb"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

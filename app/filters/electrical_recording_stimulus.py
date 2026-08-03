@@ -15,7 +15,7 @@ from app.filters.entity import EntityFilterMixin
 class ElectricalRecordingStimulusFilter(
     EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     shape: ElectricalRecordingStimulusShape | None = None
     injection_type: ElectricalRecordingStimulusType | None = None
@@ -25,7 +25,7 @@ class ElectricalRecordingStimulusFilter(
 
     class Constants(CustomFilter.Constants):
         model = ElectricalRecordingStimulus
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",

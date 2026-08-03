@@ -28,8 +28,8 @@ class ActivityRead(ActivityBase, ActivityTypeMixin, AuthorizationMixin, Identifi
 
 
 class ActivityCreate(ActivityBase, IdentifiableCreate, AuthorizationOptionalPublicMixin):
-    used_ids: list[uuid.UUID] = []  # noqa: RUF012
-    generated_ids: list[uuid.UUID] = []  # noqa: RUF012
+    used_ids: list[uuid.UUID] = []  # ruff:ignore[mutable-class-default]
+    generated_ids: list[uuid.UUID] = []  # ruff:ignore[mutable-class-default]
 
 
 class ActivityUpdate(Schema):

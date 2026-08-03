@@ -7,7 +7,7 @@ from app.db.types import DerivationType
 from app.schemas.base import Schema
 from app.schemas.entity import NestedEntityRead
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
-from app.schemas.utils import DEFAULT_EXCLUDED_FIELDS, make_update_schema
+from app.schemas.utils import make_update_schema
 
 # Allowed label values per derivation type.
 # - emodel_circuit: SONATA ``model_template`` entry, by convention ``hoc:<template_name>``.
@@ -65,7 +65,7 @@ DERIVATION_EXCLUDED_FIELDS = {"used_id", "generated_id", "derivation_type"}
 DerivationUserUpdate = make_update_schema(
     DerivationCreate,
     "DerivationUserUpdate",
-    excluded_fields=DEFAULT_EXCLUDED_FIELDS | DERIVATION_EXCLUDED_FIELDS,
+    excluded_fields=DERIVATION_EXCLUDED_FIELDS,
 )  # pyright: ignore [reportInvalidTypeForm]
 DerivationAdminUpdate = make_update_schema(
     DerivationCreate,

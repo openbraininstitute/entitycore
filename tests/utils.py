@@ -16,6 +16,7 @@ import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
+from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 from app.config import storages
@@ -57,13 +58,13 @@ USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"
 USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
 USER_SUB_ID_3 = "00000000-0000-0000-0000-000000000002"
 
-TOKEN_ADMIN = "I'm admin"  # noqa: S105
-TOKEN_USER_1 = "I'm user 1"  # noqa: S105
-TOKEN_USER_2 = "I'm user 2"  # noqa: S105
-TOKEN_USER_3 = "I'm user 3"  # noqa: S105
-TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # noqa: S105
-TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # noqa: S105
-TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # noqa: S105
+TOKEN_ADMIN = "I'm admin"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_1 = "I'm user 1"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_2 = "I'm user 2"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_3 = "I'm user 3"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # ruff:ignore[hardcoded-password-string]
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}
@@ -299,26 +300,21 @@ def create_skeletonization_config_id(
 
 
 def add_db(db, row):
-    """Add one row to the db and commit the transaction."""
+    """Add one row to the db and flush to make it visible within the transaction."""
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
 
-def add_all_db(db, rows, *, same_transaction=False):
-    """Add all the rows to the db and commit the transaction.
-
-    If same_transaction is True, all records are inserted in the same transaction,
-    and the creation_date and update_date might be always the same.
-    """
-    if same_transaction:
-        db.add_all(rows)
-        db.commit()
-    else:
-        for row in rows:
-            db.add(row)
-            db.commit()
+def add_all_db(db: Session, rows, *, same_timestamps=False):
+    """Add all the rows to the db and flush to make them visible within the transaction."""
+    ts = datetime.now(UTC)
+    for i, row in enumerate(rows):
+        delta = timedelta(microseconds=0 if same_timestamps else i)
+        row.creation_date = row.update_date = ts + delta
+    db.add_all(rows)
+    db.flush()
     for row in rows:
         db.refresh(row)
     return rows
@@ -892,7 +888,7 @@ def create_person(
         updated_by_id=created_by_id or agent_id,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
@@ -1175,6 +1171,23 @@ def check_global_read_many(
     _req(clients.admin, admin_route)
 
 
+def _assert_update_rejects_extra_fields(client, url: str, *, extra_payload: dict | None = None):
+    """Update schemas use extra='forbid'; unknown/excluded fields must return 422."""
+    assert_request(
+        client.patch,
+        url=url,
+        json={"__unknown_field__": "x"},
+        expected_status_code=422,
+    )
+    if extra_payload:
+        assert_request(
+            client.patch,
+            url=url,
+            json=extra_payload,
+            expected_status_code=422,
+        )
+
+
 def check_global_update_one(
     *,
     route: str,
@@ -1202,6 +1215,8 @@ def check_global_update_one(
     ).json()
     assert data["message"] == "Service admin role required"
 
+    _assert_update_rejects_extra_fields(clients.admin, f"{route}/{model_id}")
+
     # update using admin client and regular route
     _patch_compare(clients.admin.patch, f"{route}/{model_id}", patch_payload)
 
@@ -1216,6 +1231,8 @@ def check_global_update_one(
         expected_status_code=403,
     ).json()
     assert data["message"] == "Service admin role required"
+
+    _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{model_id}")
 
     # update using admin client and admin route
     _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", patch_payload)
@@ -1406,6 +1423,13 @@ def check_entity_update_one(
         _patch_compare(clients.user_1, f"{route}/{private_1_id}", optional_payload)
         _patch_compare(clients.user_1, f"{route}/{private_1_id}", dict.fromkeys(optional_payload))
 
+    # user update schema forbids unknown fields and default-excluded fields
+    _assert_update_rejects_extra_fields(
+        clients.user_1,
+        f"{route}/{private_1_id}",
+        extra_payload={"authorized_public": True},
+    )
+
     # only admin client can hit admin endpoint
     data = assert_request(
         clients.user_1.patch,
@@ -1415,6 +1439,11 @@ def check_entity_update_one(
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    # admin update schema forbids unknown fields but allows authorized_public
+    _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{private_1_id}")
+    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": True})
+    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": False})
 
     _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", patch_payload)
 

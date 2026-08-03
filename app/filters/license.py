@@ -10,11 +10,11 @@ class LicenseFilter(IdFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, Cust
     label: str | None = None
     label__ilike: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = License
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
 
 
 LicenseFilterDep = Annotated[LicenseFilter, FilterDepends(LicenseFilter)]

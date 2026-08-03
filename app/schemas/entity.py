@@ -63,7 +63,9 @@ class DerivationReadMixin:
     used_by_derivations: list[UsedDerivationRead] | None = None
 
 
-from app.schemas.contribution import ContributionReadWithoutEntityMixin  # noqa: E402
+from app.schemas.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]
+    ContributionReadWithoutEntityMixin,
+)
 
 
 class EntityReadWoutAssets(

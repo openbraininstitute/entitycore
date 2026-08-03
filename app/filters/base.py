@@ -3,7 +3,9 @@ from operator import attrgetter
 from typing import cast
 
 from fastapi_filter.contrib.sqlalchemy import Filter
-from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
+from fastapi_filter.contrib.sqlalchemy.filter import (
+    _orm_operator_transformer,  # ruff:ignore[import-private-name]
+)
 from pydantic import field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
@@ -26,7 +28,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     @field_validator("*", mode="before")
     @classmethod
-    def split_str(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride  # noqa: ARG003
+    def split_str(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride  # ruff:ignore[unused-class-method-argument]
         """Prevent splitting field logic from parent class."""
         return value
 
@@ -96,7 +98,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return value
 
-    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]  # noqa: PLR0912
+    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]  # ruff:ignore[too-many-branches]
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is
@@ -130,8 +132,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
             else:
                 if "__" in field_name:
                     # PLW2901 `for` loop variable `field_name` overwritten by assignment target
-                    field_name, operator = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
-                    operator, value = _orm_operator_transformer[operator](value)  # noqa: PLW2901
+                    field_name, operator = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]
+                    operator, value = _orm_operator_transformer[operator](value)  # ruff:ignore[redefined-loop-name]
                 else:
                     operator = "__eq__"
 
@@ -190,14 +192,14 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
             if NESTED_SEPARATOR in field_name:
                 original_field_name = field_name
-                *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
+                *parts, field_name = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]
                 nested_filter = self
 
                 for part in parts:
                     nested_filter = getattr(nested_filter, part, None)
                     if not isinstance(nested_filter, CustomFilter):
                         msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
-                        raise ValueError(msg)  # noqa: TRY004
+                        raise ValueError(msg)  # ruff:ignore[type-check-without-type-error]
                     model = nested_filter.Constants.model
 
                     if model in aliases:
@@ -258,7 +260,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     @property
     def nested_ordering_fields(self) -> list[str]:
-        """Return nested ordering fields."""
+        """Nested ordering fields."""
         return [
             field_name
             for _, field_name in self._separate_ordering_direction_value()

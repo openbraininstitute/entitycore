@@ -3,6 +3,7 @@
 import click
 
 from app.logger import configure_logging, configure_warnings
+from app.sentry import init_sentry
 from app.utils.uvicorn import run_server
 
 
@@ -22,4 +23,5 @@ def run(*, host: str, port: int, reload: bool) -> None:
 
 configure_logging()
 configure_warnings()
+init_sentry()
 cli()

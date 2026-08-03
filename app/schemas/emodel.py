@@ -32,7 +32,7 @@ class EModelCreate(EModelBaseMixin, EntityCreate, SpeciesStrainCreateMixin, Brai
     ion_channel_models: Annotated[
         list[NestedEntityCreate],
         Field(description="List of ion channel models (only ids)."),
-    ] = []  # noqa: RUF012
+    ] = []  # ruff:ignore[mutable-class-default]
 
 
 EModelUserUpdate = make_update_schema(EModelCreate, "EModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

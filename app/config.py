@@ -1,7 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import quote
 
-from pydantic import PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import Field, PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     COMMIT_SHA: str | None = None
 
     ENVIRONMENT: str | None = None
+    DEPLOYMENT_ENV: Literal["local", "staging", "production"] = "local"
+
+    SENTRY_DSN: str | None = None
+    SENTRY_TRACES_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 0.1
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1.0
+
     ROOT_PATH: str = ""
     CORS_ORIGINS: list[str] = ["*"]
     CORS_ORIGIN_REGEX: str | None = None
@@ -70,6 +76,7 @@ class Settings(BaseSettings):
     S3_MULTIPART_UPLOAD_MIN_PARTS: int = 1
     S3_MULTIPART_UPLOAD_MAX_PARTS: int = 10_000
     S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
+    S3_MAX_WORKERS: int = 32
 
     API_ASSET_POST_MAX_SIZE: int = 150 * MB
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
@@ -77,7 +84,7 @@ class Settings(BaseSettings):
 
     DB_ENGINE: str = "postgresql+psycopg2"
     DB_USER: str = "entitycore"
-    DB_PASS: str = "entitycore"  # noqa: S105
+    DB_PASS: str = "entitycore"  # ruff:ignore[hardcoded-password-string]
     DB_HOST: str = "db"
     DB_PORT: int = 5432
     DB_NAME: str = "entitycore"

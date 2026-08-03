@@ -57,11 +57,11 @@ class CircuitFilter(
     number_connections__lte: int | None = None
     number_connections__gte: int | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = Circuit
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             *ScientificArtifactFilter.Constants.ordering_model_fields,
             "id",
             "name",

@@ -9,11 +9,11 @@ from app.filters.common import NameFilterMixin
 class RoleFilter(NameFilterMixin, CustomFilter):
     role_id: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = Role
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
 
 
 RoleFilterDep = Annotated[RoleFilter, FilterDepends(RoleFilter)]

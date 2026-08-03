@@ -539,6 +539,40 @@ def test_filtering(client, models):
     ]
     assert len(data) == len(recordings)
 
+    # validation result-based filtering
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-passed",
+            "passed": True,
+            "validated_entity_id": str(recordings[0].id),
+            "authorized_public": False,
+        },
+    )
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-failed",
+            "passed": False,
+            "validated_entity_id": str(recordings[1].id),
+            "authorized_public": False,
+        },
+    )
+
+    data = assert_request(client.get, url=ROUTE, params={"validation_result__passed": True}).json()[
+        "data"
+    ]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recordings[0].id)
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"validation_result__passed": False}
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recordings[1].id)
+
 
 def test_sorting(client, models):
     _, _, recordings = models

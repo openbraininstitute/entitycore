@@ -1,10 +1,9 @@
 import functools
-import itertools
 import json
 import operator
 import os
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
@@ -591,7 +590,16 @@ def check_pagination(route, client, constructor_func):
     assert len(response_json["data"]) == 2
 
 
-def check_authorization(route, client_user_1, client_user_2, client_no_project, json_data):
+def check_authorization(
+    route: str,
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    json_data: dict,
+    private_json_data: dict | None = None,
+    private_json_data_user_2: dict | None = None,
+    json_data_user_2: dict | None = None,
+):
     """Check the authorization when trying to access the entities.
 
     Created entities:
@@ -601,7 +609,22 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     private_u2_0 (UNRELATED_PROJECT_ID)
     private_u1_0 (PROJECT_ID)
     private_u1_1 (PROJECT_ID)
+
+    Args:
+        json_data: Payload for public entities of user_1. Also used as fallback for the other
+            optional payloads.
+        private_json_data: Payload for private entities of user_1. Required when the entity has
+            must_match constraints that differ between public and private parents.
+        private_json_data_user_2: Payload for private entities of user_2. Required when user_2
+            cannot reuse user_1's parents (e.g. must_match constraints enforce same project).
+        json_data_user_2: Payload for public entities of user_2. Same rationale as above.
     """
+    if private_json_data is None:
+        private_json_data = json_data
+    if json_data_user_2 is None:
+        json_data_user_2 = json_data
+    if private_json_data_user_2 is None:
+        private_json_data_user_2 = private_json_data
     # create the entities
     public_u1_0 = assert_request(
         client_user_1.post,
@@ -614,7 +637,7 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     public_u2_0 = assert_request(
         client_user_2.post,
         url=route,
-        json=json_data | {"name": "Public u2/0", "authorized_public": True},
+        json=json_data_user_2 | {"name": "Public u2/0", "authorized_public": True},
     ).json()
     assert public_u2_0["authorized_public"] is True
     assert public_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
@@ -622,7 +645,7 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     private_u2_0 = assert_request(
         client_user_2.post,
         url=route,
-        json=json_data | {"name": "Private u2/0", "authorized_public": False},
+        json=private_json_data_user_2 | {"name": "Private u2/0", "authorized_public": False},
     ).json()
     assert private_u2_0["authorized_public"] is False
     assert private_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
@@ -630,7 +653,7 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     private_u1_0 = assert_request(
         client_user_1.post,
         url=route,
-        json=json_data | {"name": "Private u1/0", "authorized_public": False},
+        json=private_json_data | {"name": "Private u1/0", "authorized_public": False},
     ).json()
     assert private_u1_0["authorized_public"] is False
     assert private_u1_0["authorized_project_id"] == PROJECT_ID
@@ -638,7 +661,7 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     private_u1_1 = assert_request(
         client_user_1.post,
         url=route,
-        json=json_data | {"name": "Private u1/1", "authorized_public": False},
+        json=private_json_data | {"name": "Private u1/1", "authorized_public": False},
     ).json()
     assert private_u1_1["authorized_public"] is False
     assert private_u1_1["authorized_project_id"] == PROJECT_ID
@@ -1316,28 +1339,57 @@ def check_entity_read_response(
     check_creation_fields(data)
 
 
+def _unique(data: dict) -> dict:
+    """Append a unique suffix to the name field to avoid unique constraint violations."""
+    if "name" in data:
+        return data | {"name": f"{data['name']}-{uuid.uuid4().hex[:8]}"}
+    return data
+
+
 def check_entity_read_many(
     *,
     route: str,
     admin_route: str,
     clients: ClientProxies,
-    json_data: dict | Iterator[dict],
+    json_data: dict,
+    private_json_data: dict | None = None,
+    private_json_data_user_2: dict | None = None,
+    json_data_user_2: dict | None = None,
 ):
-    if isinstance(json_data, dict):
-        json_data = itertools.repeat(json_data)
+    """Check that read-many respects project and visibility boundaries.
+
+    Args:
+        json_data: Payload for public entities of user_1. Also used as fallback for the other
+            optional payloads.
+        private_json_data: Payload for private entities of user_1. Required when the entity has
+            must_match constraints that differ between public and private parents.
+        private_json_data_user_2: Payload for private entities of user_2. Required when user_2
+            cannot reuse user_1's parents (e.g. must_match constraints enforce same project).
+        json_data_user_2: Payload for public entities of user_2. Same rationale as above.
+    """
+    if private_json_data is None:
+        private_json_data = json_data
+    if json_data_user_2 is None:
+        json_data_user_2 = json_data
+    if private_json_data_user_2 is None:
+        private_json_data_user_2 = private_json_data
 
     # register entities with users in different projects
     u1_private = assert_request(
-        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": False}
+        clients.user_1.post,
+        url=route,
+        json=_unique(private_json_data) | {"authorized_public": False},
     ).json()
     u1_public = assert_request(
-        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": True}
+        clients.user_1.post, url=route, json=_unique(json_data) | {"authorized_public": True}
     ).json()
     u2_private = assert_request(
-        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": False}
+        clients.user_2.post,
+        url=route,
+        json=_unique(private_json_data_user_2) | {"authorized_public": False},
     ).json()
     u2_public = assert_request(
-        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": True}
+        clients.user_2.post, url=route, json=_unique(json_data_user_2) | {"authorized_public": True}
     ).json()
 
     def req(client, client_route, expected_status_code=200):
@@ -1383,7 +1435,18 @@ def check_entity_update_one(
     json_data: dict,
     patch_payload: dict,
     optional_payload: dict | None,
+    private_json_data: dict | None = None,
 ):
+    """Check that update operations respect authorization rules.
+
+    Args:
+        json_data: Payload for public entities.
+        private_json_data: Payload for private entities. Required when the entity has must_match
+            constraints that differ between public and private parents.
+    """
+    if private_json_data is None:
+        private_json_data = json_data
+
     def _create(client, json_data):
         return assert_request(client.post, url=route, json=json_data).json()
 
@@ -1403,7 +1466,7 @@ def check_entity_update_one(
             assert old_data["update_date"] == new_data["update_date"]
 
     public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
-    private_1_data = _create(clients.user_1, json_data | {"authorized_public": False})
+    private_1_data = _create(clients.user_1, private_json_data | {"authorized_public": False})
     private_1_old_values = {k: private_1_data[k] for k in patch_payload}
 
     assert public_1_data["authorized_public"] is True
@@ -1483,8 +1546,25 @@ def check_entity_update_one(
 
 
 def check_entity_delete_one(
-    db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
+    db,
+    clients: ClientProxies,
+    route: str,
+    admin_route: str,
+    json_data: dict,
+    expected_counts_before: dict,
+    expected_counts_after: dict,
+    private_json_data: dict | None = None,
 ):
+    """Check that delete operations respect authorization rules.
+
+    Args:
+        json_data: Payload for public entities.
+        private_json_data: Payload for private entities. Required when the entity has must_match
+            constraints that differ between public and private parents.
+    """
+    if private_json_data is None:
+        private_json_data = json_data
+
     def _assert_found(client, model_id):
         assert_request(client.get, url=f"{route}/{model_id}")
 
@@ -1515,7 +1595,7 @@ def check_entity_delete_one(
         for db_class, count in expected_counts_after.items():
             assert count_db_class(db, db_class) == count
 
-    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
+    model_id = _create_model_id(clients.user_1, private_json_data | {"authorized_public": False})
 
     # project admins cannot delete private resources in projects they have no access
     _assert_forbidden(clients.user_2, model_id)
@@ -1529,12 +1609,12 @@ def check_entity_delete_one(
     # project admins can delete private resources they have access
     _req_count(clients.user_1, route, model_id)
 
-    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
+    model_id = _create_model_id(clients.user_1, private_json_data | {"authorized_public": False})
 
     # service maintainers can delete private resources in projects they have access
     _req_count(clients.maintainer_1, route, model_id)
 
-    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
+    model_id = _create_model_id(clients.user_1, private_json_data | {"authorized_public": False})
 
     # project admins cannot use admin route
     _assert_no_admin_access(clients.user_1, model_id)
@@ -1573,7 +1653,7 @@ def check_entity_delete_one(
     # service maintainers may delete authorized public resources (user_project_ids)
     _req_count(clients.maintainer_3, route, model_id)
 
-    model_id = _create_model_id(clients.user_3, json_data | {"authorized_public": False})
+    model_id = _create_model_id(clients.user_3, private_json_data | {"authorized_public": False})
 
     # project members may delete private resources they have created
     _req_count(clients.user_3, route, model_id)

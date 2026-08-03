@@ -1,5 +1,3 @@
-import itertools
-
 import pytest
 
 from app.db.model import (
@@ -271,13 +269,11 @@ def test_read_one(client, model_id, json_data):
 
 
 def test_read_many(clients, json_data):
-    name = json_data["name"]
     check_entity_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        # ensure that each protocol has a unique name
-        json_data=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
+        json_data=json_data,
     )
 
 

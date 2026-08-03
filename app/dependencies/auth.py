@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 import cachetools
-import httpx
+import httpx2
 from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.requests import Request
@@ -87,7 +87,7 @@ def _check_user_info(
     *,
     project_context: OptionalProjectContext,
     token: HTTPAuthorizationCredentials,
-    http_client: httpx.Client,
+    http_client: httpx2.Client,
 ) -> UserContext:
     """Retrieve the user info from KeyCloak and check the correctness of ProjectContext.
 

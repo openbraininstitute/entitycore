@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any
 
-import httpx
+import httpx2
 from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -35,7 +35,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     )
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
-    http_client = httpx.Client()
+    http_client = httpx2.Client()
     try:
         yield {
             "database_session_manager": database_session_manager,
@@ -46,7 +46,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         L.info("Ignored {} in lifespan", err)
     finally:
         database_session_manager.close()
-        http_client.close()  # ruff:ignore[blocking-http-call-httpx-in-async-function]
+        http_client.close()
         L.info("Stopping application")
 
 

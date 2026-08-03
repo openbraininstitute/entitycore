@@ -522,7 +522,7 @@ def user_id(db):
         )
         .on_conflict_do_nothing()
     )
-    db.commit()
+    db.flush()
     return uid
 
 

@@ -18,9 +18,9 @@ def real_db(db):
 
     Shares the underlying connection with `db` so it can see unflushed fixture data,
     while having its own savepoint that fires after_commit/after_rollback events.
+    Cleanup is handled by the outer transaction in the `db` fixture.
     """
     connection = db.connection()
-    savepoint = connection.begin_nested()
     session = Session(
         connection,
         expire_on_commit=False,
@@ -30,7 +30,6 @@ def real_db(db):
     )
     yield session
     session.close()
-    savepoint.rollback()
 
 
 @pytest.fixture
@@ -191,7 +190,7 @@ def test_multiple_flushes_accumulate_assets(real_db, asset1, asset2, mock_storag
 
 
 def test_after_rollback_clears_assets_to_delete_key(
-    db, real_db, morphology_id, person_id, mock_storage_delete
+    db, real_db, morphology_id, user_id, mock_storage_delete
 ):
     """Clear session info key after rollback to allow future deletes."""
     # Insert via shared db so asset survives the real_db rollback
@@ -207,8 +206,8 @@ def test_after_rollback_clears_assets_to_delete_key(
             sha256_digest=None,
             meta={},
             entity_id=morphology_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             label="morphology",
             storage_type=StorageType.aws_s3_internal,
         ),

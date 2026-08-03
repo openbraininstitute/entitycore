@@ -12,9 +12,9 @@ from unittest.mock import ANY
 from uuid import UUID
 
 import botocore.exceptions
-import httpx
+import httpx2
 import sqlalchemy as sa
-from httpx import Headers
+from httpx2 import Headers
 from pydantic import TypeAdapter
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
@@ -125,7 +125,7 @@ class RequestTracer:
             pass
         return None
 
-    def save(self, response: httpx.Response, indent=None) -> None:
+    def save(self, response: httpx2.Response, indent=None) -> None:
         path = self._root_path
         path.mkdir(parents=True, exist_ok=True)
         request = response.request

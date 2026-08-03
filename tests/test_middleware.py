@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from unittest.mock import ANY
 
-import httpx
+import httpx2
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
@@ -16,11 +16,11 @@ from tests.utils import ADMIN_SUB_ID, AUTH_HEADER_ADMIN
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[dict]:
-    http_client = httpx.Client()
+    http_client = httpx2.Client()
     try:
         yield {"http_client": http_client}
     finally:
-        http_client.close()  # ruff:ignore[blocking-http-call-httpx-in-async-function]
+        http_client.close()
 
 
 def _make_test_app() -> FastAPI:

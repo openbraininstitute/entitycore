@@ -2,7 +2,7 @@ import uuid
 from http import HTTPStatus
 from uuid import UUID
 
-import httpx
+import httpx2
 
 from app.errors import ApiError, ApiErrorCode
 from app.schemas.auth import UserContext
@@ -15,7 +15,7 @@ class VirtualLabClient:
 
     def __init__(self, base_url: str, token: str) -> None:
         """Instantiate client for virtual lab api."""
-        self._http_client = httpx.Client(
+        self._http_client = httpx2.Client(
             base_url=base_url, headers={"Authorization": f"Bearer {token}"}
         )
 

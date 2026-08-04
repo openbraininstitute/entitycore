@@ -60,8 +60,7 @@ def FilterDepends(filter_model: type[BaseFilterModel], *, by_alias: bool = False
 
     FastAPI treats `list` fields as request body unless their default is a `Query` object.
     This builds a `GeneratedFilter` with list fields wrapped in `Query`, used by FastAPI for
-    OpenAPI schema generation and query param parsing. The actual validation and construction
-    of `filter_model` happens inside `FilterWrapper.__new__`.
+    OpenAPI schema generation and query param parsing.
     """
     fields = _prepare_filter_fields(filter_model)
     GeneratedFilter = create_model(filter_model.__class__.__name__, **fields)  # ruff:ignore[non-lowercase-variable-in-function]

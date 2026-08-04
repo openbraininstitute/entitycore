@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from copy import deepcopy
 from typing import Any, get_args, get_origin
 
@@ -10,17 +9,17 @@ from pydantic import ValidationError, create_model
 _ORDER_BY_FIELD_NAME = "order_by"
 
 
-def _order_by_schema_extra(fields: list[str]) -> Callable[[dict[str, Any]], None]:
-    """Return a json_schema_extra callable that injects all valid order_by values as enum.
+def _order_by_schema_extra(fields: list[str]) -> dict[str, Any]:
+    """Return a json_schema_extra dict that injects all valid order_by values as enum.
 
     Each field is expanded to unprefixed (ascending), `+` (ascending), and `-` (descending).
     """
-    enum = [f"{prefix}{f}" for prefix in ("", "+", "-") for f in fields]
-
-    def extra(s: dict) -> None:
-        s.update({"items": {"type": "string", "enum": enum}})
-
-    return extra
+    return {
+        "items": {
+            "type": "string",
+            "enum": [f"{p}{f}" for p in ("", "+", "-") for f in fields],
+        }
+    }
 
 
 def _prepare_filter_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]:
@@ -41,11 +40,15 @@ def _prepare_filter_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any
             or get_origin(annotation) is list
             or any(get_origin(a) is list for a in get_args(annotation))
         ) and type(field_info.default) is not params.Query:
-            field_info.default = Query(default=field_info.default)
-            if name == _ORDER_BY_FIELD_NAME and ordering_fields:
-                # FastAPI's Query restricts json_schema_extra to dict | None, but Pydantic's
-                # underlying FieldInfo supports callables, so we assign after construction.
-                field_info.default.json_schema_extra = _order_by_schema_extra(ordering_fields)  # type: ignore[method-assign]
+            json_schema_extra = (
+                _order_by_schema_extra(ordering_fields)
+                if name == _ORDER_BY_FIELD_NAME and ordering_fields
+                else None
+            )
+            field_info.default = Query(
+                default=field_info.default,
+                json_schema_extra=json_schema_extra,
+            )
 
         fields[name] = (f.annotation, field_info)
 

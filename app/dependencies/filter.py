@@ -23,7 +23,11 @@ def _order_by_schema_extra(fields: list[str]) -> Callable[[dict[str, Any]], None
     return extra
 
 
-def _list_to_query_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]:
+def _prepare_filter_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]:
+    """Convert list fields to Query params and inject the order_by enum for OpenAPI.
+
+    Returns a field definitions dict suitable for passing to `create_model`.
+    """
     fields = {}
     ordering_fields: list[str] | None = getattr(
         getattr(filter_model, "Constants", None), "ordering_model_fields", None
@@ -37,14 +41,11 @@ def _list_to_query_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]
             or get_origin(annotation) is list
             or any(get_origin(a) is list for a in get_args(annotation))
         ) and type(field_info.default) is not params.Query:
+            field_info.default = Query(default=field_info.default)
             if name == _ORDER_BY_FIELD_NAME and ordering_fields:
-                query = Query(default=field_info.default)
                 # FastAPI's Query restricts json_schema_extra to dict | None, but Pydantic's
                 # underlying FieldInfo supports callables, so we assign after construction.
-                query.json_schema_extra = _order_by_schema_extra(ordering_fields)  # type: ignore[method-assign]
-                field_info.default = query
-            else:
-                field_info.default = Query(default=field_info.default)
+                field_info.default.json_schema_extra = _order_by_schema_extra(ordering_fields)  # type: ignore[method-assign]
 
         fields[name] = (f.annotation, field_info)
 
@@ -52,15 +53,14 @@ def _list_to_query_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]
 
 
 def FilterDepends(filter_model: type[BaseFilterModel], *, by_alias: bool = False, **_) -> Any:
-    """Use a hack to treat lists as query parameters.
+    """Return a FastAPI dependency that parses query parameters into a filter model instance.
 
-    What we do is loop through the fields of a filter and assign any `list` field a default value of
-    `Query` so that FastAPI knows it should be treated a query parameter and not body.
-
-    When we apply the filter, we build the original filter to properly validate the data (i.e. can
-    the string be parsed and formatted as a list of <type>?)
+    FastAPI treats `list` fields as request body unless their default is a `Query` object.
+    This builds a `GeneratedFilter` with list fields wrapped in `Query`, used by FastAPI for
+    OpenAPI schema generation and query param parsing. The actual validation and construction
+    of `filter_model` happens inside `FilterWrapper.__new__`.
     """
-    fields = _list_to_query_fields(filter_model)
+    fields = _prepare_filter_fields(filter_model)
     GeneratedFilter = create_model(filter_model.__class__.__name__, **fields)  # ruff:ignore[non-lowercase-variable-in-function]
 
     class FilterWrapper(GeneratedFilter):  # type: ignore[misc,valid-type]

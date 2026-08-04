@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any, get_args, get_origin
 
@@ -6,9 +7,27 @@ from fastapi.exceptions import RequestValidationError
 from fastapi_filter.base.filter import BaseFilterModel
 from pydantic import ValidationError, create_model
 
+_ORDER_BY_FIELD_NAME = "order_by"
 
-def _list_to_query_fields(filter_model: type[BaseFilterModel]):
+
+def _order_by_schema_extra(fields: list[str]) -> Callable[[dict[str, Any]], None]:
+    """Return a json_schema_extra callable that injects all valid order_by values as enum.
+
+    Each field is expanded to unprefixed (ascending), `+` (ascending), and `-` (descending).
+    """
+    enum = [f"{prefix}{f}" for prefix in ("", "+", "-") for f in fields]
+
+    def extra(s: dict) -> None:
+        s.update({"items": {"type": "string", "enum": enum}})
+
+    return extra
+
+
+def _list_to_query_fields(filter_model: type[BaseFilterModel]) -> dict[str, Any]:
     fields = {}
+    ordering_fields: list[str] | None = getattr(
+        getattr(filter_model, "Constants", None), "ordering_model_fields", None
+    )
     for name, f in filter_model.model_fields.items():
         field_info = deepcopy(f)
         annotation = f.annotation
@@ -18,7 +37,14 @@ def _list_to_query_fields(filter_model: type[BaseFilterModel]):
             or get_origin(annotation) is list
             or any(get_origin(a) is list for a in get_args(annotation))
         ) and type(field_info.default) is not params.Query:
-            field_info.default = Query(default=field_info.default)
+            if name == _ORDER_BY_FIELD_NAME and ordering_fields:
+                query = Query(default=field_info.default)
+                # FastAPI's Query restricts json_schema_extra to dict | None, but Pydantic's
+                # underlying FieldInfo supports callables, so we assign after construction.
+                query.json_schema_extra = _order_by_schema_extra(ordering_fields)  # type: ignore[method-assign]
+                field_info.default = query
+            else:
+                field_info.default = Query(default=field_info.default)
 
         fields[name] = (f.annotation, field_info)
 

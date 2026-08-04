@@ -175,7 +175,7 @@ def must_match_reference_function(model: type[Entity], field_name: str) -> PGFun
     """Return a PGFunction that checks the model's visibility mirrors the referenced entity.
 
     Enforces that authorized_public and authorized_project_id on the new row are
-    identical to those of the referenced entity. Use this for containment relationships
+    identical to those of the referenced entity. Use this for relationships
     where the child must inherit the parent's visibility (e.g. stimulus -> recording).
 
     If the field is nullable and the value is NULL, then the check is skipped.
@@ -278,7 +278,7 @@ for model, field_name in protected_entity_relationships:
     ]
 
 
-# list of containment relationships where the child must mirror the parent's visibility
+# list of relationships where the child must mirror the parent's visibility
 must_match_entity_relationships = [
     (ElectricalRecordingStimulus, "recording_id"),
 ]

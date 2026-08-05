@@ -1,8 +1,8 @@
-"""Add circuit single build task types
+"""Default migration message
 
-Revision ID: 906c103ba5db
+Revision ID: a89591b9197d
 Revises: 5fc241d0ef32
-Create Date: 2026-08-05 14:11:35.837133
+Create Date: 2026-08-05 14:36:39.190400
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "906c103ba5db"
+revision: str = "a89591b9197d"
 down_revision: Union[str, None] = "5fc241d0ef32"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

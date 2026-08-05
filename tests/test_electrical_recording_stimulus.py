@@ -77,12 +77,13 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_update_one(clients, public_json_data):
+def test_update_one(clients, public_json_data, json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
         json_data=public_json_data,
+        private_json_data=json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -106,19 +107,48 @@ def test_admin_read_one(client_admin, model_id, json_data):
     assert data["id"] == str(model_id)
 
 
-def test_read_many_1(client, model_id, json_data):
+def test_read_many(client, model_id, json_data):
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
     _assert_read_response(data["data"][0], json_data)
     assert data["data"][0]["id"] == str(model_id)
 
 
-def test_read_many_2(clients, public_json_data):
+def test_read_many_visibility(
+    clients,
+    public_json_data,
+    json_data,
+    trace_id_minimal_user_2,
+    public_trace_id_minimal_user_2,
+):
+    private_u2 = {
+        "name": "my-stimulus",
+        "description": "my-stimulus-description",
+        "dt": 0.1,
+        "injection_type": "current_clamp",
+        "shape": "sinusoidal",
+        "start_time": None,
+        "end_time": None,
+        "recording_id": str(trace_id_minimal_user_2),
+    }
+    public_u2 = {
+        "name": "my-stimulus",
+        "description": "my-stimulus-description",
+        "dt": 0.1,
+        "injection_type": "current_clamp",
+        "shape": "sinusoidal",
+        "start_time": None,
+        "end_time": None,
+        "recording_id": str(public_trace_id_minimal_user_2),
+    }
     check_entity_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
         json_data=public_json_data,
+        private_json_data=json_data,
+        private_json_data_user_2=private_u2,
+        json_data_user_2=public_u2,
     )
 
 
@@ -131,21 +161,54 @@ def test_authorization(
     client_user_2,
     client_no_project,
     public_json_data,
+    json_data,
+    trace_id_minimal_user_2,
+    public_trace_id_minimal_user_2,
 ):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
+    private_u2 = {
+        "name": "my-stimulus",
+        "description": "my-stimulus-description",
+        "dt": 0.1,
+        "injection_type": "current_clamp",
+        "shape": "sinusoidal",
+        "start_time": None,
+        "end_time": None,
+        "recording_id": str(trace_id_minimal_user_2),
+    }
+    public_u2 = {
+        "name": "my-stimulus",
+        "description": "my-stimulus-description",
+        "dt": 0.1,
+        "injection_type": "current_clamp",
+        "shape": "sinusoidal",
+        "start_time": None,
+        "end_time": None,
+        "recording_id": str(public_trace_id_minimal_user_2),
+    }
+    check_authorization(
+        ROUTE,
+        client_user_1,
+        client_user_2,
+        client_no_project,
+        json_data=public_json_data,
+        private_json_data=json_data,
+        private_json_data_user_2=private_u2,
+        json_data_user_2=public_u2,
+    )
 
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
 
 
-def test_delete_one(db, clients, public_json_data):
+def test_delete_one(db, clients, public_json_data, json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
         json_data=public_json_data,
+        private_json_data=json_data,
         expected_counts_before={
             ElectricalRecordingStimulus: 1,
         },
@@ -203,3 +266,24 @@ def test_filtering(client, models):
 
     data = req({"lifecycle_status": "active"})
     assert len(data) == len(models)
+
+
+def test_stimulus_must_match_recording_visibility(client, json_data, public_json_data):
+    """Stimulus authorized_public must match the recording's authorized_public."""
+    # private stimulus for a public recording → rejected
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=public_json_data | {"authorized_public": False},
+        expected_status_code=403,
+    )
+    # public stimulus for a private recording → rejected
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"authorized_public": True},
+        expected_status_code=403,
+    )
+    # matching visibility → accepted
+    assert_request(client.post, url=ROUTE, json=json_data | {"authorized_public": False})
+    assert_request(client.post, url=ROUTE, json=public_json_data | {"authorized_public": True})

@@ -1240,6 +1240,20 @@ def public_trace_id_minimal(client, electrical_cell_recording_json_data):
 
 
 @pytest.fixture
+def trace_id_minimal_user_2(client_user_2, electrical_cell_recording_json_data):
+    return utils.create_electrical_cell_recording_id(
+        client_user_2, electrical_cell_recording_json_data | {"authorized_public": False}
+    )
+
+
+@pytest.fixture
+def public_trace_id_minimal_user_2(client_user_2, electrical_cell_recording_json_data):
+    return utils.create_electrical_cell_recording_id(
+        client_user_2, electrical_cell_recording_json_data | {"authorized_public": True}
+    )
+
+
+@pytest.fixture
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data

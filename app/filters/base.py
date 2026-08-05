@@ -35,7 +35,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
     @field_validator("order_by", check_fields=False)
     @classmethod
     def restrict_sortable_fields(cls, value: list[str]):
-        """Restrict sorting to specific fields."""
+        """Restrict sorting to fields in Constants.ordering_model_fields, stripping +/- prefix."""
         allowed_field_names = getattr(cls.Constants, "ordering_model_fields", None)
         if not allowed_field_names:
             msg = "You cannot sort by any field"

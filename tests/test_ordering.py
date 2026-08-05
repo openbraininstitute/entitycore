@@ -1,6 +1,9 @@
+from unittest.mock import ANY
+
 import pytest
 import sqlalchemy as sa
 
+from app.application import app
 from app.db.model import CellMorphology, License
 from app.filters.cell_morphology import CellMorphologyFilter
 from app.filters.subject import NestedSubjectFilter
@@ -85,6 +88,29 @@ def test_cell_morphology_ordering(
     data = response.json()["data"]
     assert len(data) == count // 2
     check_sort_by_field(data, "name", how="descending")
+
+
+def test_order_by_openapi_schema():
+    """Test the full OpenAPI schema shape for order_by, including enum expansion and description."""
+    schema = app.openapi()
+    params = {p["name"]: p for p in schema["paths"]["/cell-morphology"]["get"]["parameters"]}
+
+    assert params["order_by"] == {
+        "name": "order_by",
+        "in": "query",
+        "required": False,
+        "schema": {
+            "type": "array",
+            "items": {"type": "string", "enum": ANY},
+            "default": ["-creation_date"],
+            "title": "Order By",
+        },
+    }
+    assert params["order_by"]["schema"]["items"]["enum"] == [
+        f"{prefix}{f}"
+        for prefix in ("", "+", "-")
+        for f in CellMorphologyFilter.Constants.ordering_model_fields
+    ]
 
 
 def test_sort_unsupported_nested_ordering_part():

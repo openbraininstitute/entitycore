@@ -202,6 +202,8 @@ class TaskConfigType(StrEnum):
     circuit_synaptic_physiology_assignment__config = auto()
     circuit_simplification__campaign = auto()
     circuit_simplification__config = auto()
+    circuit_single_build__campaign = auto()
+    circuit_single_build__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -237,6 +239,8 @@ class TaskActivityType(StrEnum):
     circuit_synaptic_physiology_assignment__execution = auto()
     circuit_simplification__config_generation = auto()
     circuit_simplification__execution = auto()
+    circuit_single_build__config_generation = auto()
+    circuit_single_build__execution = auto()
 
 
 class AgentType(StrEnum):

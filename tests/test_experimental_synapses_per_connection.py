@@ -197,14 +197,14 @@ def test_brain_region_filter(
 
 
 @pytest.fixture
-def models(db, brain_region_hierarchy_id, create, person_id):
+def models(db, brain_region_hierarchy_id, create, user_id):
     pre_region_ids = [
         create_brain_region(
             db,
             hierarchy_id=brain_region_hierarchy_id,
             annotation_value=i,
             name=f"pre-r{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in [0, 1]
     ]
@@ -214,15 +214,15 @@ def models(db, brain_region_hierarchy_id, create, person_id):
             hierarchy_id=brain_region_hierarchy_id,
             annotation_value=i,
             name=f"post-r{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in [2, 3]
     ]
     pre_mtype_ids = [
-        create_mtype(db, pref_label=f"pre-m{i}", created_by_id=person_id).id for i in [0, 1]
+        create_mtype(db, pref_label=f"pre-m{i}", created_by_id=user_id).id for i in [0, 1]
     ]
     post_mtype_ids = [
-        create_mtype(db, pref_label=f"post-m{i}", created_by_id=person_id).id for i in [2, 3]
+        create_mtype(db, pref_label=f"post-m{i}", created_by_id=user_id).id for i in [2, 3]
     ]
 
     synapses_per_connection = []
@@ -382,7 +382,7 @@ def test_sorting_and_filtering(client, models):
         data = req({"post_mtype__pref_label": "post-m2", "order_by": ordering_field})
         assert [d["post_mtype"]["pref_label"] for d in data] == ["post-m2"] * len(data)
 
-        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
         assert len(data) == n_models
 
         data = req({"ilike_search": "d*"})

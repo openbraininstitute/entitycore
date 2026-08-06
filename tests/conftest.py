@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
 from pydantic import BaseModel
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from types_boto3_s3 import S3Client
@@ -41,8 +42,8 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
-    Person,
     PlaceholderCellMorphologyProtocol,
+    PlatformUser,
     Publication,
     Role,
     Simulation,
@@ -511,29 +512,38 @@ def db(session_client, monkeypatch) -> Iterator[Session]:
 
 
 @pytest.fixture
-def person_id(db):
-    # Check if person already exists
-    existing_person = db.query(Person).filter(Person.sub_id == USER_SUB_ID_1).first()
-    if existing_person:
-        return existing_person.id
+def user_id(db):
+    uid = UUID(USER_SUB_ID_1)
+    db.execute(
+        insert(PlatformUser)
+        .values(
+            id=uid,
+            pref_label="jd courcol",
+        )
+        .on_conflict_do_nothing()
+    )
+    db.flush()
+    return uid
 
-    # Create new person if it doesn't exist
+
+@pytest.fixture
+def person_id(db, user_id):
     return utils.create_person(
         db,
-        given_name="jd",
-        family_name="courcol",
-        pref_label="jd courcol",
-        sub_id=USER_SUB_ID_1,
+        pref_label="generic person",
+        given_name="Generic",
+        family_name="Person",
+        created_by_id=user_id,
     ).id
 
 
 @pytest.fixture
-def organization_id(db, person_id):
+def organization_id(db, user_id):
     row = Organization(
         pref_label="ACME",
         alternative_name="A Company Making Everything",
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     db.add(row)
     db.flush()
@@ -542,12 +552,12 @@ def organization_id(db, person_id):
 
 
 @pytest.fixture
-def role_id(db, person_id):
+def role_id(db, user_id):
     row = Role(
         name="important role",
         role_id="important role id",
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     db.add(row)
     db.flush()
@@ -556,14 +566,14 @@ def role_id(db, person_id):
 
 
 @pytest.fixture
-def species_id(client_admin, person_id):
+def species_id(client_admin, user_id):
     response = client_admin.post(
         "/species",
         json={
             "name": "Test Species",
             "taxonomy_id": "12345",
-            "created_by_id": str(person_id),
-            "updated_by_id": str(person_id),
+            "created_by_id": str(user_id),
+            "updated_by_id": str(user_id),
         },
     )
     assert response.status_code == 200, f"Failed to create species: {response.text}"
@@ -574,15 +584,15 @@ def species_id(client_admin, person_id):
 
 
 @pytest.fixture
-def strain_id(client_admin, species_id, person_id):
+def strain_id(client_admin, species_id, user_id):
     response = client_admin.post(
         "/strain",
         json={
             "name": "Test Strain",
             "taxonomy_id": "Taxonomy ID",
             "species_id": species_id,
-            "created_by_id": str(person_id),
-            "updated_by_id": str(person_id),
+            "created_by_id": str(user_id),
+            "updated_by_id": str(user_id),
         },
     )
     assert response.status_code == 200, f"Failed to create strain: {response.text}"
@@ -593,7 +603,7 @@ def strain_id(client_admin, species_id, person_id):
 
 
 @pytest.fixture
-def subject_id(db, species_id, person_id, strain_id):
+def subject_id(db, species_id, user_id, strain_id):
     return str(
         add_db(
             db,
@@ -608,23 +618,23 @@ def subject_id(db, species_id, person_id, strain_id):
                 weight=1.5,
                 authorized_public=True,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=str(person_id),
-                updated_by_id=str(person_id),
+                created_by_id=str(user_id),
+                updated_by_id=str(user_id),
             ),
         ).id
     )
 
 
 @pytest.fixture
-def license_id(client_admin, person_id):
+def license_id(client_admin, user_id):
     response = client_admin.post(
         "/license",
         json={
             "name": "Test License",
             "description": "a license description",
             "label": "test label",
-            "created_by_id": str(person_id),
-            "updated_by_id": str(person_id),
+            "created_by_id": str(user_id),
+            "updated_by_id": str(user_id),
         },
     )
     assert response.status_code == 200, f"Failed to create license: {response.text}"
@@ -634,23 +644,23 @@ def license_id(client_admin, person_id):
 
 
 @pytest.fixture
-def brain_region_hierarchy_id(db, person_id, species_id):
+def brain_region_hierarchy_id(db, user_id, species_id):
     return utils.create_hiearchy_name(
-        db, name="AIBS", species_id=species_id, created_by_id=person_id
+        db, name="AIBS", species_id=species_id, created_by_id=user_id
     ).id
 
 
 @pytest.fixture
-def brain_region_id(db, brain_region_hierarchy_id, person_id):
+def brain_region_id(db, brain_region_hierarchy_id, user_id):
     return str(
         utils.create_brain_region(
-            db, brain_region_hierarchy_id, 64, "RedRegion", created_by_id=person_id
+            db, brain_region_hierarchy_id, 64, "RedRegion", created_by_id=user_id
         ).id
     )
 
 
 @pytest.fixture
-def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
+def brain_atlas_id(db, brain_region_hierarchy_id, user_id, species_id):
     return add_db(
         db,
         BrainAtlas(
@@ -660,14 +670,14 @@ def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
             hierarchy_id=brain_region_hierarchy_id,
             authorized_project_id=PROJECT_ID,
             authorized_public=True,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     ).id
 
 
 @pytest.fixture
-def morphology_id(db, client, subject_id, brain_region_id, person_id, cell_morphology_protocol_id):
+def morphology_id(db, client, subject_id, brain_region_id, user_id, cell_morphology_protocol_id):
     model_id = utils.create_cell_morphology_id(
         client,
         subject_id=subject_id,
@@ -681,8 +691,8 @@ def morphology_id(db, client, subject_id, brain_region_id, person_id, cell_morph
             pref_label="m1",
             alt_label="m1",
             definition="m1d",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     add_db(
@@ -690,8 +700,8 @@ def morphology_id(db, client, subject_id, brain_region_id, person_id, cell_morph
         MTypeClassification(
             entity_id=model_id,
             mtype_class_id=mtype.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
@@ -712,7 +722,7 @@ def public_morphology_id(client, subject_id, brain_region_id, cell_morphology_pr
 
 
 @pytest.fixture
-def mtype_class_id(db, person_id):
+def mtype_class_id(db, user_id):
     return str(
         add_db(
             db,
@@ -720,15 +730,15 @@ def mtype_class_id(db, person_id):
                 pref_label="mtype-pref-label",
                 alt_label="mtype-alt-label",
                 definition="mtype-definition",
-                created_by_id=str(person_id),
-                updated_by_id=str(person_id),
+                created_by_id=str(user_id),
+                updated_by_id=str(user_id),
             ),
         ).id
     )
 
 
 @pytest.fixture
-def validation_result_id(client, morphology_id, person_id):
+def validation_result_id(client, morphology_id, user_id):
     return assert_request(
         client.post,
         url="/validation-result",
@@ -737,8 +747,8 @@ def validation_result_id(client, morphology_id, person_id):
             "passed": True,
             "validated_entity_id": str(morphology_id),
             "authorized_public": False,
-            "created_by_id": str(person_id),
-            "updated_by_id": str(person_id),
+            "created_by_id": str(user_id),
+            "updated_by_id": str(user_id),
         },
     ).json()["id"]
 
@@ -763,19 +773,14 @@ CreateIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def custom_user_sub_id():
-    return "00000000-0000-0000-0000-000000000005"
-
-
-@pytest.fixture
-def agents(db: Session, person_id, custom_user_sub_id):
+def agents(db: Session, user_id):
     organization_1 = add_db(
         db,
         Organization(
             pref_label="test_organization_1",
             alternative_name="alt name 1",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     person_1 = utils.create_person(
@@ -783,17 +788,18 @@ def agents(db: Session, person_id, custom_user_sub_id):
         pref_label="test_person_1",
         given_name="given name 1",
         family_name="family name 1",
-        created_by_id=person_id,
-        sub_id=custom_user_sub_id,
+        created_by_id=user_id,
     )
     role = add_db(
-        db, Role(role_id=1, name="test role", created_by_id=person_id, updated_by_id=person_id)
+        db, Role(role_id=1, name="test role", created_by_id=user_id, updated_by_id=user_id)
     )
 
     return organization_1, person_1, role
 
 
-def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):
+def add_contributions(
+    db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID, created_by_id: UUID
+):
     agent_1, agent_2, role = agents
     add_db(
         db,
@@ -801,8 +807,8 @@ def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id:
             agent_id=agent_1.id,
             role_id=role.id,
             entity_id=entity_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
     add_db(
@@ -811,15 +817,15 @@ def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id:
             agent_id=agent_2.id,
             role_id=role.id,
             entity_id=entity_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
 
 
 @pytest.fixture
 def create_emodel_ids(
-    client, db, morphology_id, brain_region_id, species_id, strain_id, agents, person_id
+    client, db, morphology_id, brain_region_id, species_id, strain_id, agents, user_id
 ) -> CreateIds:
     def _create_emodels(count: int) -> list[str]:
         emodel_ids: list[str] = []
@@ -841,17 +847,15 @@ def create_emodel_ids(
                 },
             ).json()["id"]
 
-            add_contributions(db, agents, emodel_id)
-
-            # create a unique etype for each emodel
+            add_contributions(db, agents, emodel_id, created_by_id=user_id)
             etype = add_db(
                 db,
                 ETypeClass(
                     pref_label=f"etype-emodel-{i}",
                     alt_label=f"etype-emodel-{i}",
                     definition="e1d",
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                 ),
             )
             add_db(
@@ -859,8 +863,8 @@ def create_emodel_ids(
                 ETypeClassification(
                     entity_id=emodel_id,
                     etype_class_id=etype.id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
                 ),
@@ -900,7 +904,7 @@ def public_emodel_id(client, brain_region_id, species_id, strain_id, public_morp
 
 @pytest.fixture
 def create_memodel_ids(
-    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents, person_id
+    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents, user_id
 ) -> CreateIds:
     def _create_memodel_ids(count: int) -> list[str]:
         memodel_ids: list[str] = []
@@ -917,13 +921,13 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     validation_status="created",
                 ),
             ).id
 
-            add_contributions(db, agents, memodel_id)
+            add_contributions(db, agents, memodel_id, created_by_id=user_id)
 
             emodel = db.get(EModel, emodel_id)
             morphology = db.get(CellMorphology, morphology_id)
@@ -933,8 +937,8 @@ def create_memodel_ids(
                 MTypeClassification(
                     entity_id=memodel_id,
                     mtype_class_id=morphology.mtypes[0].id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
                 ),
@@ -944,8 +948,8 @@ def create_memodel_ids(
                 ETypeClassification(
                     entity_id=memodel_id,
                     etype_class_id=emodel.etypes[0].id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
                 ),
@@ -1019,7 +1023,7 @@ def ion_channel_model_id(client, brain_region_id, subject_id):
 
 
 @pytest.fixture
-def ion_channel_models(db, person_id, brain_region_id, subject_id):
+def ion_channel_models(db, user_id, brain_region_id, subject_id):
     return [
         add_db(
             db,
@@ -1032,8 +1036,8 @@ def ion_channel_models(db, person_id, brain_region_id, subject_id):
                 brain_region_id=str(brain_region_id),
                 subject_id=str(subject_id),
                 authorized_public=False,
-                created_by_id=str(person_id),
-                updated_by_id=str(person_id),
+                created_by_id=str(user_id),
+                updated_by_id=str(user_id),
                 authorized_project_id=PROJECT_ID,
             ),
         )
@@ -1045,15 +1049,15 @@ def ion_channel_models(db, person_id, brain_region_id, subject_id):
 def faceted_emodel_ids(
     db: Session,
     client,
-    person_id,
+    user_id,
     species_id,
     ion_channel_models,
     cell_morphology_protocol_id,
 ):
-    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=user_id, n=2)
 
     hierarchy_name = utils.create_hiearchy_name(
-        db, name="test_hier", species_id=species_id, created_by_id=person_id
+        db, name="test_hier", species_id=species_id, created_by_id=user_id
     )
     brain_region_ids = [
         utils.create_brain_region(
@@ -1061,7 +1065,7 @@ def faceted_emodel_ids(
             hierarchy_id=hierarchy_name.id,
             annotation_value=i,
             name=f"region{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -1097,8 +1101,8 @@ def faceted_emodel_ids(
                 "seed": -1,
                 "exemplar_morphology_id": str(morphology_id),
                 "authorized_public": False,
-                "created_by_id": str(person_id),
-                "updated_by_id": str(person_id),
+                "created_by_id": str(user_id),
+                "updated_by_id": str(user_id),
                 "ion_channel_models": [
                     {"id": str(ion_channel_model.id)} for ion_channel_model in ion_channel_models
                 ],
@@ -1122,18 +1126,15 @@ def faceted_memodels(
     species_id,
     agents: tuple[Agent, Agent, Role],
     cell_morphology_protocol_id,
+    user_id,
 ):
-    person_id = agents[1].id
-
-    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=user_id, n=2)
 
     hierarchy_name = utils.create_hiearchy_name(
-        db, name="test_hier", species_id=species_id, created_by_id=person_id
+        db, name="test_hier", species_id=species_id, created_by_id=user_id
     )
     brain_region_ids = [
-        utils.create_brain_region(
-            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
-        ).id
+        utils.create_brain_region(db, hierarchy_name.id, i, f"region{i}", created_by_id=user_id).id
         for i in range(2)
     ]
 
@@ -1163,8 +1164,8 @@ def faceted_memodels(
                     exemplar_morphology_id=morphology_ids[i],
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                 ),
             ).id
         )
@@ -1190,13 +1191,13 @@ def faceted_memodels(
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 validation_status="created",
             ),
         )
 
-        add_contributions(db, agents, memodel.id)
+        add_contributions(db, agents, memodel.id, created_by_id=user_id)
 
         memodels.append(memodel)
 
@@ -1271,14 +1272,14 @@ def ion_channel_json_data():
 
 
 @pytest.fixture
-def ion_channel(db, ion_channel_json_data, person_id):
+def ion_channel(db, ion_channel_json_data, user_id):
     return add_db(
         db,
         IonChannel(
             **ion_channel_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
             }
         ),
     )
@@ -1334,8 +1335,6 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "build_category": "em_reconstruction",
         "authorized_project_id": PROJECT_ID,
         "authorized_public": True,
-        "created_by_id": str(person_id),
-        "updated_by_id": str(person_id),
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "target_simulator": TargetSimulator.coreneuron,
@@ -1344,14 +1343,14 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
 
 
 @pytest.fixture
-def root_circuit(db, root_circuit_json_data, person_id):
+def root_circuit(db, root_circuit_json_data, user_id):
     return add_db(
         db,
         Circuit(
             **root_circuit_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1359,14 +1358,14 @@ def root_circuit(db, root_circuit_json_data, person_id):
 
 
 @pytest.fixture
-def public_root_circuit(db, root_circuit_json_data, person_id):
+def public_root_circuit(db, root_circuit_json_data, user_id):
     return add_db(
         db,
         Circuit(
             **root_circuit_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": True,
             }
@@ -1399,38 +1398,38 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
 
 
 @pytest.fixture
-def circuit(db, circuit_json_data, person_id, role_id):
+def circuit(db, circuit_json_data, user_id, person_id, role_id):
     circuit = add_db(
         db,
         Circuit(
             **circuit_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
     )
-    add_contribution(db, circuit.id, person_id, role_id, person_id)
+    add_contribution(db, circuit.id, person_id, role_id, user_id)
     return circuit
 
 
 @pytest.fixture
-def public_circuit(db, circuit_json_data, person_id, role_id):
+def public_circuit(db, circuit_json_data, user_id, person_id, role_id):
     circuit = add_db(
         db,
         Circuit(
             **circuit_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
     )
-    add_contribution(db, circuit.id, person_id, role_id, person_id)
+    add_contribution(db, circuit.id, person_id, role_id, user_id)
     return circuit
 
 
@@ -1455,14 +1454,14 @@ def public_simulation_campaign_json_data(public_circuit):
 
 
 @pytest.fixture
-def simulation_campaign(db, simulation_campaign_json_data, person_id):
+def simulation_campaign(db, simulation_campaign_json_data, user_id):
     return add_db(
         db,
         SimulationCampaign(
             **simulation_campaign_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1471,14 +1470,14 @@ def simulation_campaign(db, simulation_campaign_json_data, person_id):
 
 
 @pytest.fixture
-def public_simulation_campaign(db, public_simulation_campaign_json_data, person_id):
+def public_simulation_campaign(db, public_simulation_campaign_json_data, user_id):
     return add_db(
         db,
         SimulationCampaign(
             **public_simulation_campaign_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1511,14 +1510,14 @@ def public_simulation_json_data(public_simulation_campaign, public_circuit):
 
 
 @pytest.fixture
-def simulation(db, simulation_json_data, person_id):
+def simulation(db, simulation_json_data, user_id):
     return add_db(
         db,
         Simulation(
             **simulation_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1527,14 +1526,14 @@ def simulation(db, simulation_json_data, person_id):
 
 
 @pytest.fixture
-def public_simulation(db, public_simulation_json_data, person_id):
+def public_simulation(db, public_simulation_json_data, user_id):
     return add_db(
         db,
         Simulation(
             **public_simulation_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1561,14 +1560,14 @@ def public_simulation_result_json_data(public_simulation):
 
 
 @pytest.fixture
-def simulation_result(db, simulation_result_json_data, person_id):
+def simulation_result(db, simulation_result_json_data, user_id):
     return add_db(
         db,
         SimulationResult(
             **simulation_result_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             },
@@ -1577,14 +1576,14 @@ def simulation_result(db, simulation_result_json_data, person_id):
 
 
 @pytest.fixture
-def public_simulation_result(db, public_simulation_result_json_data, person_id):
+def public_simulation_result(db, public_simulation_result_json_data, user_id):
     return add_db(
         db,
         SimulationResult(
             **public_simulation_result_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             },
@@ -1611,14 +1610,14 @@ def public_task_result_json_data():
 
 
 @pytest.fixture
-def task_result(db, task_result_json_data, person_id):
+def task_result(db, task_result_json_data, user_id):
     return add_db(
         db,
         TaskResult(
             **task_result_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             },
@@ -1647,14 +1646,14 @@ def publication_json_data():
 
 
 @pytest.fixture
-def publication(db, publication_json_data, person_id):
+def publication(db, publication_json_data, user_id):
     return add_db(
         db,
         Publication(
             **publication_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
             }
         ),
     )
@@ -1672,10 +1671,10 @@ def external_url_json_data():
 
 
 @pytest.fixture
-def external_url(db, external_url_json_data, person_id):
+def external_url(db, external_url_json_data, user_id):
     data = ExternalUrlCreate.model_validate(external_url_json_data).model_dump() | {
-        "created_by_id": person_id,
-        "updated_by_id": person_id,
+        "created_by_id": user_id,
+        "updated_by_id": user_id,
     }
     return add_db(db, ExternalUrl(**data))
 
@@ -1699,14 +1698,14 @@ def em_dense_reconstruction_dataset_json_data(subject_id, brain_region_id):
 
 
 @pytest.fixture
-def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_data, person_id):
+def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_data, user_id):
     return add_db(
         db,
         EMDenseReconstructionDataset(
             **em_dense_reconstruction_dataset_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1731,14 +1730,14 @@ def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_re
 
 
 @pytest.fixture
-def em_cell_mesh(db, em_cell_mesh_json_data, person_id):
+def em_cell_mesh(db, em_cell_mesh_json_data, user_id):
     return add_db(
         db,
         EMCellMesh(
             **em_cell_mesh_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -1747,14 +1746,14 @@ def em_cell_mesh(db, em_cell_mesh_json_data, person_id):
 
 
 @pytest.fixture
-def public_em_cell_mesh(db, em_cell_mesh_json_data, person_id):
+def public_em_cell_mesh(db, em_cell_mesh_json_data, user_id):
     return add_db(
         db,
         EMCellMesh(
             **em_cell_mesh_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": True,
             }
@@ -1773,14 +1772,14 @@ def cell_morphology_protocol_json_data():
 
 
 @pytest.fixture
-def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
+def cell_morphology_protocol(db, cell_morphology_protocol_json_data, user_id):
     return add_db(
         db,
         PlaceholderCellMorphologyProtocol(
             **cell_morphology_protocol_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": True,
             }
@@ -1823,14 +1822,14 @@ def analysis_notebook_template_json_data():
 
 
 @pytest.fixture
-def analysis_notebook_template(db, analysis_notebook_template_json_data, person_id):
+def analysis_notebook_template(db, analysis_notebook_template_json_data, user_id):
     return add_db(
         db,
         AnalysisNotebookTemplate(
             **analysis_notebook_template_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             },
         ),
@@ -1862,14 +1861,14 @@ def analysis_notebook_environment_json_data():
 
 
 @pytest.fixture
-def analysis_notebook_environment(db, analysis_notebook_environment_json_data, person_id):
+def analysis_notebook_environment(db, analysis_notebook_environment_json_data, user_id):
     return add_db(
         db,
         AnalysisNotebookEnvironment(
             **analysis_notebook_environment_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             },
         ),
@@ -1885,14 +1884,14 @@ def analysis_notebook_result_json_data():
 
 
 @pytest.fixture
-def analysis_notebook_result(db, analysis_notebook_result_json_data, person_id):
+def analysis_notebook_result(db, analysis_notebook_result_json_data, user_id):
     return add_db(
         db,
         AnalysisNotebookResult(
             **analysis_notebook_result_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             },
         ),

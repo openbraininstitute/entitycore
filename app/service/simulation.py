@@ -7,7 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     Circuit,
-    Person,
+    PlatformUser,
     Simulation,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -148,15 +148,15 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[SimulationRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     circuit_alias = aliased(Circuit, flat=True)
 
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
         },
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

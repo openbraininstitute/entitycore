@@ -189,7 +189,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == count
 
@@ -233,7 +233,9 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds, ion_channel_m
     created_by = facets.pop("created_by")
     updated_by = facets.pop("updated_by")
     assert len(created_by) == len(updated_by) == 1
-    assert created_by == updated_by
+    assert [{k: v for k, v in e.items() if k != "type"} for e in created_by] == [
+        {k: v for k, v in e.items() if k != "type"} for e in updated_by
+    ]
 
     assert facets == {
         "mtype": [],
@@ -297,7 +299,9 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds, ion_channel_m
     created_by = facets.pop("created_by")
     updated_by = facets.pop("updated_by")
     assert len(created_by) == len(updated_by) == 1
-    assert created_by == updated_by
+    assert [{k: v for k, v in e.items() if k != "type"} for e in created_by] == [
+        {k: v for k, v in e.items() if k != "type"} for e in updated_by
+    ]
 
     assert facets == {
         "mtype": [],
@@ -559,7 +563,7 @@ def test_filtering_ordering(client, faceted_emodel_ids, ion_channel_models):
     assert len(data) == n_models
 
 
-def test_derivation_filter_and_expand(db, client, create_emodel_ids, person_id):
+def test_derivation_filter_and_expand(db, client, create_emodel_ids, user_id):
     """Derivation filters + expand are inherited by every entity, here proven on /emodel.
 
     Covers both directions, the derivation_type filter, the related-entity-id filter, and the
@@ -573,8 +577,8 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, person_id):
             generated_id=uuid.UUID(generated_id),
             derivation_type=DerivationType.circuit_extraction,
             label="gen",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 

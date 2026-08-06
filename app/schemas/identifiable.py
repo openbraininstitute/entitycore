@@ -1,8 +1,7 @@
-from __future__ import annotations
-
-from uuid import UUID  # ruff:ignore[typing-only-standard-library-import]
+from uuid import UUID
 
 from app.schemas.base import Schema, TimestapMixin
+from app.schemas.platform_user import NestedPlatformUserRead
 
 
 class NestedIdentifiableRead(Schema, TimestapMixin):
@@ -14,12 +13,5 @@ class IdentifiableCreate(Schema):
 
 
 class IdentifiableRead(NestedIdentifiableRead):
-    created_by: NestedPersonRead
-    updated_by: NestedPersonRead
-
-
-from app.schemas.agent import (  # ruff:ignore[module-import-not-at-top-of-file]
-    NestedPersonRead,  # ruff:ignore[typing-only-first-party-import]
-)
-
-IdentifiableRead.model_rebuild()
+    created_by: NestedPlatformUserRead
+    updated_by: NestedPlatformUserRead

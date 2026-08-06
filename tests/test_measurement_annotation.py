@@ -18,7 +18,7 @@ ENTITY_TYPE = "cell_morphology"
 
 
 @pytest.fixture
-def measurement_labels(client_admin, person_id):
+def measurement_labels(client_admin, user_id):
     labels = []
     for i in range(2):
         response = client_admin.post(
@@ -27,8 +27,8 @@ def measurement_labels(client_admin, person_id):
                 "entity_type": ENTITY_TYPE,
                 "pref_label": f"pref_label_{i}",
                 "definition": "",
-                "created_by_id": str(person_id),
-                "updated_by_id": str(person_id),
+                "created_by_id": str(user_id),
+                "updated_by_id": str(user_id),
             },
         )
         assert response.status_code == 200, f"Failed to create measurement label: {response.text}"

@@ -12,7 +12,7 @@ from app.db.model import (
     EMDenseReconstructionDataset,
     MeasurementAnnotation,
     MeasurementKind,
-    Person,
+    PlatformUser,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -103,9 +103,9 @@ def _read_many(
     aliases: Aliases = {
         Subject: subject_alias,
         EMDenseReconstructionDataset: em_dense_reconstruction_dataset_alias,
-        Person: {
-            "created_by": aliased(Person, flat=True),
-            "updated_by": aliased(Person, flat=True),
+        PlatformUser: {
+            "created_by": aliased(PlatformUser, flat=True),
+            "updated_by": aliased(PlatformUser, flat=True),
         },
     }
     facet_keys = [

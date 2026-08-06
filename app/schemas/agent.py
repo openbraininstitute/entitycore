@@ -1,9 +1,5 @@
-import uuid
-
 from app.db.types import AgentType
-from app.schemas.base import (
-    Schema,
-)
+from app.schemas.base import Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 from app.utils.pydantic_validators import ORCID, ROR_ID
@@ -29,13 +25,11 @@ PersonAdminUpdate = make_update_schema(
 
 class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     type: AgentType
-    sub_id: uuid.UUID | None
     orcid: ORCID | None
 
 
 class PersonRead(PersonBase, IdentifiableRead):
     type: AgentType
-    sub_id: uuid.UUID | None
     orcid: ORCID | None
 
 

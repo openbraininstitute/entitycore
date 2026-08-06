@@ -132,14 +132,14 @@ def test_delete_one(db, clients, root_circuit_json_data):
 
 
 @pytest.fixture
-def entity_id_cascades(db, root_circuit_json_data, person_id):
+def entity_id_cascades(db, root_circuit_json_data, user_id):
     entity_id = add_db(
         db,
         Circuit(
             **root_circuit_json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -151,8 +151,8 @@ def entity_id_cascades(db, root_circuit_json_data, person_id):
             description="url-description",
             source=ExternalSource.channelpedia,
             url="https://foo.bar",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     ).id
     add_db(
@@ -160,16 +160,16 @@ def entity_id_cascades(db, root_circuit_json_data, person_id):
         ScientificArtifactExternalUrlLink(
             scientific_artifact_id=entity_id,
             external_url_id=external_url_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     publication_id = add_db(
         db,
         Publication(
             DOI="foo",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     ).id
     add_db(
@@ -178,8 +178,8 @@ def entity_id_cascades(db, root_circuit_json_data, person_id):
             scientific_artifact_id=entity_id,
             publication_id=publication_id,
             publication_type=PublicationType.entity_source,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     return entity_id
@@ -235,7 +235,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, circuit_json_data, person_id):
+def models(db, circuit_json_data, user_id):
     booleans = [True, False, True, False, True, False]
 
     scales = [
@@ -280,8 +280,8 @@ def models(db, circuit_json_data, person_id):
                     "scale": scale,
                     "build_category": category,
                     "target_simulator": target_simulator,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                     "published_in": f"journal-{i}",
                 }
@@ -421,7 +421,7 @@ def _add_derivation(
     *,
     used_id,
     generated_id,
-    person_id,
+    user_id,
     derivation_type=DerivationType.circuit_extraction,
     label=None,
 ):
@@ -432,13 +432,13 @@ def _add_derivation(
             generated_id=generated_id,
             derivation_type=derivation_type,
             label=label,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
 
-def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_circuit, person_id):
+def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_circuit, user_id):
     """Filter circuits by derivation type on both the generated and used sides."""
     # circuit is derived from root_circuit via extraction; public_circuit via rewiring.
     # => root_circuit is the `used` (source) side of both derivations.
@@ -446,14 +446,14 @@ def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_cir
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
     )
     _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=public_circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_rewiring,
     )
 
@@ -494,13 +494,13 @@ def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_cir
     assert data[0]["used_by_derivations"] is None
 
 
-def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, person_id):
+def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, user_id):
     """The filter has no source-type restriction: an emodel->circuit derivation matches."""
     _add_derivation(
         db,
         used_id=emodel_id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.emodel_circuit,
     )
     data = assert_request(
@@ -509,13 +509,13 @@ def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emode
     assert {d["id"] for d in data} == {str(circuit.id)}
 
 
-def test_expand_derivations(db, client, root_circuit, circuit, person_id):
+def test_expand_derivations(db, client, root_circuit, circuit, user_id):
     """`expand` opts into derivation lists, per direction, independently."""
     _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
         label="extracted",
     )
@@ -559,20 +559,20 @@ def test_expand_derivations(db, client, root_circuit, circuit, person_id):
     assert len(parent["used_by_derivations"]) == 1
 
 
-def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, person_id):
+def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, user_id):
     """Filtering and expanding compose: filtered rows carry the expanded columns."""
     _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
     )
     _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=public_circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_rewiring,
     )
 
@@ -590,7 +590,7 @@ def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_ci
 
 
 def test_derivation_filter_pagination_no_duplicates(
-    db, client, root_circuit, circuit, public_circuit, person_id
+    db, client, root_circuit, circuit, public_circuit, user_id
 ):
     """A circuit matching multiple derivation rows must not repeat across pages.
 
@@ -603,14 +603,14 @@ def test_derivation_filter_pagination_no_duplicates(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
     )
     _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=public_circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
     )
 

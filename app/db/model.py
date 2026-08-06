@@ -119,6 +119,15 @@ class LegacyMixin:
     legacy_self: Mapped[STRING_LIST | None]
 
 
+class PlatformUser(TimestampMixin, Base):
+    """Platform user, identified by their Keycloak subject UUID."""
+
+    __tablename__ = "platform_user"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)  # == Keycloak sub_id
+    pref_label: Mapped[str] = mapped_column(index=True)
+
+
 class Identifiable(TimestampMixin, Base):
     __abstract__ = True  # This class is abstract and not directly mapped to a table
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
@@ -126,15 +135,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def created_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("agent.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def created_by(cls) -> Mapped["Agent"]:
+    def created_by(cls) -> Mapped["PlatformUser"]:
         return relationship(
-            "Agent",
-            # needed to enforce the correct direction of joins in Agent-derived tables
-            primaryjoin=lambda: cls.created_by_id == foreign(Agent.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.created_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )
@@ -142,15 +150,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def updated_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("agent.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def updated_by(cls) -> Mapped["Agent"]:
+    def updated_by(cls) -> Mapped["PlatformUser"]:
         return relationship(
-            "Agent",
-            # needed to enforce the correct direction of joins in Agent-derived tables
-            primaryjoin=lambda: cls.updated_by_id == foreign(Agent.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.updated_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )
@@ -331,8 +338,6 @@ class Person(Agent):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     given_name: Mapped[str | None]
     family_name: Mapped[str | None]
-    sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
-
     orcid: Mapped[str | None] = mapped_column(String(37), unique=True, index=True)
 
     __mapper_args__ = {  # ruff:ignore[mutable-class-default]

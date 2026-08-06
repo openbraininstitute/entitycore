@@ -128,15 +128,15 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     objs = [
         MeasurementLabel(
             **json_data
             | {
                 "pref_label": f"label_{i}",
                 "definition": f"Definition {i}",
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
             }
         )
         for i in range(3)
@@ -149,7 +149,7 @@ def test_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"entity_type": EntityType.cell_morphology, "pref_label__ilike": "label_1"})

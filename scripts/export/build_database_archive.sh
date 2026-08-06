@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="a89591b9197d"
+SCRIPT_DB_VERSION="122ee418a384"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -199,6 +199,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM organization AS t0  WHERE TRUE) TO '$DATA_DIR/organization.csv' WITH CSV HEADER;
 \echo Dumping table person
 \copy (SELECT t0.* FROM person AS t0  WHERE TRUE) TO '$DATA_DIR/person.csv' WITH CSV HEADER;
+\echo Dumping table platform_user
+\copy (SELECT t0.* FROM platform_user AS t0  WHERE TRUE) TO '$DATA_DIR/platform_user.csv' WITH CSV HEADER;
 \echo Dumping table publication
 \copy (SELECT t0.* FROM publication AS t0  WHERE TRUE) TO '$DATA_DIR/publication.csv' WITH CSV HEADER;
 \echo Dumping table role
@@ -267,7 +269,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="a89591b9197d"
+SCRIPT_DB_VERSION="122ee418a384"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

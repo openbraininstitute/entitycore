@@ -53,7 +53,7 @@ def private_morphology_with_asset(
 
 
 @pytest.fixture
-def private_circuit_with_directory_asset(db, s3, circuit, person_id):
+def private_circuit_with_directory_asset(db, s3, circuit, user_id):
     s3_path = build_s3_path(
         vlab_id=VIRTUAL_LAB_ID,
         proj_id=PROJECT_ID,
@@ -79,8 +79,8 @@ def private_circuit_with_directory_asset(db, s3, circuit, person_id):
             sha256_digest=None,
             meta={},
             entity_id=circuit.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             label="sonata_circuit",
             storage_type=StorageType.aws_s3_internal,
         ),

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, EMDenseReconstructionDataset, Person, Subject
+from app.db.model import Contribution, EMDenseReconstructionDataset, PlatformUser, Subject
 from app.dependencies.auth import AdminContextDep, AdminContextWithProjectIdDep, UserContextDep
 from app.dependencies.common import (
     ExpandDep,
@@ -66,9 +66,9 @@ def _read_many(
     subject_alias = aliased(Subject, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
-        Person: {
-            "created_by": aliased(Person, flat=True),
-            "updated_by": aliased(Person, flat=True),
+        PlatformUser: {
+            "created_by": aliased(PlatformUser, flat=True),
+            "updated_by": aliased(PlatformUser, flat=True),
         },
     }
     facet_keys = [

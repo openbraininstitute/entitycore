@@ -14,7 +14,7 @@ ROUTE_LICENSE = "/license"
 ROUTE_MORPHOLOGY = "/cell-morphology"
 
 
-def test_license_ordering(db, client, person_id):
+def test_license_ordering(db, client, user_id):
     count = 10
     items = [
         {"name": f"name_{i}", "label": f"label_{i}", "description": f"description_{i}"}
@@ -22,10 +22,7 @@ def test_license_ordering(db, client, person_id):
     ]
     add_all_db(
         db,
-        [
-            License(**item | {"created_by_id": person_id, "updated_by_id": person_id})
-            for item in items
-        ],
+        [License(**item | {"created_by_id": user_id, "updated_by_id": user_id}) for item in items],
         same_timestamps=True,
     )
 
@@ -38,7 +35,7 @@ def test_license_ordering(db, client, person_id):
 
 
 def test_cell_morphology_ordering(
-    db, client, subject_id, license_id, brain_region_id, person_id, cell_morphology_protocol_id
+    db, client, subject_id, license_id, brain_region_id, user_id, cell_morphology_protocol_id
 ):
     count = 10
     items = [
@@ -51,8 +48,8 @@ def test_cell_morphology_ordering(
             "location": {"x": 10, "y": 20, "z": 30},
             "license_id": str(license_id),
             "legacy_id": ["Test Legacy ID"],
-            "created_by_id": person_id,
-            "updated_by_id": person_id,
+            "created_by_id": user_id,
+            "updated_by_id": user_id,
             "authorized_project_id": PROJECT_ID,
         }
         for i in range(count)

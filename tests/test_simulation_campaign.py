@@ -114,7 +114,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id, simulation_json_data, circuit):
+def models(db, json_data, user_id, simulation_json_data, circuit):
     db_campaigns = [
         MODEL(
             **(
@@ -122,8 +122,8 @@ def models(db, json_data, person_id, simulation_json_data, circuit):
                 | {
                     "name": f"circuit-{i}",
                     "description": f"circuit-description-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             )
@@ -142,8 +142,8 @@ def models(db, json_data, person_id, simulation_json_data, circuit):
                 | {
                     "simulation_campaign_id": db_campaigns[i].id,
                     "entity_id": circuit.id,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             ),
@@ -152,8 +152,8 @@ def models(db, json_data, person_id, simulation_json_data, circuit):
     return db_campaigns
 
 
-def test_filtering(client, models, simulation_json_data, person_id):
-    data = assert_request(client.get, url=ROUTE, params={"created_by__id": str(person_id)}).json()[
+def test_filtering(client, models, simulation_json_data, user_id):
+    data = assert_request(client.get, url=ROUTE, params={"created_by__id": str(user_id)}).json()[
         "data"
     ]
     assert len(data) == len(models) + 1  # +1 campaign from simulation_json_data fixture
@@ -166,7 +166,7 @@ def test_filtering(client, models, simulation_json_data, person_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models) + 1  # + 1 for root circuit
 
@@ -175,15 +175,15 @@ def test_filtering(client, models, simulation_json_data, person_id):
         url=ROUTE,
         params={
             "lifecycle_status": "active",
-            "created_by__sub_id": USER_SUB_ID_1,
-            "updated_by__sub_id": USER_SUB_ID_1,
+            "created_by__id": USER_SUB_ID_1,
+            "updated_by__id": USER_SUB_ID_1,
         },
     ).json()["data"]
     assert len(data) == len(models) + 1
 
 
 @pytest.fixture
-def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_id, person_id):
+def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_id, user_id):
     circuits_data = [
         {
             "name": "micro-circuit-1",
@@ -202,8 +202,8 @@ def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_i
             "brain_region_id": brain_region_id,
             "license_id": license_id,
             "authorized_public": False,
-            "created_by_id": person_id,
-            "updated_by_id": person_id,
+            "created_by_id": user_id,
+            "updated_by_id": user_id,
             "authorized_project_id": PROJECT_ID,
         },
         {
@@ -223,8 +223,8 @@ def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_i
             "brain_region_id": brain_region_id,
             "license_id": license_id,
             "authorized_public": False,
-            "created_by_id": person_id,
-            "updated_by_id": person_id,
+            "created_by_id": user_id,
+            "updated_by_id": user_id,
             "authorized_project_id": PROJECT_ID,
         },
         {
@@ -244,8 +244,8 @@ def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_i
             "brain_region_id": brain_region_id,
             "license_id": license_id,
             "authorized_public": False,
-            "created_by_id": person_id,
-            "updated_by_id": person_id,
+            "created_by_id": user_id,
+            "updated_by_id": user_id,
             "authorized_project_id": PROJECT_ID,
         },
     ]
@@ -255,7 +255,7 @@ def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_i
 
 
 @pytest.fixture
-def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuits):
+def campaigns_with_different_circuits(db, json_data, user_id, multiple_circuits):
     campaigns = []
 
     for i, circuit in enumerate(multiple_circuits):
@@ -268,8 +268,8 @@ def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuit
                         "entity_id": str(circuit.id),
                         "name": f"campaign-circuit-{i}",
                         "description": f"Campaign for circuit {i}",
-                        "created_by_id": person_id,
-                        "updated_by_id": person_id,
+                        "created_by_id": user_id,
+                        "updated_by_id": user_id,
                         "authorized_project_id": PROJECT_ID,
                     }
                 )
@@ -284,8 +284,8 @@ def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuit
                 description=f"simulation-description-{i}",
                 entity_id=circuit.id,
                 simulation_campaign_id=campaign.id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 authorized_project_id=PROJECT_ID,
                 scan_parameters={"foo1": "bar1", "foo2": "bar2"},
                 number_neurons=42,
@@ -417,7 +417,7 @@ def test_filter_by_circuit_build_category(
 
 
 @pytest.fixture
-def mixed_campaigns(db, json_data, person_id, root_circuit, memodel_id):
+def mixed_campaigns(db, json_data, user_id, root_circuit, memodel_id):
     entity_ids = [root_circuit.id, memodel_id]
 
     campaigns = []
@@ -432,8 +432,8 @@ def mixed_campaigns(db, json_data, person_id, root_circuit, memodel_id):
                         "entity_id": str(entity_id),
                         "name": f"campaign-{i}",
                         "description": f"Campaign for circuit {i}",
-                        "created_by_id": person_id,
-                        "updated_by_id": person_id,
+                        "created_by_id": user_id,
+                        "updated_by_id": user_id,
                         "authorized_project_id": PROJECT_ID,
                     }
                 )

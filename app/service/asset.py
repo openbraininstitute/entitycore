@@ -252,7 +252,7 @@ def create_entity_asset(  # ruff:ignore[too-many-arguments]
 
     Args:
         repos: Repository group for database access.
-        user_context: PlatformUser context for authorization.
+        user_context: User context for authorization.
         entity_type: Type of the entity the asset is associated with.
         entity_id: ID of the entity the asset is associated with.
         filename: Name of the file to be stored in the asset path.
@@ -384,7 +384,7 @@ def delete_entity_asset(
 
     if not is_user_authorized_for_deletion(repos.db, user_context, entity):
         raise ApiError(
-            message="PlatformUser is not authorized to access resource.",
+            message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )

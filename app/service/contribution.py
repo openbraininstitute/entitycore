@@ -249,7 +249,7 @@ def delete_one(
     # use entity's authorized_project_id for authorization
     if not is_user_authorized_for_deletion(db, user_context, contribution.entity):
         raise ApiError(
-            message="PlatformUser is not authorized to access resource.",
+            message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )

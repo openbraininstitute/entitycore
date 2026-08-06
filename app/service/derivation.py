@@ -392,10 +392,10 @@ def delete_one(
     with ensure_result(error_message="Derivation not found"):
         derivation = db.execute(query).unique().scalar_one()
 
-    # PlatformUser has the same deletion authorization as for the generated entity
+    # user has the same deletion authorization as for the generated entity
     if not is_user_authorized_for_deletion(db, user_context, derivation.generated):
         raise ApiError(
-            message="PlatformUser is not authorized to access resource.",
+            message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )

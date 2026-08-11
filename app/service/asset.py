@@ -84,7 +84,7 @@ def get_entity_assets(
         Asset.parent_id.is_(None),
         Entity.type == entity_type.name,
     )
-    name_to_facet_query_params = filter_joins = None
+    name_to_facet_query_params = join_specs = None
     return router_read_many(
         db=repos.db,
         db_model_class=db_model_class,
@@ -99,7 +99,7 @@ def get_entity_assets(
         response_schema_class=AssetRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

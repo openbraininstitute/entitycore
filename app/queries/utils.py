@@ -14,6 +14,19 @@ from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
 
 
+def expand_dotted_key(key: str) -> list[str]:
+    """Expand a dot-separated key into all ancestor keys including itself.
+
+    Examples:
+        >>> expand_dotted_key("a.b.c")
+        ["a", "a.b", "a.b.c"]
+        >>> expand_dotted_key("subject")
+        ["subject"]
+    """
+    parts = key.split(".")
+    return [".".join(parts[: i + 1]) for i in range(len(parts))]
+
+
 def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
     if db_user := get_user(db, subject_id=user_profile.subject):
         return db_user

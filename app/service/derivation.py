@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
-from app.db.model import Derivation, DerivationType, Entity, PlatformUser
+from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -69,21 +69,15 @@ def _read_many(
     project_ids = user_context.authorized_project_ids
     used_alias = aliased(Entity, flat=True, name="used_alias")
     generated_alias = aliased(Entity, flat=True, name="generated_alias")
-    created_by_alias = aliased(PlatformUser, flat=True, name="created_by_alias")
-    updated_by_alias = aliased(PlatformUser, flat=True, name="updated_by_alias")
     aliases: Aliases = {
         Entity: {
             "used": used_alias,
             "generated": generated_alias,
         },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
     }
     # `used`/`generated` are always joined below, so they are not declared here to
     # avoid duplicate joins. `created_by`/`updated_by` are added on demand.
-    _, filter_joins = query_params_factory(
+    _, join_specs, aliases = query_params_factory(
         db_model_class=Derivation,
         facet_keys=[],
         filter_keys=["created_by", "updated_by"],
@@ -115,7 +109,7 @@ def _read_many(
         response_schema_class=DerivationRead,
         name_to_facet_query_params=None,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=False,
     )
 
@@ -277,7 +271,7 @@ def _read_many_from_entity(
         )
     )
 
-    name_to_facet_query_params = filter_joins = None
+    name_to_facet_query_params = join_specs = None
     return router_read_many(
         db=db,
         db_model_class=used_db_model_class,
@@ -292,7 +286,7 @@ def _read_many_from_entity(
         response_schema_class=BasicEntityRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=entity_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

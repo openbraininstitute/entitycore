@@ -9,7 +9,6 @@ from app.db.auth import (
 )
 from app.db.model import (
     ExternalUrl,
-    PlatformUser,
     ScientificArtifact,
     ScientificArtifactExternalUrlLink,
 )
@@ -110,28 +109,18 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     external_url_alias = aliased(ExternalUrl, flat=True, name="external_url")
     aliases: Aliases = {
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        ScientificArtifact: scientific_artifact_alias,
-        ExternalUrl: external_url_alias,
+        ScientificArtifact: {"scientific_artifact": scientific_artifact_alias},
+        ExternalUrl: {"external_url": external_url_alias},
     }
-    facet_keys = [
-        "created_by",
-        "updated_by",
-    ]
-    filter_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=ScientificArtifactExternalUrlLink,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
@@ -168,7 +157,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

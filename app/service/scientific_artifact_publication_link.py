@@ -8,7 +8,6 @@ from app.db.auth import (
     constrain_to_readable_entities_by_project,
 )
 from app.db.model import (
-    PlatformUser,
     Publication,
     ScientificArtifact,
     ScientificArtifactPublicationLink,
@@ -110,28 +109,18 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     publication_alias = aliased(Publication, flat=True, name="publication")
     aliases: Aliases = {
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        ScientificArtifact: scientific_artifact_alias,
-        Publication: publication_alias,
+        ScientificArtifact: {"scientific_artifact": scientific_artifact_alias},
+        Publication: {"publication": publication_alias},
     }
-    facet_keys = [
-        "created_by",
-        "updated_by",
-    ]
-    filter_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=ScientificArtifactPublicationLink,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
@@ -168,7 +157,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactPublicationLinkRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Protocol, TypedDict
 
 import sqlalchemy as sa
@@ -7,6 +8,35 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
 type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
+
+
+@dataclass(frozen=True)
+class JoinSpec:
+    """Join specification for a single filter/facet key.
+
+    Attributes:
+        join: Join applied for sorting (outer join for nullable FKs, inner for non-null).
+            Also used as fallback when filter_join/facet_join are not specified.
+        filter_join: Inner join override used when a filter is actively set on a nullable FK.
+            More selective than the outer join, safe because null-filtering is not supported.
+            Defaults to join when not specified.
+        facet_join: Join override used when computing facet labels. May include joins that
+            are not needed for filtering or sorting but are required by the facet label
+            expression. Defaults to join when not specified.
+    """
+
+    join: ApplyOperations
+    filter_join: ApplyOperations | None = None
+    facet_join: ApplyOperations | None = None
+
+    def apply_join(self, q: sa.Select) -> sa.Select:
+        return self.join(q)
+
+    def apply_filter_join(self, q: sa.Select) -> sa.Select:
+        return (self.filter_join or self.join)(q)
+
+    def apply_facet_join(self, q: sa.Select) -> sa.Select:
+        return (self.facet_join or self.join)(q)
 
 
 class SupportsModelValidate[T: BaseModel](Protocol):

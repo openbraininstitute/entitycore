@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, Literal
 from urllib.parse import quote
 
@@ -26,6 +27,7 @@ class Settings(BaseSettings):
     APP_VERSION: str | None = None
     APP_DEBUG: bool = False
     APP_DISABLE_AUTH: bool = False
+    UUID_NAMESPACE: uuid.UUID = uuid.UUID("f87b7d5f-9155-4f24-9490-af32f6164ea4")
 
     COMMIT_SHA: str | None = None
 

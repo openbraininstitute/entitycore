@@ -11,6 +11,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
+from app.queries.types import JoinSpec
 from app.schemas.brain_region import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
@@ -44,13 +45,17 @@ def read_many(
             "strain": brh_strain_alias,
         },
     }
-    filter_joins = {
-        "species": lambda q: q.join(
-            brh_species_alias, db_model_class.hierarchy_id == brh_species_alias.id
-        ).join(Species, brh_species_alias.species_id == Species.id),
-        "strain": lambda q: q.join(
-            brh_strain_alias, db_model_class.hierarchy_id == brh_strain_alias.id
-        ).join(Strain, brh_strain_alias.strain_id == Strain.id),
+    join_specs: dict[str, JoinSpec] = {
+        "species": JoinSpec(
+            join=lambda q: q.join(
+                brh_species_alias, db_model_class.hierarchy_id == brh_species_alias.id
+            ).join(Species, brh_species_alias.species_id == Species.id)
+        ),
+        "strain": JoinSpec(
+            join=lambda q: q.join(
+                brh_strain_alias, db_model_class.hierarchy_id == brh_strain_alias.id
+            ).join(Strain, brh_strain_alias.strain_id == Strain.id)
+        ),
     }
 
     return app.queries.common.router_read_many(
@@ -67,7 +72,7 @@ def read_many(
         response_schema_class=BrainRegionRead,
         name_to_facet_query_params=None,
         filter_model=brain_region_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         embedding=None if semantic_search is None else generate_embedding(semantic_search),
     )
 

@@ -153,11 +153,10 @@ def read_many(
     )
     facet_keys = []
     filter_keys = [
-        "measurement_kind",
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, _ = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
@@ -177,7 +176,7 @@ def read_many(
         response_schema_class=MeasurementAnnotationRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -192,11 +191,10 @@ def admin_read_many(
     )
     facet_keys = []
     filter_keys = [
-        "measurement_kind",
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, _ = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
@@ -216,7 +214,7 @@ def admin_read_many(
         response_schema_class=MeasurementAnnotationRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

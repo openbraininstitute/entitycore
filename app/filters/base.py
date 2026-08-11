@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.utils.pattern import convert_to_ilike_pattern
 
-type Aliases[T: DeclarativeBase] = dict[type[T], type[T] | dict[str, type[T]]]
+type Aliases[T: DeclarativeBase] = dict[type[T], dict[str, type[T]]]
 
 
 NESTED_SEPARATOR = "__"
@@ -98,40 +98,31 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return value
 
-    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]  # ruff:ignore[too-many-branches]
-        """Allow passing aliases to the filter.
+    def filter[T: DeclarativeBase](  # type:ignore[override]
+        self,
+        query: Select[tuple[T]],
+        aliases: Aliases | None = None,
+        *,
+        _path: str = "",
+    ) -> Select[tuple[T]]:
+        """Apply filtering, resolving aliases by dot-qualified path.
 
-        Due to the complications of handling the inheritance between models, sometimes an alias is
-        needed.  Currently only a single alias is supported per model, by passing an `aliases`.
-
-        Ex:
-            agent_alias = aliased(Agent, flat=True)
-            query = (....
-                .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-                )
-            query = morphology_filter.filter(query, aliases={Agent: agent_alias})
+        Args:
+            query: The select query to filter.
+            aliases: Dict of {ModelClass: {name: alias}} for alias resolution.
+            _path: Accumulated dot-path tracking position in the filter hierarchy.
         """
+        model = self.Constants.model
+        if _path and aliases and (alias_dict := aliases.get(model)):
+            model = alias_dict[_path]
+
         for field_name, value in self.filtering_fields:
             field_value = getattr(self, field_name)
             if isinstance(field_value, CustomFilter):
-                # Allow specifying for a model the alias to map the field_name to
-                # {"MTypeClass": {"pre_mtype": alias1, "post_mtype": alias2}}
-                new_aliases: Aliases | None = aliases
-                if (
-                    aliases
-                    and (alias := aliases.get(field_value.Constants.model))
-                    and isinstance(alias, dict)
-                ):
-                    if alias_value := alias.get(field_name):
-                        new_aliases = {field_value.Constants.model: alias_value}
-                    else:
-                        # There is no alias for this particular field_name, use model as normal
-                        new_aliases = None
-
-                query = field_value.filter(query, new_aliases)
+                child_path = f"{_path}.{field_name}" if _path else field_name
+                query = field_value.filter(query, aliases, _path=child_path)
             else:
                 if "__" in field_name:
-                    # PLW2901 `for` loop variable `field_name` overwritten by assignment target
                     field_name, operator = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]
                     operator, value = _orm_operator_transformer[operator](value)  # ruff:ignore[redefined-loop-name]
                 else:
@@ -142,25 +133,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 ):
                     pattern = convert_to_ilike_pattern(value)
                     search_filters = [
-                        getattr(self.Constants.model, field).ilike(pattern, escape="\\")
+                        getattr(model, field).ilike(pattern, escape="\\")
                         for field in self.Constants.search_model_fields
                     ]
                     query = query.filter(or_(*search_filters))
                 else:
-                    # { CODE is different from fastapi_filter here
-                    if aliases and self.Constants.model in aliases:
-                        alias = aliases[self.Constants.model]
-                        if isinstance(alias, dict):
-                            # For example {Person: {"created_by": alias1, "updated_by": alias2}}
-                            # and self.Constants.model = Person
-                            # Given that here the parent non-nested filter is handled the correct
-                            # model to use is Person not the nested aliases.
-                            model_field = getattr(self.Constants.model, field_name)
-                        else:
-                            model_field = getattr(alias, field_name)
-                    else:  # }
-                        model_field = getattr(self.Constants.model, field_name)
-
+                    model_field = getattr(model, field_name)
                     query = query.filter(getattr(model_field, operator)(value))
         return query
 
@@ -173,8 +151,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
         the same names even when the filter name differs from the DB relationship name
         (e.g. filter "etype" vs relationship "etypes").
 
-        Aliases are required here because the ORDER BY section must refer to the correct aliased
-        model that is also used in the filtering part of the query.
+        Aliases are resolved using the accumulated dot-path (e.g. "synaptome.me_model").
 
         Ordering value examples:
             - creation_date
@@ -194,6 +171,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 original_field_name = field_name
                 *parts, field_name = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]
                 nested_filter = self
+                path_parts: list[str] = []
 
                 for part in parts:
                     nested_filter = getattr(nested_filter, part, None)
@@ -201,13 +179,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
                         raise ValueError(msg)  # ruff:ignore[type-check-without-type-error]
                     model = nested_filter.Constants.model
+                    path_parts.append(part)
 
-                    if model in aliases:
-                        model_or_fields_dict = aliases[model]
-                        if isinstance(model_or_fields_dict, dict):
-                            model = model_or_fields_dict.get(part, model)
-                        else:
-                            model = model_or_fields_dict
+                    if alias_dict := aliases.get(model):
+                        qualified_key = ".".join(path_parts)
+                        model = alias_dict[qualified_key]
 
             order_by_field = getattr(model, field_name)
 

@@ -37,7 +37,7 @@ from app.queries import crud
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.expand import apply_derivation_expand
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations, SupportsModelValidate
+from app.queries.types import ApplyOperations, JoinSpec, SupportsModelValidate
 from app.queries.utils import (
     create_associations_to_entities,
     get_or_create_user,
@@ -342,7 +342,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     response_schema_class: SupportsModelValidate[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter[I],
-    filter_joins: dict[str, ApplyOperations] | None = None,
+    join_specs: dict[str, JoinSpec] | None = None,
     embedding: list[float] | None = None,
     check_authorized_project: bool = True,
     expand: AbstractSet[str] | None = None,
@@ -363,7 +363,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         response_schema_class: Pydantic schema class for the returned data.
         name_to_facet_query_params: dict of FacetQueryParams for building the facets.
         filter_model: instance of CustomFilter for filtering and sorting data.
-        filter_joins: mapping of filter names to join functions. The keys should match both:
+        join_specs: mapping of filter/facet names to JoinSpec. The keys should match both:
             - the nested filters attributes, to choose which joins should be applied for filtering.
             - the keys in `name_to_facet_query_params`, for retrieving the facets.
         embedding: optional list of floats representing an embedding vector for semantic search.
@@ -387,16 +387,21 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
 
-    if filter_joins:
-        filter_query = filter_from_db(filter_query, filter_model, filter_joins)
+    # Save the base query before joins, to rebuild per-facet queries independently.
+    base_query = filter_query
+    description_vector = getattr(db_model_class, "description_vector", None)
 
-    filter_query = filter_model.filter(filter_query, aliases=aliases)
+    def _apply_filters(q: sa.Select, *, facet_key: str | None = None) -> sa.Select:
+        if join_specs:
+            q = filter_from_db(q, filter_model, join_specs, facet_key=facet_key)
+        q = filter_model.filter(q, aliases=aliases)
+        if with_search and description_vector:
+            q = with_search(q, description_vector)
+        if with_in_brain_region:
+            q = with_in_brain_region(q, db_model_class)
+        return q
 
-    if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
-        filter_query = with_search(filter_query, description_vector)
-
-    if with_in_brain_region:
-        filter_query = with_in_brain_region(filter_query, db_model_class)
+    filter_query = _apply_filters(base_query)
 
     data = _retrieve_rows(
         db=db,
@@ -416,18 +421,14 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         )
     ).scalar_one()
 
-    facets_result = (
-        facets(
+    facets_result = None
+    if facets and name_to_facet_query_params:
+        facets_result = facets(
             db,
-            filter_query,
-            name_to_facet_query_params,
+            build_facet_query=lambda facet_key: _apply_filters(base_query, facet_key=facet_key),
+            name_to_facet_query_params=name_to_facet_query_params,
             count_distinct_field=db_model_class.id,
-            filter_model=filter_model,
-            filter_joins=filter_joins,
         )
-        if facets and name_to_facet_query_params
-        else None
-    )
     return ListResponse[T](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(

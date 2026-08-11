@@ -5,17 +5,8 @@ import sqlalchemy as sa
 from app.db.model import Identifiable
 from app.filters.base import NESTED_SEPARATOR, CustomFilter
 from app.logger import L
-from app.queries.types import ApplyOperations
-
-
-def _to_parts(s: str) -> list[str]:
-    """Convert a dot-separated string to a list of substrings based on the dots.
-
-    Examples:
-        "a.b.c" -> ["a", "a.b", "a.b.c"]
-    """
-    parts = s.split(".")
-    return [".".join(parts[: i + 1]) for i in range(len(parts))]
+from app.queries.types import JoinSpec
+from app.queries.utils import expand_dotted_key
 
 
 def _underscores_to_dots(names: list[str]) -> list[str]:
@@ -30,38 +21,50 @@ def _underscores_to_dots(names: list[str]) -> list[str]:
 def filter_from_db[I: Identifiable](
     query: sa.Select,
     filter_model: CustomFilter[I],
-    filter_joins: dict[str, ApplyOperations],
-    forced_joins: set[str] | None = None,
+    join_specs: dict[str, JoinSpec],
+    *,
+    facet_key: str | None = None,
 ) -> sa.Select:
     """Apply the required joins based on the filter.
+
+    For filtering: uses spec.apply_filter_join (inner join).
+    For sorting: uses spec.apply_join (outer join).
+    For facets: uses spec.apply_facet_join for the facet key and its ancestors.
 
     Args:
         query: select query.
         filter_model: filter model instance.
-        filter_joins: dict of names and operations to apply to the query. The names should be
-            valid names of nested filters, and it's possible to specify deeply nested filters using
-            the dot notation, e.g. "measurement_annotation.measurement_kind".
-        forced_joins: subset of keys of filter_joins, that are applied only if the corresponding
-            nested filters have not been specified. This is useful to avoid duplicate joins.
+        join_specs: dict of names to JoinSpec. The names should be valid names of nested filters,
+            and it's possible to specify deeply nested filters using the dot notation,
+            e.g. "measurement_annotation.measurement_kind".
+        facet_key: optional facet key whose joins must be applied for computing the facet label.
+            Expanded to include ancestor keys (e.g. "subject.species" -> {"subject",
+            "subject.species"}). Takes priority over filter/sort joins for the same key.
     """
-    forced_joins = set(chain.from_iterable(_to_parts(s) for s in forced_joins or ()))
-    if diff := forced_joins.difference(filter_joins):
-        msg = f"Not allowed in forced_joins: {diff}"
+    facet_keys = set(expand_dotted_key(facet_key)) if facet_key else set()
+    if diff := facet_keys.difference(join_specs):
+        msg = f"Not allowed as facet_key: {diff}"
         raise RuntimeError(msg)
 
     ordering_joins = set(
         chain.from_iterable(
-            _to_parts(s) for s in _underscores_to_dots(filter_model.nested_ordering_fields)
+            expand_dotted_key(s) for s in _underscores_to_dots(filter_model.nested_ordering_fields)
         )
     )
 
-    for name, func in filter_joins.items():
-        to_be_applied = (
-            name in ordering_joins
-            or filter_model.get_nested_filter(name)
-            or filter_model.has_nested_filtering_field(name)
+    for name, spec in join_specs.items():
+        is_filter = filter_model.get_nested_filter(name) or filter_model.has_nested_filtering_field(
+            name
         )
-        if (to_be_applied and not forced_joins) or (not to_be_applied and name in forced_joins):
-            L.debug("Applying join filter for {!r}", name)
-            query = func(query)
+        is_sort = name in ordering_joins
+        is_facet = name in facet_keys
+        if is_facet:
+            L.debug("Applying facet join for {!r}", name)
+            query = spec.apply_facet_join(query)
+        elif is_filter:
+            L.debug("Applying filter join for {!r}", name)
+            query = spec.apply_filter_join(query)
+        elif is_sort:
+            L.debug("Applying sort join for {!r}", name)
+            query = spec.apply_join(query)
     return query

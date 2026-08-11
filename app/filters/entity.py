@@ -68,6 +68,7 @@ class EntityFilterMixin(
     ContributionFilterMixin,
 ):
     lifecycle_status: EntityLifecycleStatus | None = None
+    lifecycle_status__in: list[EntityLifecycleStatus] | None = None
 
     # Derivations where this entity is the generated (derived) side: "how it was derived".
     generated_derivation: Annotated[

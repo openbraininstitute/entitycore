@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Set as AbstractSet
+from collections.abc import Iterable, Set as AbstractSet
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -280,6 +280,53 @@ def _with_subquery[I: Identifiable](
     )
 
 
+def _retrieve_rows[I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    aliases: Aliases | None,
+    apply_data_query_operations: ApplyOperations[I] | None,
+    pagination_request: PaginationQuery,
+    filter_model: CustomFilter[I],
+    embedding: list[float] | None = None,
+    expand: AbstractSet[str] | None = None,
+    filter_query: sa.Select[tuple[I]],
+) -> Iterable[I]:
+    """Execute the data query and return matching rows, or an empty list if page_size is 0."""
+    if pagination_request.page_size <= 0:
+        return []
+
+    ensure_stable_sorting = [db_model_class.creation_date.desc(), db_model_class.id]
+
+    data_query = (
+        filter_model.sort(filter_query, aliases=aliases)
+        .order_by(*ensure_stable_sorting)
+        .with_only_columns(db_model_class)
+        .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
+    )
+
+    # Add semantic similarity ordering if embedding is provided and model has embedding field
+    if embedding is not None and hasattr(db_model_class, "embedding"):
+        # Remove existing ordering clauses
+        data_query._order_by_clauses = ()  # ruff:ignore[private-member-access]
+
+        # Order by L2 distance first, then by ID to guarantee uniqueness
+        data_query = data_query.order_by(
+            db_model_class.embedding.l2_distance(embedding),  # type: ignore[attr-defined]
+            *ensure_stable_sorting,
+        )
+
+    if apply_data_query_operations:
+        data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
+        data_query = apply_data_query_operations(data_query)
+
+    data_query = apply_derivation_expand(data_query, db_model_class, expand)
+
+    # unique is needed b/c it contains results that include joined eager loads against collections
+    return db.execute(data_query).scalars().unique()
+
+
 def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-arguments]
     *,
     db: Session,
@@ -351,35 +398,17 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     if with_in_brain_region:
         filter_query = with_in_brain_region(filter_query, db_model_class)
 
-    ensure_stable_sorting = [db_model_class.creation_date.desc(), db_model_class.id]
-
-    data_query = (
-        filter_model.sort(filter_query, aliases=aliases)
-        .order_by(*ensure_stable_sorting)
-        .with_only_columns(db_model_class)
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
+    data = _retrieve_rows(
+        db=db,
+        db_model_class=db_model_class,
+        aliases=aliases,
+        apply_data_query_operations=apply_data_query_operations,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        embedding=embedding,
+        expand=expand,
+        filter_query=filter_query,
     )
-
-    # Add semantic similarity ordering if embedding is provided and model has embedding field
-    if embedding is not None and hasattr(db_model_class, "embedding"):
-        # Remove existing ordering clauses
-        data_query._order_by_clauses = ()  # ruff:ignore[private-member-access]
-
-        # Order by L2 distance first, then by ID to guarantee uniqueness
-        data_query = data_query.order_by(
-            db_model_class.embedding.l2_distance(embedding),  # type: ignore[attr-defined]
-            *ensure_stable_sorting,
-        )
-
-    if apply_data_query_operations:
-        data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
-        data_query = apply_data_query_operations(data_query)
-
-    data_query = apply_derivation_expand(data_query, db_model_class, expand)
-
-    # unique is needed b/c it contains results that include joined eager loads against collections
-    data = db.execute(data_query).scalars().unique()
 
     total_items = db.execute(
         filter_query.with_only_columns(

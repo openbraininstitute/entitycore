@@ -504,6 +504,7 @@ class AssetLabel(StrEnum):
     replay_spikes = auto()
     voltage_report = auto()
     spike_report = auto()
+    lfp_report = auto()
     neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
     brain_atlas_region_mesh = auto()
@@ -999,6 +1000,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Simulation voltage report in NWB format.",
             ),
+        ],
+        AssetLabel.lfp_report: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation LFP report.",
+            )
         ],
     },
     EntityType.single_neuron_synaptome: {

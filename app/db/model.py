@@ -2121,7 +2121,7 @@ class EMCellMesh(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
-class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
+class AnalysisNotebookTemplate(Entity, UniqueNameDescriptionVectorMixin):
     """Represents a notebook template that offers to analyze one or more types of entities.
 
     Attributes:

@@ -12,7 +12,7 @@ from app.filters.common import (
     ILikeSearchFilterMixin,
     NameFilterMixin,
 )
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 
 class NestedExternalUrlFilter(

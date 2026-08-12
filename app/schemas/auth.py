@@ -157,16 +157,12 @@ class UserProfile(Schema):
 
     name: str
     subject: UUID
-    given_name: str | None = None
-    family_name: str | None = None
 
     @classmethod
     def from_user_info(cls, info: UserInfoBase):
         return cls(
             subject=info.sub,
             name=info.name or info.preferred_username,
-            given_name=info.given_name,
-            family_name=info.family_name,
         )
 
     @classmethod

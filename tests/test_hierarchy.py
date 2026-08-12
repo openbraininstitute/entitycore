@@ -11,7 +11,7 @@ ROUTE = "/circuit/hierarchy"
 
 
 @pytest.fixture
-def root_circuits(db, root_circuit_json_data, person_id):
+def root_circuits(db, root_circuit_json_data, user_id):
     overrides = [
         {
             "authorized_project_id": PROJECT_ID,
@@ -31,8 +31,8 @@ def root_circuits(db, root_circuit_json_data, person_id):
             **root_circuit_json_data
             | {
                 "name": f"root-circuit-{i}",
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
             }
             | override_dict
         )
@@ -42,7 +42,7 @@ def root_circuits(db, root_circuit_json_data, person_id):
 
 
 @pytest.fixture
-def models(db, circuit_json_data, person_id, root_circuits):
+def models(db, circuit_json_data, user_id, root_circuits):
     overrides = [
         {
             "scale": CircuitScale.single,
@@ -122,8 +122,8 @@ def models(db, circuit_json_data, person_id, root_circuits):
                     "number_neurons": 10 * i + 1,
                     "number_synapses": 1000 * i + 1,
                     "number_connections": 100 * i + 1,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
                 | override_dict
             )
@@ -134,7 +134,7 @@ def models(db, circuit_json_data, person_id, root_circuits):
 
 
 @pytest.fixture
-def hierarchy(db, root_circuits, models, person_id):
+def hierarchy(db, root_circuits, models, user_id):
     """Build a circuit hierarchy.
 
     Mermaid diagram:
@@ -177,14 +177,14 @@ def hierarchy(db, root_circuits, models, person_id):
     d0 = partial(
         Derivation,
         derivation_type=DerivationType.circuit_extraction,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     d1 = partial(
         Derivation,
         derivation_type=DerivationType.circuit_rewiring,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     derivations = [
         d0(used_id=r[0].id, generated_id=c[0].id),
@@ -202,9 +202,7 @@ def hierarchy(db, root_circuits, models, person_id):
 
 
 @pytest.mark.usefixtures("hierarchy")
-def test_hierarchy(
-    db, client_user_1, client_user_2, root_circuit, root_circuits, models, person_id
-):
+def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits, models, user_id):
     # test with user_1, derivation_type=circuit_extraction
     response = assert_request(
         client_user_1.get, url=ROUTE, params={"derivation_type": DerivationType.circuit_extraction}
@@ -550,8 +548,8 @@ def test_hierarchy(
             used_id=models[1].id,
             generated_id=models[4].id,
             derivation_type=DerivationType.circuit_rewiring,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     response = assert_request(

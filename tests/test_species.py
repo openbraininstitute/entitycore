@@ -142,15 +142,15 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     objs = [
         Species(
             **json_data
             | {
                 "name": f"s-{i}",
                 "taxonomy_id": f"NCBITaxon:{i}000",
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "embedding": [0.1] * 1536,
             }
         )
@@ -164,5 +164,5 @@ def test_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)

@@ -51,9 +51,9 @@ HIERARCHY = {
 }
 
 
-def test_brain_atlas(db, client, species_id, person_id):
+def test_brain_atlas(db, client, species_id, user_id):
     hierarchy_name = utils.create_hiearchy_name(
-        db, name="test_hierarchy", created_by_id=person_id, species_id=species_id
+        db, name="test_hierarchy", created_by_id=user_id, species_id=species_id
     )
     regions = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
@@ -66,8 +66,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     with FILE_EXAMPLE_PATH.open("rb") as f:
@@ -87,8 +87,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     expected = {
@@ -156,8 +156,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             brain_atlas_id=brain_atlas.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
         ids[brain_atlas.name, name] = utils.add_db(db, row)
 
@@ -307,14 +307,14 @@ def json_data(brain_region_hierarchy_id, species_id):
 
 
 @pytest.fixture
-def model(db, json_data, person_id):
+def model(db, json_data, user_id):
     return utils.add_db(
         db,
         MODEL(
             **json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": str(utils.PROJECT_ID),
             },
         ),

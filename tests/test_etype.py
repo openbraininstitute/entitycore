@@ -72,7 +72,7 @@ def test_update_one(clients, json_data):
     )
 
 
-def test_retrieve(db, client, person_id):
+def test_retrieve(db, client, user_id):
     count = 10
     items = [
         {
@@ -85,7 +85,7 @@ def test_retrieve(db, client, person_id):
     etypes = add_all_db(
         db,
         [
-            ETypeClass(**item | {"created_by_id": person_id, "updated_by_id": person_id})
+            ETypeClass(**item | {"created_by_id": user_id, "updated_by_id": user_id})
             for item in items
         ],
     )
@@ -122,9 +122,7 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_emodel_etypes(
-    db, client, species_id, strain_id, brain_region_id, morphology_id, person_id
-):
+def test_emodel_etypes(db, client, species_id, strain_id, brain_region_id, morphology_id, user_id):
     emodel_id = add_db(
         db,
         EModel(
@@ -136,8 +134,8 @@ def test_emodel_etypes(
             exemplar_morphology_id=morphology_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     ).id
 
@@ -152,10 +150,10 @@ def test_emodel_etypes(
         "definition": "e2d",
     }
     etype1 = add_db(
-        db, ETypeClass(**etype1_json | {"created_by_id": person_id, "updated_by_id": person_id})
+        db, ETypeClass(**etype1_json | {"created_by_id": user_id, "updated_by_id": user_id})
     )
     etype2 = add_db(
-        db, ETypeClass(**etype2_json | {"created_by_id": person_id, "updated_by_id": person_id})
+        db, ETypeClass(**etype2_json | {"created_by_id": user_id, "updated_by_id": user_id})
     )
 
     add_db(
@@ -163,8 +161,8 @@ def test_emodel_etypes(
         ETypeClassification(
             entity_id=emodel_id,
             etype_class_id=etype1.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
@@ -174,8 +172,8 @@ def test_emodel_etypes(
         ETypeClassification(
             entity_id=emodel_id,
             etype_class_id=etype2.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
@@ -226,7 +224,7 @@ def test_delete_one(db, clients, json_data):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     return add_all_db(
         db,
         [
@@ -234,22 +232,22 @@ def models(db, person_id):
                 pref_label="label_a",
                 alt_label="alt_label_a",
                 definition="definition_a",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             ETypeClass(
                 pref_label="label_ab",
                 alt_label="alt_label_ab",
                 definition="definition_ab",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             ETypeClass(
                 pref_label="label_b",
                 alt_label="alt_label_b",
                 definition="definition_b",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         ],
     )

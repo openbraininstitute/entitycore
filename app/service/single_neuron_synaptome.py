@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, MEModel, Person, SingleNeuronSynaptome
+from app.db.model import Agent, Contribution, MEModel, PlatformUser, SingleNeuronSynaptome
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandDep,
@@ -145,14 +145,14 @@ def _read_many(
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     aliases = {
         Agent: {
             "contribution": agent_alias,
         },
         MEModel: me_model_alias,
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

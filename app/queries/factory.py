@@ -31,7 +31,7 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    Person,
+    PlatformUser,
     Simulation,
     SimulationCampaign,
     SingleNeuronSynaptome,
@@ -101,8 +101,8 @@ def query_params_factory[I: Identifiable](
     subject_alias = _get_alias(Subject)
     agent_alias = _get_alias(Agent, "agent")
     contribution_alias = _get_alias(Agent, "contribution")
-    created_by_alias = _get_alias(Person, "created_by")
-    updated_by_alias = _get_alias(Person, "updated_by")
+    created_by_alias = _get_alias(PlatformUser, "created_by")
+    updated_by_alias = _get_alias(PlatformUser, "updated_by")
     pre_mtype_alias = _get_alias(MTypeClass, "pre_mtype")
     post_mtype_alias = _get_alias(MTypeClass, "post_mtype")
     brain_region_alias = _get_alias(BrainRegion, "brain_region")
@@ -159,12 +159,10 @@ def query_params_factory[I: Identifiable](
         "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
         },
         "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
         },
         "pre_mtype": {"id": pre_mtype_alias.id, "label": pre_mtype_alias.pref_label},
         "post_mtype": {"id": post_mtype_alias.id, "label": post_mtype_alias.pref_label},

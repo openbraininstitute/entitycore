@@ -5,7 +5,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.external_url import NestedExternalUrlFilter, NestedExternalUrlFilterDep
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 from app.filters.scientific_artifact import (
     NestedScientificArtifactFilter,
     NestedScientificArtifactFilterDep,

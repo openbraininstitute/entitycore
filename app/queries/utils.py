@@ -9,37 +9,29 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.auth import select_unauthorized_entities
-from app.db.model import Identifiable, Person
+from app.db.model import Identifiable, PlatformUser
 from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
-from app.utils.uuid import create_uuid
 
 
-def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Person:
-    if db_agent := get_user(db, user_profile.subject):
-        return db_agent
+def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
+    if db_user := get_user(db, subject_id=user_profile.subject):
+        return db_user
 
-    agent_id = create_uuid()
-
-    db_agent = Person(
-        id=agent_id,
+    db_user = PlatformUser(
+        id=user_profile.subject,
         pref_label=user_profile.name,
-        given_name=user_profile.given_name,
-        family_name=user_profile.family_name,
-        sub_id=user_profile.subject,
-        created_by_id=agent_id,
-        updated_by_id=agent_id,
     )
 
-    db.add(db_agent)
+    db.add(db_user)
     db.flush()
 
-    return db_agent
+    return db_user
 
 
-def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
-    query = sa.select(Person).where(Person.sub_id == subject_id)
-    return db.execute(query).scalars().first()
+def get_user(db: Session, subject_id: uuid.UUID) -> PlatformUser | None:
+    query = sa.select(PlatformUser).where(PlatformUser.id == subject_id)
+    return db.execute(query).scalars().one_or_none()
 
 
 def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]
@@ -68,7 +60,7 @@ def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]
     if project_id in user_context.member_project_ids and (
         db_user := get_user(db, user_context.profile.subject)
     ):
-        return db_user.created_by_id == obj.created_by_id
+        return db_user.id == obj.created_by_id
 
     return False
 

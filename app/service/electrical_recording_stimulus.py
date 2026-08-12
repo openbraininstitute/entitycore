@@ -8,7 +8,7 @@ from app.db.model import (
     Agent,
     Contribution,
     ElectricalRecordingStimulus,
-    Person,
+    PlatformUser,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -131,10 +131,10 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[ElectricalRecordingStimulusRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     aliases: Aliases = {
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

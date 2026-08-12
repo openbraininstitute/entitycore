@@ -73,7 +73,7 @@ def test_update_one(clients, json_data):
     )
 
 
-def test_retrieve(db, client, person_id):
+def test_retrieve(db, client, user_id):
     count = 10
     items = [
         {
@@ -86,7 +86,7 @@ def test_retrieve(db, client, person_id):
     mtypes = add_all_db(
         db,
         [
-            MTypeClass(**item | {"created_by_id": person_id, "updated_by_id": person_id})
+            MTypeClass(**item | {"created_by_id": user_id, "updated_by_id": user_id})
             for item in items
         ],
     )
@@ -140,7 +140,7 @@ def test_missing(client):
 
 
 def test_morph_mtypes(
-    db, client, subject_id, brain_region_id, person_id, cell_morphology_protocol_id
+    db, client, subject_id, brain_region_id, user_id, cell_morphology_protocol_id
 ):
     morph_id = create_cell_morphology_id(
         client,
@@ -161,10 +161,10 @@ def test_morph_mtypes(
         "definition": "m2d",
     }
     mtype1 = add_db(
-        db, MTypeClass(**mtype1_json | {"created_by_id": person_id, "updated_by_id": person_id})
+        db, MTypeClass(**mtype1_json | {"created_by_id": user_id, "updated_by_id": user_id})
     )
     mtype2 = add_db(
-        db, MTypeClass(**mtype2_json | {"created_by_id": person_id, "updated_by_id": person_id})
+        db, MTypeClass(**mtype2_json | {"created_by_id": user_id, "updated_by_id": user_id})
     )
 
     add_db(
@@ -172,8 +172,8 @@ def test_morph_mtypes(
         MTypeClassification(
             entity_id=morph_id,
             mtype_class_id=mtype1.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
@@ -183,8 +183,8 @@ def test_morph_mtypes(
         MTypeClassification(
             entity_id=morph_id,
             mtype_class_id=mtype2.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
@@ -219,7 +219,7 @@ def test_morph_mtypes(
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     return add_all_db(
         db,
         [
@@ -227,22 +227,22 @@ def models(db, person_id):
                 pref_label="label_a",
                 alt_label="alt_label_a",
                 definition="definition_a",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             MTypeClass(
                 pref_label="label_ab",
                 alt_label="alt_label_ab",
                 definition="definition_ab",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             MTypeClass(
                 pref_label="label_b",
                 alt_label="alt_label_b",
                 definition="definition_b",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         ],
     )

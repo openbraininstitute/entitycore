@@ -227,7 +227,7 @@ def test_authorization(client_user_1, client_user_2, client_no_project, public_j
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
-def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, user_id):
     me_model_1 = add_db(
         db,
         MEModel(
@@ -238,8 +238,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         ),
     )
@@ -253,8 +253,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         ),
     )
@@ -272,8 +272,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
                 authorized_public=False,
                 brain_region_id=brain_region_id,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             add_db(db, row)
             ids.append(row.id)
@@ -291,14 +291,14 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species_id, person_id):
+def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species_id, user_id):
     brain_region_ids = [
         create_brain_region(
             db,
             brain_region_hierarchy_id,
             annotation_value=i,
             name=f"region-{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -313,8 +313,8 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "emodel_id": emodel_id,
                 "morphology_id": morphology_id,
                 "species_id": species_id,
-                "created_by_id": str(person_id),
-                "updated_by_id": str(person_id),
+                "created_by_id": str(user_id),
+                "updated_by_id": str(user_id),
                 "validation_status": "created",
             },
         )
@@ -332,8 +332,8 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "seed": i,
                 "brain_region_id": str(brain_region_id),
                 "authorized_project_id": PROJECT_ID,
-                "created_by_id": str(person_id),
-                "updated_by_id": str(person_id),
+                "created_by_id": str(user_id),
+                "updated_by_id": str(user_id),
             },
         )
         for i, (me_model_id, brain_region_id) in enumerate(
@@ -400,7 +400,7 @@ def test_facets(client, faceted_ids):
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, person_id
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, user_id
 ):
     def create_model_function(db, name, brain_region_id):
         me_model_id = str(
@@ -414,8 +414,8 @@ def test_brain_region_filter(
                     "emodel_id": emodel_id,
                     "morphology_id": morphology_id,
                     "species_id": species_id,
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "validation_status": "created",
                 },
             )
@@ -431,8 +431,8 @@ def test_brain_region_filter(
             me_model_id=me_model_id,
             seed=1,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
@@ -472,7 +472,7 @@ def test_sorting_filtering(client, faceted_ids):
         data = req({"me_model__species__name": "Test Species", "order_by": ordering_field})
         assert len(data) == n_models
 
-        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
         assert len(data) == n_models
 
         data = req({"ilike_search": "sim-desc*", "order_by": ordering_field})

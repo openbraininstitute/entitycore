@@ -9,7 +9,7 @@ from app.db.auth import (
 )
 from app.db.model import (
     ExternalUrl,
-    Person,
+    PlatformUser,
     ScientificArtifact,
     ScientificArtifactExternalUrlLink,
 )
@@ -110,12 +110,12 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     external_url_alias = aliased(ExternalUrl, flat=True, name="external_url")
     aliases: Aliases = {
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

@@ -132,7 +132,7 @@ def test_pagination(client, models):  # ruff:ignore[unused-function-argument]
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     data = [
         {
             "source": ExternalSource.channelpedia,
@@ -161,8 +161,8 @@ def models(db, person_id):
                     "name": f"name-{i}",
                     "description": f"description-{i}",
                     "url": f"{d['url']}/page-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             ),
         )
@@ -171,14 +171,14 @@ def models(db, person_id):
     return res
 
 
-def test_filtering_sorting(client, models, person_id):
+def test_filtering_sorting(client, models, user_id):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"created_by__id": person_id})
+    data = req({"created_by__id": user_id})
     assert len(data) == len(models)
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"source": "channelpedia"})

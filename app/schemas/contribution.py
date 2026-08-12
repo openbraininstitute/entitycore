@@ -1,17 +1,10 @@
-from __future__ import annotations
+from uuid import UUID
 
-from uuid import UUID  # ruff:ignore[typing-only-standard-library-import]
-
-# from uuid import UUID
+from app.schemas.agent import AgentRead
+from app.schemas.entity import NestedEntityRead
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
-from app.schemas.role import RoleRead  # ruff:ignore[typing-only-first-party-import]
+from app.schemas.role import RoleRead
 from app.schemas.utils import make_update_schema
-
-# LNMC contributions
-# Reconstructor full name,
-# Experimenter full name,
-# LNMC/BBP,
-# EPFL, Switzerland
 
 
 class ContributionCreate(IdentifiableCreate):
@@ -41,14 +34,3 @@ class ContributionRead(IdentifiableRead):
 
 class ContributionReadWithoutEntityMixin:
     contributions: list[NestedContributionRead] | None
-
-
-from app.schemas.agent import (  # ruff:ignore[module-import-not-at-top-of-file]
-    AgentRead,  # ruff:ignore[typing-only-first-party-import]
-)
-from app.schemas.entity import (  # ruff:ignore[module-import-not-at-top-of-file]
-    NestedEntityRead,  # ruff:ignore[typing-only-first-party-import]
-)
-
-NestedContributionRead.model_rebuild()
-ContributionRead.model_rebuild()

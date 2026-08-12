@@ -1,36 +1,23 @@
-import uuid
 from typing import Annotated
-
-from fastapi_filter import with_prefix
 
 from app.db.model import Person
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import NestedAgentFilter
+from app.filters.common import IdFilterMixin, PrefLabelMixin
+from app.filters.platform_user import CreatorFilterMixin
 from app.utils.pydantic_validators import ORCID
 
 
-class NestedPersonFilter(NestedAgentFilter):
+class NestedPersonFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     given_name: str | None = None
     given_name__ilike: str | None = None
     family_name: str | None = None
     family_name__ilike: str | None = None
-    sub_id: uuid.UUID | None = None
-    sub_id__in: list[uuid.UUID] | None = None
     orcid: ORCID | None = None
     orcid__in: list[ORCID] | None = None
 
-    class Constants(NestedAgentFilter.Constants):
+    class Constants(CustomFilter.Constants):
         model = Person
-
-
-NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedPersonFilter))
-NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", NestedPersonFilter))
-
-
-class CreatorFilterMixin:
-    created_by: Annotated[NestedPersonFilter | None, NestedCreatedByFilterDep] = None
-    updated_by: Annotated[NestedPersonFilter | None, NestedUpdatedByFilterDep] = None
 
 
 class PersonFilter(NestedPersonFilter, CreatorFilterMixin, CustomFilter):

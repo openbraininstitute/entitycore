@@ -216,7 +216,7 @@ def test_filtering__many_entries(client, models, morphology_id, emodel_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 
@@ -225,8 +225,8 @@ def test_filtering__many_entries(client, models, morphology_id, emodel_id):
         url=ROUTE,
         params={
             "lifecycle_status": "active",
-            "created_by__sub_id": USER_SUB_ID_1,
-            "updated_by__sub_id": USER_SUB_ID_1,
+            "created_by__id": USER_SUB_ID_1,
+            "updated_by__id": USER_SUB_ID_1,
         },
     ).json()["data"]
     assert len(data) == len(models)

@@ -202,6 +202,8 @@ class TaskConfigType(StrEnum):
     circuit_synaptic_physiology_assignment__config = auto()
     circuit_simplification__campaign = auto()
     circuit_simplification__config = auto()
+    circuit_single_build__campaign = auto()
+    circuit_single_build__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -237,6 +239,8 @@ class TaskActivityType(StrEnum):
     circuit_synaptic_physiology_assignment__execution = auto()
     circuit_simplification__config_generation = auto()
     circuit_simplification__execution = auto()
+    circuit_single_build__config_generation = auto()
+    circuit_single_build__execution = auto()
 
 
 class AgentType(StrEnum):
@@ -500,6 +504,7 @@ class AssetLabel(StrEnum):
     replay_spikes = auto()
     voltage_report = auto()
     spike_report = auto()
+    lfp_report = auto()
     neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
     brain_atlas_region_mesh = auto()
@@ -995,6 +1000,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Simulation voltage report in NWB format.",
             ),
+        ],
+        AssetLabel.lfp_report: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation LFP report.",
+            )
         ],
     },
     EntityType.single_neuron_synaptome: {

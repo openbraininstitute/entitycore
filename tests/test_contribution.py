@@ -44,9 +44,9 @@ def test_create_contribution(
 
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["given_name"] == "jd"
-    assert data["agent"]["family_name"] == "courcol"
-    assert data["agent"]["pref_label"] == "jd courcol"
+    assert data["agent"]["given_name"] == "Generic"
+    assert data["agent"]["family_name"] == "Person"
+    assert data["agent"]["pref_label"] == "generic person"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -58,8 +58,9 @@ def test_create_contribution(
 
     data = assert_request(client.get, url=f"{ROUTE}/{contribution_id}").json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["given_name"] == "jd"
-    assert data["agent"]["family_name"] == "courcol"
+    assert data["agent"]["given_name"] == "Generic"
+    assert data["agent"]["family_name"] == "Person"
+    assert data["agent"]["pref_label"] == "generic person"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -92,8 +93,18 @@ def test_create_contribution(
     facets = resp["facets"]
     assert len(facets["contribution"]) == 2
     assert facets["contribution"] == [
-        {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
-        {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
+        {
+            "id": str(organization_id),
+            "label": "ACME",
+            "type": "organization",
+            "count": 1,
+        },
+        {
+            "id": str(person_id),
+            "label": "generic person",
+            "type": "person",
+            "count": 1,
+        },
     ]
 
 
@@ -415,13 +426,13 @@ def test_authorization(
 
 
 @pytest.fixture
-def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_protocol_id):
+def models(client, db, subject_id, brain_region_id, user_id, cell_morphology_protocol_id):
     person = create_person(
         db,
         given_name="GivenName",
         family_name="FamilyName",
         pref_label="person_pref_label",
-        created_by_id=person_id,
+        created_by_id=user_id,
     )
 
     person_role = add_db(
@@ -429,8 +440,8 @@ def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_p
         Role(
             name="PersonRoleName",
             role_id="role_id",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
@@ -439,8 +450,8 @@ def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_p
         Organization(
             pref_label="org_pref_label",
             alternative_name="org_alt_name",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     org_role = add_db(
@@ -448,8 +459,8 @@ def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_p
         Role(
             name="OrgRoleName",
             role_id="role_id_org",
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
@@ -489,8 +500,8 @@ def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_p
                     agent_id=agent.id,
                     role_id=agent_role.id,
                     entity_id=cell_morphology_id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                 ),
             )
             contribution_ids.append(res.id)
@@ -500,7 +511,7 @@ def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_p
 
     return {
         "morphology_ids": morphology_ids,
-        "person_id": str(person.id),
+        "user_id": str(person.id),
         "contribution_sizes": contribution_sizes,
         "contribution_ids": contribution_ids,
     }
@@ -532,7 +543,7 @@ def test_contribution_facets(
             {"count": 9, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"},
         ],
         "contribution": [
-            {"count": 9, "id": models["person_id"], "label": "person_pref_label", "type": "person"}
+            {"count": 9, "id": models["user_id"], "label": "person_pref_label", "type": "person"}
         ],
         "mtype": [],
         "species": [
@@ -542,10 +553,10 @@ def test_contribution_facets(
             {"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "subject.strain"}
         ],
         "created_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": "created_by"}
         ],
         "updated_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": "updated_by"}
         ],
         "cell_morphology_protocol": [
             {

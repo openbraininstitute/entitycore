@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, BrainAtlasRegion as Model, Contribution, Person
+from app.db.model import Agent, BrainAtlasRegion as Model, Contribution, PlatformUser
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -140,16 +140,14 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRegionRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
 
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
         },
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

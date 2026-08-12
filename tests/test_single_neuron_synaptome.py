@@ -4,9 +4,9 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import (
-    Agent,
     Contribution,
     MEModel,
+    PlatformUser,
     SingleNeuronSynaptome,
 )
 from app.db.types import EntityType
@@ -89,7 +89,7 @@ def create_id(client, json_data):
 
 
 @pytest.fixture
-def model_id(db, create_id, agents):
+def model_id(db, create_id, agents, user_id):
     model_id = create_id()
 
     agent_1, agent_2, role = agents
@@ -99,8 +99,8 @@ def model_id(db, create_id, agents):
             agent_id=agent_1.id,
             role_id=role.id,
             entity_id=model_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
     add_db(
@@ -109,8 +109,8 @@ def model_id(db, create_id, agents):
             agent_id=agent_2.id,
             role_id=role.id,
             entity_id=model_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
@@ -209,7 +209,7 @@ def test_authorization(client_user_1, client_user_2, client_no_project, public_j
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
-def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, user_id):
     me_model_1 = add_db(
         db,
         MEModel(
@@ -220,8 +220,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         ),
     )
@@ -235,8 +235,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         ),
     )
@@ -252,8 +252,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
                 authorized_public=False,
                 brain_region_id=brain_region_id,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             add_db(db, row)
             ids.append(row.id)
@@ -274,14 +274,14 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, create_id, person_id):
+def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, create_id, user_id):
     brain_region_ids = [
         create_brain_region(
             db,
             brain_region_hierarchy_id,
             annotation_value=i,
             name=f"region-{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -302,7 +302,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
 def test_facets(db, client, faceted_ids):
     brain_region_ids, memodel_ids, syn_ids = faceted_ids
 
-    agent = db.get(Agent, db.get(MODEL, syn_ids[0]).created_by_id)
+    agent = db.get(PlatformUser, db.get(MODEL, syn_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,
@@ -343,10 +343,10 @@ def test_facets(db, client, faceted_ids):
             },
         ],
         "created_by": [
-            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": "created_by"}
         ],
         "updated_by": [
-            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": "updated_by"}
         ],
         "etype": [
             {
@@ -391,7 +391,7 @@ def test_facets(db, client, faceted_ids):
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, person_id
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, user_id
 ):
     def create_model_function(db, name, brain_region_id):
         me_model_id = str(
@@ -405,8 +405,8 @@ def test_brain_region_filter(
                     emodel_id=emodel_id,
                     morphology_id=morphology_id,
                     species_id=species_id,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     validation_status="created",
                 ),
             ).id
@@ -419,8 +419,8 @@ def test_brain_region_filter(
             seed=1,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
@@ -445,7 +445,7 @@ def test_sorting_filtering(client, faceted_ids):
         data = req({"created_by__pref_label": "", "order_by": ordering_field})
         assert len(data) == 0
 
-        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
         assert len(data) == n_models
 
         data = req({"brain_region__name": "region-1", "order_by": ordering_field})

@@ -161,6 +161,69 @@ def unauthorized_private_reference_trigger(model: type[Entity], field_name: str)
     )
 
 
+def _get_must_match_function_name(table: str, field_name: str) -> str:
+    name = _truncate_identifier(f"match_fnc_{table}_{field_name}")
+    return _check_name_length(name)
+
+
+def _get_must_match_trigger_name(table: str, field_name: str) -> str:
+    name = _truncate_identifier(f"match_trg_{table}_{field_name}")
+    return _check_name_length(name)
+
+
+def must_match_reference_function(model: type[Entity], field_name: str) -> PGFunction:
+    """Return a PGFunction that checks the model's visibility mirrors the referenced entity.
+
+    Enforces that authorized_public and authorized_project_id on the new row are
+    identical to those of the referenced entity. Use this for relationships
+    where the child must inherit the parent's visibility (e.g. stimulus -> recording).
+
+    If the field is nullable and the value is NULL, then the check is skipped.
+    """
+    table = model.__tablename__
+    function_name = _get_must_match_function_name(table, field_name)
+    nullable = inspect(model).columns[field_name].nullable
+    skip_if_null = f"IF NEW.{field_name} IS NULL THEN RETURN NEW; END IF;" if nullable else ""
+
+    return PGFunction(
+        schema="public",
+        signature=f"{function_name}()",
+        definition=f"""
+            RETURNS TRIGGER AS $$
+            BEGIN
+                {skip_if_null}
+                IF NOT EXISTS (
+                    SELECT 1 FROM entity ref
+                    JOIN entity child ON child.id = NEW.id
+                    WHERE ref.id = NEW.{field_name}
+                    AND ref.authorized_public = child.authorized_public
+                    AND ref.authorized_project_id = child.authorized_project_id
+                ) THEN
+                    RAISE EXCEPTION 'visibility mismatch with referenced entity: {table}.{field_name}'
+                        USING ERRCODE = '42501'; -- Insufficient Privilege
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        """,  # ruff:ignore[hardcoded-sql-expression, line-too-long]
+    )
+
+
+def must_match_reference_trigger(model: type[Entity], field_name: str) -> PGTrigger:
+    table = model.__tablename__
+    trigger_name = _get_must_match_trigger_name(table, field_name)
+    function_name = _get_must_match_function_name(table, field_name)
+
+    return PGTrigger(
+        schema="public",
+        signature=trigger_name,
+        on_entity=table,
+        definition=f"""BEFORE INSERT OR UPDATE ON {table}
+            FOR EACH ROW EXECUTE FUNCTION {function_name}();
+        """,
+    )
+
+
 # list of protected relationships between entities as (model, field_name)
 protected_entity_relationships = [
     (BrainAtlasRegion, "brain_atlas_id"),
@@ -212,4 +275,16 @@ for model, field_name in protected_entity_relationships:
     entities += [
         unauthorized_private_reference_function(model, field_name),
         unauthorized_private_reference_trigger(model, field_name),
+    ]
+
+
+# list of relationships where the child must mirror the parent's visibility
+must_match_entity_relationships = [
+    (ElectricalRecordingStimulus, "recording_id"),
+]
+
+for model, field_name in must_match_entity_relationships:
+    entities += [
+        must_match_reference_function(model, field_name),
+        must_match_reference_trigger(model, field_name),
     ]

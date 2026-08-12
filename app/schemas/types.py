@@ -20,7 +20,7 @@ class HeaderKey(StrEnum):
 
 class PaginationRequest(Schema):
     page: Annotated[int, Field(ge=1)] = 1
-    page_size: Annotated[int, Field(ge=1, le=settings.PAGINATION_MAX_PAGE_SIZE)] = (
+    page_size: Annotated[int, Field(ge=0, le=settings.PAGINATION_MAX_PAGE_SIZE)] = (
         settings.PAGINATION_DEFAULT_PAGE_SIZE
     )
 

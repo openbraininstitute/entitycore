@@ -5,7 +5,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.config import settings
-from app.db.model import Derivation
+from app.db.model import Derivation, PlatformUser
 from app.db.types import DerivationType, EntityType
 from app.errors import ApiErrorCode
 from app.filters.derivation import DerivationFilter
@@ -25,7 +25,6 @@ from tests.utils import (
     check_nested_entity_read_response,
     check_sort_by_field,
     create_electrical_cell_recording_id,
-    create_person,
 )
 
 ROUTE = "/derivation"
@@ -37,7 +36,7 @@ def _add_derivation(
     *,
     used_id,
     generated_id,
-    person_id,
+    user_id,
     derivation_type=DerivationType.circuit_extraction,
     label=None,
 ):
@@ -48,14 +47,14 @@ def _add_derivation(
             generated_id=generated_id,
             derivation_type=derivation_type,
             label=label,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
 
 def test_get_derived_from(
-    db, clients, emodel_id, public_emodel_id, electrical_cell_recording_json_data, person_id
+    db, clients, emodel_id, public_emodel_id, electrical_cell_recording_json_data, user_id
 ):
     # create two emodels, one with derivations and one without
     trace_ids = [
@@ -70,8 +69,8 @@ def test_get_derived_from(
                 used_id=ecr_id,
                 generated_id=public_emodel_id,
                 derivation_type=DerivationType.circuit_extraction,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for ecr_id in trace_ids[:3]
         ]
@@ -80,8 +79,8 @@ def test_get_derived_from(
                 used_id=ecr_id,
                 generated_id=public_emodel_id,
                 derivation_type=DerivationType.circuit_rewiring,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for ecr_id in trace_ids[3:5]
         ]
@@ -90,8 +89,8 @@ def test_get_derived_from(
                 used_id=trace_ids[5],
                 generated_id=emodel_id,  # private
                 derivation_type=DerivationType.unspecified,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
         ]
     )
@@ -183,7 +182,7 @@ def test_get_derived_from(
 
 
 def test_derived_from_entity_filter(
-    db, clients, public_emodel_id, electrical_cell_recording_json_data, person_id
+    db, clients, public_emodel_id, electrical_cell_recording_json_data, user_id
 ):
     """``derived-from`` supports ``BasicEntityFilter`` (type + ordering on ``Entity``)."""
     trace_ids = [
@@ -199,8 +198,8 @@ def test_derived_from_entity_filter(
                 used_id=trace_ids[i],
                 generated_id=public_emodel_id,
                 derivation_type=DerivationType.circuit_extraction,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for i in range(3)
         ],
@@ -238,12 +237,12 @@ def test_derived_from_entity_filter(
     assert [d["id"] for d in data] == [str(tid) for tid in reversed(trace_ids)]
 
 
-def test_read_one(db, client, root_circuit, circuit, person_id):
+def test_read_one(db, client, root_circuit, circuit, user_id):
     derivation = _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
     )
 
     data = assert_request(client.get, url=f"{ROUTE}/{derivation.id}").json()
@@ -302,13 +301,13 @@ def test_missing(client, clients):
     )
 
 
-def test_read_one_authorization(db, clients, root_circuit, circuit, person_id):
+def test_read_one_authorization(db, clients, root_circuit, circuit, user_id):
     """Both `used` and `generated` must be readable by the caller."""
     derivation = _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
     )
 
     # user_1 owns PROJECT_ID, can read `circuit` (private) and `root_circuit` (public)
@@ -327,23 +326,23 @@ def test_read_one_authorization(db, clients, root_circuit, circuit, person_id):
     assert data["id"] == str(derivation.id)
 
 
-def test_read_many(db, clients, root_circuit_json_data, person_id):
+def test_read_many(db, clients, root_circuit_json_data, user_id):
     """A derivation is visible only if both used and generated are readable."""
     public_u1, private_u1, public_u2, private_u2 = _create_entities(
         "/circuit", clients.user_1, clients.user_2, json_data=root_circuit_json_data
     )
 
     d_pu_pr1 = _add_derivation(
-        db, used_id=public_u1["id"], generated_id=private_u1["id"], person_id=person_id
+        db, used_id=public_u1["id"], generated_id=private_u1["id"], user_id=user_id
     )
     d_pu_pu = _add_derivation(
-        db, used_id=public_u1["id"], generated_id=public_u2["id"], person_id=person_id
+        db, used_id=public_u1["id"], generated_id=public_u2["id"], user_id=user_id
     )
     d_pu_pr2 = _add_derivation(
-        db, used_id=public_u2["id"], generated_id=private_u2["id"], person_id=person_id
+        db, used_id=public_u2["id"], generated_id=private_u2["id"], user_id=user_id
     )
     d_pr_pr = _add_derivation(
-        db, used_id=private_u2["id"], generated_id=private_u1["id"], person_id=person_id
+        db, used_id=private_u2["id"], generated_id=private_u1["id"], user_id=user_id
     )
 
     # user_1 reads PROJECT_ID + public:
@@ -372,7 +371,7 @@ def test_read_many(db, clients, root_circuit_json_data, person_id):
 
 
 @pytest.fixture
-def derivation_filter_models(db, root_circuit, circuit, public_circuit, person_id):
+def derivation_filter_models(db, root_circuit, circuit, public_circuit):
     """Build a small but varied set of derivations to drive filter/order tests.
 
     Two creators ("alice" / "bob"), three entities, six derivations that span every
@@ -380,21 +379,19 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit, person_i
     every (used, generated) combination needed by ``used__id`` / ``generated__id``.
     Rows are committed one by one so that ``creation_date`` is strictly increasing.
     """
-    alice = create_person(
+    alice = add_db(
         db,
-        pref_label="alice",
-        given_name="Alice",
-        family_name="Anderson",
-        sub_id=str(uuid.uuid4()),
-        created_by_id=person_id,
+        PlatformUser(
+            id=uuid.uuid4(),
+            pref_label="alice",
+        ),
     )
-    bob = create_person(
+    bob = add_db(
         db,
-        pref_label="bob",
-        given_name="Bob",
-        family_name="Brown",
-        sub_id=str(uuid.uuid4()),
-        created_by_id=person_id,
+        PlatformUser(
+            id=uuid.uuid4(),
+            pref_label="bob",
+        ),
     )
 
     specs = [
@@ -411,7 +408,7 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit, person_i
             db,
             used_id=used.id,
             generated_id=generated.id,
-            person_id=creator.id,
+            user_id=creator.id,
             derivation_type=derivation_type,
             label=label,
         )
@@ -494,13 +491,6 @@ def test_filtering_ordering(client, derivation_filter_models):
     assert len(req({"created_by__pref_label": "alice"})) == 3
     assert len(req({"created_by__pref_label__in": ["alice", "bob"]})) == n_total
     assert len(req({"created_by__pref_label__ilike": "%lic%"})) == 3
-    assert len(req({"created_by__given_name": "Bob"})) == 3
-    assert len(req({"created_by__given_name__ilike": "%ob%"})) == 3
-    assert len(req({"created_by__family_name": "Anderson"})) == 3
-    assert len(req({"created_by__family_name__ilike": "%der%"})) == 3
-    assert len(req({"created_by__sub_id": str(alice.sub_id)})) == 3
-    assert len(req({"created_by__sub_id__in": [str(alice.sub_id), str(bob.sub_id)]})) == n_total
-    assert len(req({"created_by__type": "person"})) == n_total
     # `updated_by` mirrors `created_by` here (same agent per row).
     assert len(req({"updated_by__pref_label": "bob"})) == 3
     assert len(req({"updated_by__pref_label__ilike": "%b%"})) == 3
@@ -531,7 +521,7 @@ def test_filtering_ordering(client, derivation_filter_models):
     assert [d["id"] for d in data] == [str(rows[1].id), str(rows[0].id)]
 
 
-def test_update_one(db, clients, root_circuit, circuit, person_id):
+def test_update_one(db, clients, root_circuit, circuit, user_id):
     """Update authorization mirrors `update_one`'s `constrain_to_writable_entities` rule:
 
     only callers that can write to the derivation's ``generated`` entity may patch it.
@@ -540,7 +530,7 @@ def test_update_one(db, clients, root_circuit, circuit, person_id):
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
         derivation_type=DerivationType.circuit_extraction,
     )
     did = str(derivation.id)
@@ -570,7 +560,7 @@ def test_update_one(db, clients, root_circuit, circuit, person_id):
     ).json()
     assert data["derivation_type"] == DerivationType.circuit_extraction
     assert data["label"] == "label-u1"
-    assert data["updated_by"]["id"] == str(person_id)
+    assert data["updated_by"]["id"] == str(user_id)
 
     data = assert_request(clients.user_1.get, url=f"{ROUTE}/{did}").json()
     assert data["derivation_type"] == DerivationType.circuit_extraction
@@ -673,13 +663,13 @@ def test_create_one(client, derivation_type, root_circuit, circuit):
     check_creation_fields(data)
 
 
-def test_admin_read_many_filter(db, clients, root_circuit, circuit, person_id):
+def test_admin_read_many_filter(db, clients, root_circuit, circuit, user_id):
     """Admin list route sees derivations hidden from the user route and supports filters."""
     derivation = _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
     )
 
     assert_request(clients.user_1.get, url=f"{ROUTE}/{derivation.id}")
@@ -931,7 +921,7 @@ def _post_derivation(client, *, used_id, generated_id):
 def test_user_delete_one(clients, root_circuit, circuit, public_circuit, circuit_json_data):
     """``delete_one`` delegates to ``is_user_authorized_for_deletion`` on the generated entity."""
 
-    # Private generated entity in PROJECT_ID (created by ``person_id`` / user_1's project).
+    # Private generated entity in PROJECT_ID (created by ``user_id`` / user_1's project).
     data = _post_derivation(clients.user_1, used_id=root_circuit.id, generated_id=circuit.id)
     did = data["id"]
 
@@ -993,13 +983,13 @@ def test_is_user_authorized_for_deletion_without_project_id(db, user_context_use
     assert is_user_authorized_for_deletion(db, user_context_user_1, obj) is False
 
 
-def test_admin_delete_one(db, clients, client_admin, root_circuit, circuit, person_id):
+def test_admin_delete_one(db, clients, client_admin, root_circuit, circuit, user_id):
     """Admin delete uses the generic admin service and does not apply ``delete_one`` auth."""
     derivation = _add_derivation(
         db,
         used_id=root_circuit.id,
         generated_id=circuit.id,
-        person_id=person_id,
+        user_id=user_id,
     )
     did = str(derivation.id)
 

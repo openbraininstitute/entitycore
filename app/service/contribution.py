@@ -11,7 +11,7 @@ from app.db.auth import (
     constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
-from app.db.model import Agent, Contribution, Entity, Person
+from app.db.model import Agent, Contribution, Entity, PlatformUser
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -52,14 +52,14 @@ def _read_many(
 ) -> ListResponse[ContributionRead]:
     agent_alias = aliased(Agent, flat=True)
     entity_alias = aliased(Entity, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
+    created_by_alias = aliased(PlatformUser, flat=True)
+    updated_by_alias = aliased(PlatformUser, flat=True)
 
     aliases = {
         Agent: {
             "agent": agent_alias,
         },
-        Person: {
+        PlatformUser: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

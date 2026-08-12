@@ -199,6 +199,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM organization AS t0  WHERE TRUE) TO '$DATA_DIR/organization.csv' WITH CSV HEADER;
 \echo Dumping table person
 \copy (SELECT t0.* FROM person AS t0  WHERE TRUE) TO '$DATA_DIR/person.csv' WITH CSV HEADER;
+\echo Dumping table platform_user
+\copy (SELECT t0.* FROM platform_user AS t0  WHERE TRUE) TO '$DATA_DIR/platform_user.csv' WITH CSV HEADER;
 \echo Dumping table publication
 \copy (SELECT t0.* FROM publication AS t0  WHERE TRUE) TO '$DATA_DIR/publication.csv' WITH CSV HEADER;
 \echo Dumping table role

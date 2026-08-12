@@ -8,7 +8,7 @@ from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import AuthorizedFilterMixin, CreationFilterMixin, IdFilterMixin
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 
 class NestedDerivationFilter(CustomFilter):
@@ -68,6 +68,7 @@ class EntityFilterMixin(
     ContributionFilterMixin,
 ):
     lifecycle_status: EntityLifecycleStatus | None = None
+    lifecycle_status__in: list[EntityLifecycleStatus] | None = None
 
     # Derivations where this entity is the generated (derived) side: "how it was derived".
     generated_derivation: Annotated[

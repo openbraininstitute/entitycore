@@ -5,7 +5,7 @@ from app.db.types import PublicationType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 from app.filters.publication import NestedPublicationFilter, NestedPublicationFilterDep
 from app.filters.scientific_artifact import (
     NestedScientificArtifactFilter,

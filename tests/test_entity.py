@@ -123,7 +123,7 @@ def test_count_entities_by_type_multiple_types(
     emodel_id,  # ruff:ignore[unused-function-argument]
     brain_region_id,
     subject_id,
-    person_id,
+    user_id,
 ):
     """Test counting entities for multiple entity types."""
     add_db(
@@ -137,8 +137,8 @@ def test_count_entities_by_type_multiple_types(
             brain_region_id=brain_region_id,
             subject_id=subject_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         ),
     )
 
@@ -170,15 +170,15 @@ def test_count_entities_by_type_zero_results(client):
 
 
 def test_count_entities_by_type_with_brain_region_filter(
-    db, client, brain_region_hierarchy_id, subject_id, person_id, cell_morphology_protocol_id
+    db, client, brain_region_hierarchy_id, subject_id, user_id, cell_morphology_protocol_id
 ):
     """Test counting entities with brain region filtering."""
 
     region1 = create_brain_region(
-        db, brain_region_hierarchy_id, 1, "region1", created_by_id=person_id
+        db, brain_region_hierarchy_id, 1, "region1", created_by_id=user_id
     )
     region2 = create_brain_region(
-        db, brain_region_hierarchy_id, 2, "region2", created_by_id=person_id
+        db, brain_region_hierarchy_id, 2, "region2", created_by_id=user_id
     )
 
     create_cell_morphology_id(

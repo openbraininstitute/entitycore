@@ -1,6 +1,9 @@
+from unittest.mock import ANY
+
 import pytest
 import sqlalchemy as sa
 
+from app.application import app
 from app.db.model import CellMorphology, License
 from app.filters.cell_morphology import CellMorphologyFilter
 from app.filters.subject import NestedSubjectFilter
@@ -11,7 +14,7 @@ ROUTE_LICENSE = "/license"
 ROUTE_MORPHOLOGY = "/cell-morphology"
 
 
-def test_license_ordering(db, client, person_id):
+def test_license_ordering(db, client, user_id):
     count = 10
     items = [
         {"name": f"name_{i}", "label": f"label_{i}", "description": f"description_{i}"}
@@ -19,10 +22,7 @@ def test_license_ordering(db, client, person_id):
     ]
     add_all_db(
         db,
-        [
-            License(**item | {"created_by_id": person_id, "updated_by_id": person_id})
-            for item in items
-        ],
+        [License(**item | {"created_by_id": user_id, "updated_by_id": user_id}) for item in items],
         same_timestamps=True,
     )
 
@@ -35,7 +35,7 @@ def test_license_ordering(db, client, person_id):
 
 
 def test_cell_morphology_ordering(
-    db, client, subject_id, license_id, brain_region_id, person_id, cell_morphology_protocol_id
+    db, client, subject_id, license_id, brain_region_id, user_id, cell_morphology_protocol_id
 ):
     count = 10
     items = [
@@ -48,8 +48,8 @@ def test_cell_morphology_ordering(
             "location": {"x": 10, "y": 20, "z": 30},
             "license_id": str(license_id),
             "legacy_id": ["Test Legacy ID"],
-            "created_by_id": person_id,
-            "updated_by_id": person_id,
+            "created_by_id": user_id,
+            "updated_by_id": user_id,
             "authorized_project_id": PROJECT_ID,
         }
         for i in range(count)
@@ -85,6 +85,29 @@ def test_cell_morphology_ordering(
     data = response.json()["data"]
     assert len(data) == count // 2
     check_sort_by_field(data, "name", how="descending")
+
+
+def test_order_by_openapi_schema():
+    """Test the full OpenAPI schema shape for order_by, including enum expansion and description."""
+    schema = app.openapi()
+    params = {p["name"]: p for p in schema["paths"]["/cell-morphology"]["get"]["parameters"]}
+
+    assert params["order_by"] == {
+        "name": "order_by",
+        "in": "query",
+        "required": False,
+        "schema": {
+            "type": "array",
+            "items": {"type": "string", "enum": ANY},
+            "default": ["-creation_date"],
+            "title": "Order By",
+        },
+    }
+    assert params["order_by"]["schema"]["items"]["enum"] == [
+        f"{prefix}{f}"
+        for prefix in ("", "+", "-")
+        for f in CellMorphologyFilter.Constants.ordering_model_fields
+    ]
 
 
 def test_sort_unsupported_nested_ordering_part():

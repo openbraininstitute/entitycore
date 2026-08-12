@@ -273,8 +273,8 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 16, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 16, "type": "updated_by"}],
     }
 
 
@@ -356,8 +356,8 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             }
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 4, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 4, "type": "updated_by"}],
     }
 
 
@@ -441,8 +441,8 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 8, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 8, "type": "updated_by"}],
     }
 
 
@@ -743,7 +743,7 @@ def test_authorization(
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id, person_id
+    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id, user_id
 ):
     def create_model_function(_db, name, brain_region_id):
         return MEModel(
@@ -755,15 +755,15 @@ def test_brain_region_filter(
             morphology_id=morphology_id,
             emodel_id=emodel_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
-def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
+def test_sorting_filtering(client, faceted_memodels, user_id):
     n_models = len(faceted_memodels.memodels)
 
     def req(query):
@@ -776,7 +776,7 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
         data = req({"name__in": ["m-2", "m-3"], "order_by": f"-{ordering_field}"})
         assert len(data) == 2
 
-        data = req({"created_by__pref_label": "test_person_1", "order_by": ordering_field})
+        data = req({"created_by__pref_label": "jd courcol", "order_by": ordering_field})
         assert len(data) == n_models
 
         data = req({"created_by__pref_label": "", "order_by": ordering_field})
@@ -794,9 +794,7 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
 
-        data = req(
-            {"created_by__sub_id": custom_user_sub_id, "updated_by__sub_id": custom_user_sub_id}
-        )
+        data = req({"created_by__id": str(user_id), "updated_by__id": str(user_id)})
         assert len(data) == n_models
 
     data = req({"brain_region__name": "region0", "order_by": "-name"})

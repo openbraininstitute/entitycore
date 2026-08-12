@@ -1,5 +1,3 @@
-import itertools
-
 import pytest
 
 from app.db.model import (
@@ -271,13 +269,11 @@ def test_read_one(client, model_id, json_data):
 
 
 def test_read_many(clients, json_data):
-    name = json_data["name"]
     check_entity_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        # ensure that each protocol has a unique name
-        json_data=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
+        json_data=json_data,
     )
 
 
@@ -301,15 +297,15 @@ def test_pagination(client, create_id):
 @pytest.fixture
 def models(
     db,
-    person_id,
+    user_id,
     json_data_digital_reconstruction,
     json_data_modified_reconstruction,
     json_data_computationally_synthesized,
     json_data_placeholder,
 ):
     common_fields = {
-        "created_by_id": person_id,
-        "updated_by_id": person_id,
+        "created_by_id": user_id,
+        "updated_by_id": user_id,
         "authorized_project_id": PROJECT_ID,
         "authorized_public": False,
     }
@@ -401,14 +397,14 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
 
     data = assert_request(

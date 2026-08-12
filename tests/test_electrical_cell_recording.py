@@ -189,7 +189,7 @@ def test_pagination(client, electrical_cell_recording_json_data):
 
 @pytest.fixture
 def faceted_ids(
-    db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data, person_id
+    db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data, user_id
 ):
     brain_region_ids = [
         create_brain_region(
@@ -197,7 +197,7 @@ def faceted_ids(
             brain_region_hierarchy_id,
             annotation_value=i,
             name=f"region-{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -281,15 +281,15 @@ def test_brain_region_filter(
 
 
 @pytest.fixture
-def models(db, electrical_cell_recording_json_data, person_id, brain_region_hierarchy_id):
+def models(db, electrical_cell_recording_json_data, user_id, brain_region_hierarchy_id):
     species = add_all_db(
         db,
         [
             Species(
                 name=f"species-{i}",
                 taxonomy_id=f"taxonomy-{i}",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(3)
@@ -309,8 +309,8 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                 weight=1.5,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for i, sp in enumerate(species + species)
         ],
@@ -326,8 +326,8 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                 color_hex_triplet="FF0000",
                 parent_structure_id=None,
                 hierarchy_id=brain_region_hierarchy_id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(len(subjects))
@@ -363,8 +363,8 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                     "subject_id": str(subject.id),
                     "name": f"e-{recordings_id}",
                     "description": f"d-{recordings_id}",
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "authorized_public": False,
                     "authorized_project_id": PROJECT_ID,
                     "brain_region_id": brain_regions[i].id,
@@ -379,8 +379,8 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                 pref_label=f"e{i}",
                 alt_label=f"e{i}",
                 definition="d",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         add_db(
@@ -388,8 +388,8 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
             ETypeClassification(
                 entity_id=rec.id,
                 etype_class_id=etype.id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
             ),
@@ -492,7 +492,7 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(recordings)
 

@@ -2,6 +2,7 @@ import pytest
 
 from app.db.model import AnalysisNotebookTemplate
 from app.db.types import EntityType
+from app.errors import ApiErrorCode
 
 from .utils import (
     assert_request,
@@ -72,9 +73,34 @@ def test_update_one(clients, json_data):
     )
 
 
+def test_update_one_duplicate_name_same_project_fails(client, json_data):
+    assert_request(client.post, url=ROUTE, json=json_data)
+    id_2 = assert_request(client.post, url=ROUTE, json=json_data | {"name": "other name"}).json()[
+        "id"
+    ]
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{id_2}",
+        json={"name": json_data["name"]},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == ApiErrorCode.ENTITY_DUPLICATED
+
+
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_create_one_duplicate_name_same_project_fails(client, json_data):
+    assert_request(client.post, url=ROUTE, json=json_data)
+    data = assert_request(client.post, url=ROUTE, json=json_data, expected_status_code=409).json()
+    assert data["error_code"] == ApiErrorCode.ENTITY_DUPLICATED
+
+
+def test_create_one_duplicate_name_different_project_succeeds(clients, json_data):
+    assert_request(clients.user_1.post, url=ROUTE, json=json_data)
+    assert_request(clients.user_2.post, url=ROUTE, json=json_data)
 
 
 def test_user_read_one(client, model, json_data):

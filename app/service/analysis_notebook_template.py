@@ -1,18 +1,21 @@
 import uuid
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import Session, aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
     AnalysisNotebookTemplate,
     Contribution,
+    Entity,
     PlatformUser,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
+from app.errors import ApiError, ApiErrorCode
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.queries.common import (
     router_create_one,
@@ -34,6 +37,24 @@ from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
+
+
+def _check_unique_name(
+    db: Session, name: str, project_id: uuid.UUID, exclude_id: uuid.UUID | None = None
+) -> None:
+    query = sa.select(AnalysisNotebookTemplate.id).where(
+        AnalysisNotebookTemplate.name == name,
+        Entity.authorized_project_id == project_id,
+        AnalysisNotebookTemplate.id == Entity.id,
+    )
+    if exclude_id is not None:
+        query = query.where(AnalysisNotebookTemplate.id != exclude_id)
+    if db.execute(query).first() is not None:
+        raise ApiError(
+            message="AnalysisNotebookTemplate already exists or breaks unique constraints",
+            error_code=ApiErrorCode.ENTITY_DUPLICATED,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
 
 
 def _load(query: sa.Select):
@@ -85,6 +106,7 @@ def create_one(
     json_model: AnalysisNotebookTemplateCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> AnalysisNotebookTemplateRead:
+    _check_unique_name(db, json_model.name, user_context.project_id)
     return router_create_one(
         db=db,
         json_model=json_model,
@@ -101,6 +123,8 @@ def update_one(
     id_: uuid.UUID,
     json_model: AnalysisNotebookTemplateUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> AnalysisNotebookTemplateRead:
+    if json_model.name is not None and user_context.project_id is not None:
+        _check_unique_name(db, json_model.name, user_context.project_id, exclude_id=id_)
     return router_update_one(
         id_=id_,
         db=db,

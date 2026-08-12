@@ -71,7 +71,11 @@ def test_update_one(clients, json_data):
     )
 
 
-def test_update_one_duplicate_name_same_project_fails(client, json_data):
+def test_update_one_name_succeeds(client, json_data):
+    id_ = assert_request(client.post, url=ROUTE, json=json_data).json()["id"]
+    data = assert_request(client.patch, url=f"{ROUTE}/{id_}", json={"name": "new name"}).json()
+    assert data["name"] == "new name"
+
     assert_request(client.post, url=ROUTE, json=json_data)
     id_2 = assert_request(client.post, url=ROUTE, json=json_data | {"name": "other name"}).json()[
         "id"

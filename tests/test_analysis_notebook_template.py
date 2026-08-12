@@ -65,10 +65,8 @@ def test_update_one(clients, json_data):
         admin_route=ADMIN_ROUTE,
         clients=clients,
         json_data=json_data,
-        patch_payload={
-            "name": "name",
-            "description": "description",
-        },
+        private_json_data=json_data | {"name": "other name"},
+        patch_payload={"description": "new description"},
         optional_payload=None,
     )
 

@@ -4,6 +4,9 @@ from app.db.model import AnalysisNotebookTemplate
 from app.db.types import EntityType
 
 from .utils import (
+    MISSING_ID,
+    PROJECT_ID,
+    UNRELATED_PROJECT_ID,
     assert_request,
     check_authorization,
     check_creation_fields,
@@ -165,6 +168,45 @@ def test_delete_one(db, clients, json_data):
         expected_counts_after={
             AnalysisNotebookTemplate: 0,
         },
+    )
+
+
+def test_clone_forbidden_not_admin_of_notebook_project(client_user_2, model):
+    """user_2 is not in PROJECT_ID, so cannot clone the notebook."""
+    assert_request(
+        client_user_2.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=404,
+    )
+
+
+def test_clone_forbidden_not_admin_of_target_project(client, model):
+    """user_1 is admin of PROJECT_ID but not of UNRELATED_PROJECT_ID."""
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_clone_forbidden_member_not_admin(client_user_3, model):
+    """user_3 is a member of PROJECT_ID, not an admin."""
+    assert_request(
+        client_user_3.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_clone_missing_notebook(client):
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{MISSING_ID}/clone",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=404,
     )
 
 

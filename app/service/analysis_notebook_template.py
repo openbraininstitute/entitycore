@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -12,8 +13,9 @@ from app.db.model import (
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
-from app.dependencies.db import SessionDep
+from app.dependencies.db import RepoGroupDep, SessionDep
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
+from app.errors import ApiError, ApiErrorCode
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -23,14 +25,19 @@ from app.queries.common import (
 )
 from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
+from app.db.types import EntityType
+from app.queries.utils import is_user_authorized_for_clone
 from app.schemas.analysis_notebook_template import (
     AnalysisNotebookTemplateAdminUpdate,
     AnalysisNotebookTemplateCreate,
     AnalysisNotebookTemplateRead,
     AnalysisNotebookTemplateUpdate,
+    NotebookCloneRequest,
+    NotebookCloneResponse,
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.service import entity as entity_service
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -239,3 +246,27 @@ def delete_one(
         db_model_class=AnalysisNotebookTemplate,
         user_context=user_context,
     )
+
+
+def clone(
+    user_context: UserContextDep,
+    repos: RepoGroupDep,
+    id_: uuid.UUID,
+    json_model: NotebookCloneRequest,
+) -> NotebookCloneResponse:
+    notebook = entity_service.get_writable_entity_by_context(
+        repos=repos,
+        user_context=user_context,
+        entity_type=EntityType.analysis_notebook_template,
+        entity_id=id_,
+    )
+    if not is_user_authorized_for_clone(
+        user_context=user_context,
+        target_project_ids=json_model.target_project_ids,
+    ):
+        raise ApiError(
+            message="User is not admin of all required projects",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    raise NotImplementedError

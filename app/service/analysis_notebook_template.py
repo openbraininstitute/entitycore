@@ -1,6 +1,6 @@
 import uuid
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
@@ -11,11 +11,12 @@ from app.db.model import (
     Contribution,
     PlatformUser,
 )
+from app.db.types import EntityType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import RepoGroupDep, SessionDep
-from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.errors import ApiError, ApiErrorCode
+from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -25,8 +26,7 @@ from app.queries.common import (
 )
 from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
-from app.db.types import EntityType
-from app.queries.utils import is_user_authorized_for_clone
+from app.queries.utils import get_or_create_user, is_user_authorized_for_clone
 from app.schemas.analysis_notebook_template import (
     AnalysisNotebookTemplateAdminUpdate,
     AnalysisNotebookTemplateCreate,
@@ -254,11 +254,14 @@ def clone(
     id_: uuid.UUID,
     json_model: NotebookCloneRequest,
 ) -> NotebookCloneResponse:
-    notebook = entity_service.get_writable_entity_by_context(
-        repos=repos,
-        user_context=user_context,
-        entity_type=EntityType.analysis_notebook_template,
-        entity_id=id_,
+    notebook = cast(
+        "AnalysisNotebookTemplate",
+        entity_service.get_writable_entity_by_context(
+            repos=repos,
+            user_context=user_context,
+            entity_type=EntityType.analysis_notebook_template,
+            entity_id=id_,
+        ),
     )
     if not is_user_authorized_for_clone(
         user_context=user_context,
@@ -269,4 +272,22 @@ def clone(
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
-    raise NotImplementedError
+    db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
+    created = []
+    for project_id in json_model.target_project_ids:
+        clone_db = AnalysisNotebookTemplate(
+            name=notebook.name,
+            description=notebook.description,
+            scale=notebook.scale,
+            specifications=notebook.specifications,
+            assignment_id=notebook.assignment_id,
+            authorized_project_id=project_id,
+            authorized_public=False,
+            created_by_id=db_user.id,
+            updated_by_id=db_user.id,
+        )
+        repos.db.add(clone_db)
+        repos.db.flush()
+        repos.db.refresh(clone_db)
+        created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
+    return NotebookCloneResponse(created=created)

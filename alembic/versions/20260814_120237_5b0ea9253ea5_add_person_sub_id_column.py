@@ -43,6 +43,29 @@ def upgrade() -> None:
             FROM _person_sub_id_mapping m
             WHERE p.id = m.person_id
         """)
+    # Create Person records for PlatformUsers that have no corresponding Person.
+    # This covers users created after the split migration removed sub_id (staging only).
+    op.execute("""
+        WITH new_persons AS (
+            SELECT gen_random_uuid() AS person_id, pu.id AS sub_id,
+                   pu.pref_label, pu.creation_date, pu.update_date
+            FROM platform_user pu
+            WHERE NOT EXISTS (
+                SELECT 1 FROM person p WHERE p.sub_id = pu.id
+            )
+        ),
+        inserted_agents AS (
+            INSERT INTO agent (id, type, pref_label, created_by_id, updated_by_id,
+                               creation_date, update_date)
+            SELECT person_id, 'person', pref_label, sub_id, sub_id,
+                   creation_date, update_date
+            FROM new_persons
+            RETURNING id
+        )
+        INSERT INTO person (id, sub_id)
+        SELECT np.person_id, np.sub_id
+        FROM new_persons np
+    """)
 
 
 def downgrade() -> None:

@@ -174,6 +174,14 @@ def upgrade() -> None:
               AND p_u.id = t.updated_by_id
         """)
     _create_fks("platform_user")
+    # Save person_id -> sub_id mapping before dropping the column.
+    # Used by a later migration to re-add Person.sub_id as FK to platform_user.
+    op.execute("""
+        CREATE TABLE _person_sub_id_mapping AS
+        SELECT id AS person_id, sub_id
+        FROM person
+        WHERE sub_id IS NOT NULL
+    """)
     op.drop_column("person", "sub_id")
 
 

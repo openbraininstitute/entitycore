@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.db.types import AgentType
 from app.schemas.base import Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
@@ -25,11 +27,13 @@ PersonAdminUpdate = make_update_schema(
 
 class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     type: AgentType
+    sub_id: UUID | None
     orcid: ORCID | None
 
 
 class PersonRead(PersonBase, IdentifiableRead):
     type: AgentType
+    sub_id: UUID | None
     orcid: ORCID | None
 
 

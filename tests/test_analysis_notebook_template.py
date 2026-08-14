@@ -241,10 +241,10 @@ def test_clone_creates_private_copies_in_target_projects(client, model):
     assert clone["contributions"] == []
 
 
-def test_clone_member_can_read_cloned_notebook(
-    client_user_1_two_projects, client_user_2, model
-):
-    """User with admin on both projects clones into UNRELATED_PROJECT_ID; user_2 (member) can read it."""
+def test_clone_member_can_read_cloned_notebook(client_user_1_two_projects, client_user_2, model):
+    """User with admin on both projects clones into UNRELATED_PROJECT_ID.
+    user_2 (member) can read it.
+    """
     data = assert_request(
         client_user_1_two_projects.post,
         url=f"{ROUTE}/{model.id}/clone",

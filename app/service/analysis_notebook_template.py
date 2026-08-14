@@ -5,16 +5,18 @@ from typing import TYPE_CHECKING, cast
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
+from app.config import storages
 from app.db.model import (
     Agent,
     AnalysisNotebookTemplate,
     Contribution,
     PlatformUser,
 )
-from app.db.types import EntityType
+from app.db.types import EntityType, StorageType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import RepoGroupDep, SessionDep
+from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.queries.common import (
@@ -38,6 +40,9 @@ from app.schemas.analysis_notebook_template import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
+from app.service.asset import create_entity_asset_unverified
+from app.utils.s3 import build_s3_path, copy_file
+from app.utils.virtual_lab import resolve_virtual_lab_id
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -251,6 +256,7 @@ def delete_one(
 def clone(
     user_context: UserContextDep,
     repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
     id_: uuid.UUID,
     json_model: NotebookCloneRequest,
 ) -> NotebookCloneResponse:
@@ -289,5 +295,42 @@ def clone(
         repos.db.add(clone_db)
         repos.db.flush()
         repos.db.refresh(clone_db)
+
+        virtual_lab_id = resolve_virtual_lab_id(user_context, project_id)
+        storage = storages[StorageType.aws_s3_internal]
+        s3_client = storage_client_factory(storage)
+
+        for asset in notebook.assets:
+            dst_key = build_s3_path(
+                vlab_id=virtual_lab_id,
+                proj_id=project_id,
+                entity_type=EntityType.analysis_notebook_template,
+                entity_id=clone_db.id,
+                filename=asset.path,
+                is_public=False,
+            )
+            copy_file(
+                s3_client,
+                src_bucket_name=storage.bucket,
+                dst_bucket_name=storage.bucket,
+                src_key=str(asset.full_path),
+                dst_key=dst_key,
+            )
+            create_entity_asset_unverified(
+                repos,
+                entity=clone_db,
+                filename=asset.path,
+                content_type=asset.content_type,
+                size=asset.size,
+                sha256_digest=asset.sha256_digest.hex() if asset.sha256_digest else None,
+                meta=asset.meta,
+                label=asset.label,
+                is_directory=asset.is_directory,
+                storage_type=asset.storage_type,
+                full_path=dst_key,
+                status=asset.status,
+                user_profile=user_context.profile,
+                virtual_lab_id=virtual_lab_id,
+            )
         created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
     return NotebookCloneResponse(created=created)

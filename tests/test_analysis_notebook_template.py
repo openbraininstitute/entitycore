@@ -15,6 +15,7 @@ from .utils import (
     check_entity_update_one,
     check_missing,
     check_pagination,
+    upload_entity_asset,
 )
 
 ROUTE = "analysis-notebook-template"
@@ -245,14 +246,35 @@ def test_clone_member_can_read_cloned_notebook(client_user_1_two_projects, clien
     """User with admin on both projects clones into UNRELATED_PROJECT_ID.
     user_2 (member) can read it.
     """
+    asset_response = upload_entity_asset(
+        client_user_1_two_projects,
+        EntityType.analysis_notebook_template,
+        model.id,
+        files={"file": ("notebook.ipynb", b"{}", "application/x-ipynb+json")},
+        label="jupyter_notebook",
+    ).json()
+
     data = assert_request(
         client_user_1_two_projects.post,
         url=f"{ROUTE}/{model.id}/clone",
         json={"target_project_ids": [UNRELATED_PROJECT_ID]},
     ).json()
+
     assert len(data["created"]) == 1
     clone_id = data["created"][0]["id"]
+
+    assert len(data["created"][0]["assets"]) == 1
+
     assert_request(client_user_2.get, url=f"{ROUTE}/{clone_id}")
+    clone_asset_id = data["created"][0]["assets"][0]["id"]
+    assert clone_asset_id != asset_response["id"]
+
+    assert_request(
+        client_user_2.get,
+        url=f"{ROUTE}/{clone_id}/assets/{clone_asset_id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
 
 
 def test_missing(client):

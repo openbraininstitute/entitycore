@@ -140,6 +140,14 @@ def upgrade() -> None:
     )
     # Drop the unique index on person.sub_id before backfilling duplicates
     op.drop_index(op.f("ix_person_sub_id"), table_name="person")
+    # Save original person_id -> sub_id mapping before backfilling duplicates.
+    # Used by a later migration to re-add Person.sub_id as FK to platform_user.
+    op.execute("""
+        CREATE TABLE _person_sub_id_mapping AS
+        SELECT id AS person_id, sub_id
+        FROM person
+        WHERE sub_id IS NOT NULL
+    """)
     # Backfill sub_id for persons that are referenced as created_by_id/updated_by_id but have none
     values = ", ".join(
         f"('{person_id}'::uuid, '{sub_id}'::uuid)"
@@ -174,14 +182,6 @@ def upgrade() -> None:
               AND p_u.id = t.updated_by_id
         """)
     _create_fks("platform_user")
-    # Save person_id -> sub_id mapping before dropping the column.
-    # Used by a later migration to re-add Person.sub_id as FK to platform_user.
-    op.execute("""
-        CREATE TABLE _person_sub_id_mapping AS
-        SELECT id AS person_id, sub_id
-        FROM person
-        WHERE sub_id IS NOT NULL
-    """)
     op.drop_column("person", "sub_id")
 
 

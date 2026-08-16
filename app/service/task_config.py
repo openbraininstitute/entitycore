@@ -148,10 +148,14 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
 
-    facet_keys = filter_keys = [
+    facet_keys = [
         "created_by",
         "updated_by",
         "contribution",
+    ]
+    filter_keys = [
+        *facet_keys,
+        "task_config_generator",
     ]
     name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=DBModel,

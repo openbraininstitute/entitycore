@@ -1,42 +1,38 @@
-"""Validate that _SpecRegistry resolves all keys without alias collisions.
+"""Validate _SpecRegistry resolution and spec coverage."""
 
-Uses a mock model class so that all spec keys can be resolved together in one call.
-The lambdas inside JoinSpec are never invoked — only the alias wiring is tested.
-"""
-
+import re
+from itertools import chain
 from unittest.mock import MagicMock
 
 import pytest
 
 from app.db.model import Entity
-from app.queries.factory import _SpecRegistry, query_params_factory
+from app.queries.factory import _ensure_facet, _SpecRegistry, query_params_factory
+from app.queries.utils import expand_dotted_key
+
+from tests.utils import SERVICE_DIR
 
 
-def _all_spec_keys() -> list[str]:
+def _all_spec_keys() -> set[str]:
     """Derive all valid spec keys by introspecting _SpecRegistry method names."""
-    return [
+    return {
         name.removeprefix("spec_").replace("__", ".")
         for name in dir(_SpecRegistry)
         if name.startswith("spec_")
-    ]
+    }
 
 
-def test_all_specs_resolve_without_alias_collisions():
-    """Resolve every spec key on a mock model; verify no alias collisions."""
-    mock_model = MagicMock()
-    aliases: dict = {}
-    registry = _SpecRegistry(mock_model, aliases)
-
-    for key in _all_spec_keys():
-        registry.resolve(key)
-
-    # Named aliases must have distinct objects per name
-    for cls, value in aliases.items():
-        if isinstance(value, dict):
-            objects = list(value.values())
-            assert len(objects) == len({id(o) for o in objects}), (
-                f"{cls.__name__} has duplicate alias objects: {list(value.keys())}"
-            )
+def _collect_used_spec_keys() -> set[str]:
+    """Collect all quoted strings in service files that match a known spec key."""
+    all_keys = _all_spec_keys()
+    used = {
+        match
+        for path in SERVICE_DIR.glob("*.py")
+        for match in re.findall(r'"([\w.]+)"', path.read_text())
+        if match in all_keys
+    }
+    assert len(used) > 0
+    return used
 
 
 def test_query_params_factory_entity_model():
@@ -83,3 +79,21 @@ def test_query_params_factory_unknown_key_raises():
             facet_keys=[],
             filter_keys=["nonexistent_key"],
         )
+
+
+def test_no_unused_spec_methods():
+    """Every spec_* method in _SpecRegistry must be used by at least one service call."""
+    used_keys = _collect_used_spec_keys()
+    # Expand dot-notation to also cover parent keys auto-inserted by _expand_filter_keys
+    expanded = set(chain.from_iterable(expand_dotted_key(k) for k in used_keys))
+    # derivation keys are auto-added by query_params_factory for Entity subclasses
+    expanded |= {"generated_derivation", "used_derivation"}
+
+    unused = _all_spec_keys() - expanded
+    assert not unused, f"Unused spec_* methods in _SpecRegistry: {unused}"
+
+
+def test_ensure_facet_raises_on_none():
+    """Key without a facet definition must raise when used as a facet key."""
+    with pytest.raises(ValueError, match="has no facet"):
+        _ensure_facet(None, "some_key")

@@ -225,6 +225,19 @@ class _SpecRegistry:
             join=JoinSpec(join=lambda q: q.join(a, self._m.synaptome_id == a.id)),
         )
 
+    def spec_synaptome__me_model(self) -> _Spec:
+        synaptome = self._a(SingleNeuronSynaptome, "synaptome")
+        me = self._a(MEModel, "synaptome.me_model")
+        return _Spec(
+            facet=None, join=JoinSpec(join=lambda q: q.join(me, me.id == synaptome.me_model_id))
+        )
+
+    def spec_synaptome__me_model__species(self) -> _Spec:
+        me = self._a(MEModel, "synaptome.me_model")
+        return _Spec(
+            facet=None, join=JoinSpec(join=lambda q: q.join(Species, Species.id == me.species_id))
+        )
+
     def spec_agent(self) -> _Spec:
         a = self._a(Agent, "agent")
         return _Spec(
@@ -316,13 +329,6 @@ class _SpecRegistry:
             join=JoinSpec(join=lambda q: q.join(a, fk == a.id)),
         )
 
-    def spec_ion_channel(self) -> _Spec:
-        a = self._a(IonChannel, "ion_channel")
-        return _Spec(
-            facet={"id": a.id, "label": a.label},
-            join=JoinSpec(join=lambda q: q.join(a, self._m.ion_channel_id == a.id)),
-        )
-
     def spec_em_dense_reconstruction_dataset(self) -> _Spec:
         a = self._a(EMDenseReconstructionDataset, "em_dense_reconstruction_dataset")
         return _Spec(
@@ -330,6 +336,13 @@ class _SpecRegistry:
             join=JoinSpec(
                 join=lambda q: q.join(a, a.id == self._m.em_dense_reconstruction_dataset_id)
             ),
+        )
+
+    def spec_ion_channel(self) -> _Spec:
+        a = self._a(IonChannel, "ion_channel")
+        return _Spec(
+            facet={"id": a.id, "label": a.label},
+            join=JoinSpec(join=lambda q: q.join(a, self._m.ion_channel_id == a.id)),
         )
 
     def spec_ion_channel_model(self) -> _Spec:
@@ -362,11 +375,14 @@ class _SpecRegistry:
             join=JoinSpec(join=lambda q: q.join(a, self._m.id == a.skeletonization_campaign_id)),
         )
 
-    def spec_task_config(self) -> _Spec:
-        a = self._a(TaskConfig, "task_config")
+    def spec_task_config_generator(self) -> _Spec:
+        a = self._a(TaskConfig, "task_config_generator")
         return _Spec(
             facet={"id": a.id, "label": a.name},
-            join=JoinSpec(join=lambda q: q.join(a, self._m.id == a.task_config_generator_id)),
+            join=JoinSpec(
+                join=lambda q: q.outerjoin(a, self._m.task_config_generator_id == a.id),
+                filter_join=lambda q: q.join(a, self._m.task_config_generator_id == a.id),
+            ),
         )
 
     def spec_validation_result(self) -> _Spec:
@@ -415,19 +431,6 @@ class _SpecRegistry:
     def spec_entity(self) -> _Spec:
         a = self._a(Entity, "entity")
         return _Spec(facet=None, join=JoinSpec(join=lambda q: q.join(a, self._m.entity_id == a.id)))
-
-    def spec_synaptome__me_model(self) -> _Spec:
-        synaptome = self._a(SingleNeuronSynaptome, "synaptome")
-        me = self._a(MEModel, "synaptome.me_model")
-        return _Spec(
-            facet=None, join=JoinSpec(join=lambda q: q.join(me, me.id == synaptome.me_model_id))
-        )
-
-    def spec_synaptome__me_model__species(self) -> _Spec:
-        me = self._a(MEModel, "synaptome.me_model")
-        return _Spec(
-            facet=None, join=JoinSpec(join=lambda q: q.join(Species, Species.id == me.species_id))
-        )
 
     @staticmethod
     def spec_measurement_kind() -> _Spec:
@@ -502,13 +505,21 @@ class _SpecRegistry:
     def spec_generated_derivation(self) -> _Spec:
         a = self._a(Derivation, "generated_derivation")
         return _Spec(
-            facet=None, join=JoinSpec(join=lambda q: q.outerjoin(a, self._m.id == a.generated_id))
+            facet=None,
+            join=JoinSpec(
+                join=lambda q: q.outerjoin(a, self._m.id == a.generated_id),
+                filter_join=lambda q: q.join(a, self._m.id == a.generated_id),
+            ),
         )
 
     def spec_used_derivation(self) -> _Spec:
         a = self._a(Derivation, "used_derivation")
         return _Spec(
-            facet=None, join=JoinSpec(join=lambda q: q.outerjoin(a, self._m.id == a.used_id))
+            facet=None,
+            join=JoinSpec(
+                join=lambda q: q.outerjoin(a, self._m.id == a.used_id),
+                filter_join=lambda q: q.join(a, self._m.id == a.used_id),
+            ),
         )
 
     def spec_used(self) -> _Spec:
@@ -517,6 +528,9 @@ class _SpecRegistry:
             facet=None,
             join=JoinSpec(
                 join=lambda q: q.outerjoin(Usage, self._m.id == Usage.usage_activity_id).outerjoin(
+                    a, Usage.usage_entity_id == a.id
+                ),
+                filter_join=lambda q: q.join(Usage, self._m.id == Usage.usage_activity_id).join(
                     a, Usage.usage_entity_id == a.id
                 ),
             ),
@@ -530,6 +544,9 @@ class _SpecRegistry:
                 join=lambda q: q.outerjoin(
                     Generation, self._m.id == Generation.generation_activity_id
                 ).outerjoin(a, Generation.generation_entity_id == a.id),
+                filter_join=lambda q: q.join(
+                    Generation, self._m.id == Generation.generation_activity_id
+                ).join(a, Generation.generation_entity_id == a.id),
             ),
         )
 

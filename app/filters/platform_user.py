@@ -19,7 +19,9 @@ class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     class Constants(CustomFilter.Constants):
         model = PlatformUser
 
-    def filter(self, query: Select, aliases: Aliases | None = None, *, _path: str = "") -> Select:
+    def filter(
+        self, query: Select, aliases: Aliases | None = None, *, _ancestors: tuple[str, ...] = ()
+    ) -> Select:
         """Remap deprecated sub_id/sub_id__in to id/id__in for backward compatibility."""
         if self.sub_id is not None and self.id is None:
             self.id = self.sub_id
@@ -27,7 +29,7 @@ class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
             self.id__in = self.sub_id__in
         self.sub_id = None
         self.sub_id__in = None
-        return super().filter(query, aliases, _path=_path)
+        return super().filter(query, aliases, _ancestors=_ancestors)
 
 
 NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedPlatformUserFilter))

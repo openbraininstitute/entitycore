@@ -103,24 +103,23 @@ class CustomFilter[T: DeclarativeBase](Filter):
         query: Select[tuple[T]],
         aliases: Aliases | None = None,
         *,
-        _path: str = "",
+        _ancestors: tuple[str, ...] = (),
     ) -> Select[tuple[T]]:
         """Apply filtering, resolving aliases by dot-qualified path.
 
         Args:
             query: The select query to filter.
             aliases: Dict of {ModelClass: {name: alias}} for alias resolution.
-            _path: Accumulated dot-path tracking position in the filter hierarchy.
+            _ancestors: Ancestor filter names leading to this node in the filter hierarchy.
         """
         model = self.Constants.model
-        if _path and aliases and (alias_dict := aliases.get(model)):
-            model = alias_dict[_path]
+        if _ancestors and aliases and (alias_dict := aliases.get(model)):
+            model = alias_dict[".".join(_ancestors)]
 
         for field_name, value in self.filtering_fields:
             field_value = getattr(self, field_name)
             if isinstance(field_value, CustomFilter):
-                child_path = f"{_path}.{field_name}" if _path else field_name
-                query = field_value.filter(query, aliases, _path=child_path)
+                query = field_value.filter(query, aliases, _ancestors=(*_ancestors, field_name))
             else:
                 if "__" in field_name:
                     field_name, operator = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]

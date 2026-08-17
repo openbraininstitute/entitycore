@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from app.db.model import Person
@@ -13,6 +14,8 @@ class NestedPersonFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     given_name__ilike: str | None = None
     family_name: str | None = None
     family_name__ilike: str | None = None
+    sub_id: uuid.UUID | None = None
+    sub_id__in: list[uuid.UUID] | None = None
     orcid: ORCID | None = None
     orcid__in: list[ORCID] | None = None
 

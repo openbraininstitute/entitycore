@@ -19,6 +19,10 @@ class VirtualLabClient:
             base_url=base_url, headers={"Authorization": f"Bearer {token}"}
         )
 
+    def close(self) -> None:
+        """Close the underlying HTTP client and release its resources."""
+        self._http_client.close()
+
 
 class AdminVirtualLabClient(VirtualLabClient):
     def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping:

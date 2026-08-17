@@ -68,7 +68,6 @@ def configure_database_session_manager(**kwargs) -> DatabaseSessionManager:
             "pool_size": settings.DB_POOL_SIZE,
             "pool_pre_ping": settings.DB_POOL_PRE_PING,
             "max_overflow": settings.DB_MAX_OVERFLOW,
-            "query_cache_size": settings.DB_QUERY_CACHE_SIZE,
             **kwargs,
         },
     )

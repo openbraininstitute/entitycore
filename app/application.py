@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import configure_mappers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
@@ -33,6 +34,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         os.cpu_count(),
         settings.ENVIRONMENT,
     )
+    # Eagerly configure SQLAlchemy mappers to avoid a latency spike on the first request.
+    configure_mappers()
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
     http_client = httpx2.Client()

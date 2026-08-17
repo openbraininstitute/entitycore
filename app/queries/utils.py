@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.auth import select_unauthorized_entities
-from app.db.model import Identifiable, PlatformUser
+from app.db.model import Identifiable, Person, PlatformUser
 from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
 
@@ -28,6 +28,7 @@ def expand_dotted_key(key: str) -> list[str]:
 
 
 def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
+    """Get or create a PlatformUser and its associated Person from the user profile."""
     if db_user := get_user(db, subject_id=user_profile.subject):
         return db_user
 
@@ -35,8 +36,18 @@ def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
         id=user_profile.subject,
         pref_label=user_profile.name,
     )
-
     db.add(db_user)
+    db.flush()
+
+    person = Person(
+        pref_label=user_profile.name,
+        given_name=user_profile.given_name,
+        family_name=user_profile.family_name,
+        sub_id=user_profile.subject,
+        created_by_id=user_profile.subject,
+        updated_by_id=user_profile.subject,
+    )
+    db.add(person)
     db.flush()
 
     return db_user

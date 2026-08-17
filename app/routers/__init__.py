@@ -22,6 +22,7 @@ from app.routers import (
     circuit,
     consortium,
     contribution,
+    debug,
     derivation,
     electrical_cell_recording,
     electrical_recording_stimulus,
@@ -83,6 +84,12 @@ router = APIRouter()
 router.include_router(root.router)
 router.include_router(
     admin.router,
+    dependencies=[
+        Depends(user_with_service_admin_role),
+    ],
+)
+router.include_router(
+    debug.router,
     dependencies=[
         Depends(user_with_service_admin_role),
     ],

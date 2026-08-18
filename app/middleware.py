@@ -27,7 +27,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         start_time = time.perf_counter()
         request_id = str(create_uuid())
         ctx = RequestContext(request_id=request_id)
-        token = request_context_provider.set(ctx)
+        request_context_provider.set(ctx)
 
         try:
             response = await call_next(request)
@@ -45,8 +45,6 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 user_agent=request.headers.get(HeaderKey.user_agent, ""),
             )
             raise
-        finally:
-            request_context_provider.reset(token)
 
         process_time = time.perf_counter() - start_time
         response.headers[HeaderKey.process_time] = f"{process_time:.3f}"

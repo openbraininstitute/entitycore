@@ -294,6 +294,7 @@ def clone(
             existing.specifications = notebook.specifications
             existing.assignment_id = notebook.assignment_id
             existing.updated_by_id = db_user.id
+            existing.authorized_public = False
             repos.db.flush()
             repos.db.refresh(existing, ["assets"])
             for asset in list(existing.assets):

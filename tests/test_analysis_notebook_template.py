@@ -214,7 +214,7 @@ def test_clone_missing_notebook(client):
 def test_clone_public_notebook_admin_of_its_project(client, json_data):
     """user_1 is admin of PROJECT_ID; public notebook in that project is cloneable."""
     notebook_id = assert_request(
-        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+        client.post, url=ROUTE, json=json_data | {"authorized_public": False}
     ).json()["id"]
     data = assert_request(
         client.post,

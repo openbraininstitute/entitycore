@@ -58,10 +58,11 @@ def test_get_admin_virtual_lab_client_uses_settings_and_token(
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
-    client = test_module.get_admin_virtual_lab_client(
+    gen = test_module.get_admin_virtual_lab_client(
         user_context_admin,
         admin_bearer_credentials,
     )
+    client = next(gen)
 
     assert isinstance(client, AdminVirtualLabClient)
     assert str(client._http_client.base_url) == virtual_lab_api_url
@@ -72,10 +73,11 @@ def test_get_admin_virtual_lab_client_ignores_user_context(
     admin_bearer_credentials,
     virtual_lab_api_url,
 ):
-    client = test_module.get_admin_virtual_lab_client(
+    gen = test_module.get_admin_virtual_lab_client(
         None,
         admin_bearer_credentials,
     )
+    client = next(gen)
 
     assert isinstance(client, AdminVirtualLabClient)
     assert str(client._http_client.base_url) == virtual_lab_api_url
@@ -83,8 +85,6 @@ def test_get_admin_virtual_lab_client_ignores_user_context(
 
 def test_get_virtual_lab_by_project_success(
     httpx2_mock,
-    user_context_admin,
-    admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
@@ -93,10 +93,7 @@ def test_get_virtual_lab_by_project_success(
         json=_mapping_response_json(project_id, virtual_lab_id)
     )
 
-    client = test_module.get_admin_virtual_lab_client(
-        user_context_admin,
-        admin_bearer_credentials,
-    )
+    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token=TOKEN_ADMIN)
     mapping = client.get_virtual_lab_by_project(project_id)
 
     assert mapping == ProjectVirtualLabMapping(
@@ -110,8 +107,6 @@ def test_get_virtual_lab_by_project_success(
 
 def test_get_virtual_lab_by_project_http_status_error(
     httpx2_mock,
-    user_context_admin,
-    admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
@@ -119,10 +114,7 @@ def test_get_virtual_lab_by_project_http_status_error(
         HTTPStatus.NOT_FOUND
     )
 
-    client = test_module.get_admin_virtual_lab_client(
-        user_context_admin,
-        admin_bearer_credentials,
-    )
+    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token=TOKEN_ADMIN)
 
     with pytest.raises(ApiError) as exc_info:
         client.get_virtual_lab_by_project(project_id)
@@ -132,19 +124,13 @@ def test_get_virtual_lab_by_project_http_status_error(
     assert exc_info.value.http_status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.usefixtures("virtual_lab_api_url")
 def test_get_virtual_lab_by_project_request_error(
     httpx2_mock,
-    user_context_admin,
-    admin_bearer_credentials,
 ):
     project_id = UUID(PROJECT_ID)
     httpx2_mock.get().mock(side_effect=httpx2.ConnectError("connection refused"))
 
-    client = test_module.get_admin_virtual_lab_client(
-        user_context_admin,
-        admin_bearer_credentials,
-    )
+    client = AdminVirtualLabClient(base_url=VIRTUAL_LAB_API_TEST_URL, token=TOKEN_ADMIN)
 
     with pytest.raises(ApiError) as exc_info:
         client.get_virtual_lab_by_project(project_id)
@@ -156,8 +142,6 @@ def test_get_virtual_lab_by_project_request_error(
 
 def test_get_virtual_lab_by_project_invalid_mapping_payload(
     httpx2_mock,
-    user_context_admin,
-    admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
@@ -165,10 +149,7 @@ def test_get_virtual_lab_by_project_invalid_mapping_payload(
         json={"data": {"project_id": "not-a-uuid", "virtual_lab_id": str(UUID(VIRTUAL_LAB_ID))}}
     )
 
-    client = test_module.get_admin_virtual_lab_client(
-        user_context_admin,
-        admin_bearer_credentials,
-    )
+    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token=TOKEN_ADMIN)
 
     with pytest.raises(ValidationError):
         client.get_virtual_lab_by_project(project_id)
@@ -176,8 +157,6 @@ def test_get_virtual_lab_by_project_invalid_mapping_payload(
 
 def test_get_virtual_lab_by_project_missing_data_key(
     httpx2_mock,
-    user_context_admin,
-    admin_bearer_credentials,
     virtual_lab_api_url,
 ):
     project_id = UUID(PROJECT_ID)
@@ -185,10 +164,7 @@ def test_get_virtual_lab_by_project_missing_data_key(
         json={"unexpected": "shape"}
     )
 
-    client = test_module.get_admin_virtual_lab_client(
-        user_context_admin,
-        admin_bearer_credentials,
-    )
+    client = AdminVirtualLabClient(base_url=virtual_lab_api_url, token=TOKEN_ADMIN)
 
     with pytest.raises(KeyError, match="data"):
         client.get_virtual_lab_by_project(project_id)

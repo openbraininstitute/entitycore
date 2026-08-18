@@ -40,7 +40,7 @@ from app.schemas.analysis_notebook_template import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
-from app.service.asset import create_entity_asset_unverified
+from app.service.asset import create_entity_asset_unverified, delete_asset_unverified
 from app.utils.s3 import build_s3_path, copy_file
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
@@ -281,20 +281,44 @@ def clone(
     db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
     created = []
     for project_id in json_model.target_project_ids:
-        clone_db = AnalysisNotebookTemplate(
-            name=notebook.name,
-            description=notebook.description,
-            scale=notebook.scale,
-            specifications=notebook.specifications,
-            assignment_id=notebook.assignment_id,
-            authorized_project_id=project_id,
-            authorized_public=False,
-            created_by_id=db_user.id,
-            updated_by_id=db_user.id,
-        )
-        repos.db.add(clone_db)
-        repos.db.flush()
-        repos.db.refresh(clone_db)
+        existing = repos.db.execute(
+            sa.select(AnalysisNotebookTemplate).where(
+                AnalysisNotebookTemplate.name == notebook.name,
+                AnalysisNotebookTemplate.authorized_project_id == project_id,
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.description = notebook.description
+            existing.scale = notebook.scale
+            existing.specifications = notebook.specifications
+            existing.assignment_id = notebook.assignment_id
+            existing.updated_by_id = db_user.id
+            repos.db.flush()
+            repos.db.refresh(existing, ["assets"])
+            for asset in list(existing.assets):
+                delete_asset_unverified(
+                    repos,
+                    entity_type=EntityType.analysis_notebook_template,
+                    entity_id=existing.id,
+                    asset_id=asset.id,
+                )
+            clone_db = existing
+        else:
+            clone_db = AnalysisNotebookTemplate(
+                name=notebook.name,
+                description=notebook.description,
+                scale=notebook.scale,
+                specifications=notebook.specifications,
+                assignment_id=notebook.assignment_id,
+                authorized_project_id=project_id,
+                authorized_public=False,
+                created_by_id=db_user.id,
+                updated_by_id=db_user.id,
+            )
+            repos.db.add(clone_db)
+            repos.db.flush()
+            repos.db.refresh(clone_db)
 
         virtual_lab_id = resolve_virtual_lab_id(user_context, project_id)
         storage = storages[StorageType.aws_s3_internal]

@@ -1,5 +1,6 @@
 import asyncio
 import os
+import tracemalloc
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
@@ -33,6 +34,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         os.cpu_count(),
         settings.ENVIRONMENT,
     )
+    if settings.TRACEMALLOC_ENABLED:
+        tracemalloc.start()
+        L.info("tracemalloc started")
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
     http_client = httpx2.Client()

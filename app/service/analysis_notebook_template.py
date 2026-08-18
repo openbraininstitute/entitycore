@@ -280,6 +280,7 @@ def clone(
         )
     db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
     created = []
+
     for project_id in json_model.target_project_ids:
         existing = repos.db.execute(
             sa.select(AnalysisNotebookTemplate).where(
@@ -297,6 +298,7 @@ def clone(
             existing.authorized_public = False
             repos.db.flush()
             repos.db.refresh(existing, ["assets"])
+
             for asset in list(existing.assets):
                 delete_asset_unverified(
                     repos,
@@ -357,5 +359,6 @@ def clone(
                 user_profile=user_context.profile,
                 virtual_lab_id=virtual_lab_id,
             )
+        repos.db.refresh(clone_db, ["assets"])
         created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
     return NotebookCloneResponse(created=created)

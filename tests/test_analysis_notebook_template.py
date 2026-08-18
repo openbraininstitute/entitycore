@@ -277,6 +277,82 @@ def test_clone_member_can_read_cloned_notebook(client_user_1_two_projects, clien
     )
 
 
+def test_clone_upserts_existing_notebook_with_assets(client_user_1_two_projects, model):
+    """Cloning twice: first call creates, second call updates and replaces assets."""
+    first = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()["created"][0]
+    existing_id = first["id"]
+    assert first["assets"] == []
+
+    upload_entity_asset(
+        client_user_1_two_projects,
+        EntityType.analysis_notebook_template,
+        model.id,
+        files={"file": ("new.ipynb", b"{}", "application/x-ipynb+json")},
+        label="jupyter_notebook",
+    )
+
+    second = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()["created"][0]
+
+    assert second["id"] == existing_id
+    assert len(second["assets"]) == 1
+    assert second["assets"][0]["path"] == "new.ipynb"
+
+
+def test_clone_upserts_reflects_source_changes(client_user_1_two_projects, model, json_data):
+    """Clone, then mutate source (swap asset + update field), clone again: target mirrors source."""
+    old_asset_id = upload_entity_asset(
+        client_user_1_two_projects,
+        EntityType.analysis_notebook_template,
+        model.id,
+        files={"file": ("old.ipynb", b"{}", "application/x-ipynb+json")},
+        label="jupyter_notebook",
+    ).json()["id"]
+
+    first = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()["created"][0]
+    existing_id = first["id"]
+    assert len(first["assets"]) == 1
+
+    assert_request(
+        client_user_1_two_projects.delete,
+        url=f"{ROUTE}/{model.id}/assets/{old_asset_id}",
+    )
+    assert_request(
+        client_user_1_two_projects.patch,
+        url=f"{ROUTE}/{model.id}",
+        json={"description": "updated description"},
+    )
+    upload_entity_asset(
+        client_user_1_two_projects,
+        EntityType.analysis_notebook_template,
+        model.id,
+        files={"file": ("new.ipynb", b"{}", "application/x-ipynb+json")},
+        label="jupyter_notebook",
+    )
+
+    second = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()["created"][0]
+
+    assert second["id"] == existing_id
+    assert second["description"] == "updated description"
+    assert len(second["assets"]) == 1
+    assert second["assets"][0]["path"] == "new.ipynb"
+
+
 def test_missing(client):
     check_missing(ROUTE, client)
 

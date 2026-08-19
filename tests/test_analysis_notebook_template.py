@@ -235,7 +235,9 @@ def test_clone_forbidden_public_source(client, json_data):
     )
 
 
-def test_clone_forbidden_public_existing_in_target(client_user_1_two_projects, db, json_data, user_id):
+def test_clone_forbidden_public_existing_in_target(
+    client_user_1_two_projects, db, json_data, user_id
+):
     """If a public notebook with the same name already exists in the target project, return 403."""
     notebook_id = assert_request(
         client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
@@ -260,18 +262,17 @@ def test_clone_forbidden_public_existing_in_target(client_user_1_two_projects, d
     )
 
 
-
-def test_clone_creates_private_copies_in_target_projects(client, model):
+def test_clone_creates_private_copies_in_target_projects(client_user_1_two_projects, model):
     """Cloned notebooks are always private, one per target project."""
     data = assert_request(
-        client.post,
+        client_user_1_two_projects.post,
         url=f"{ROUTE}/{model.id}/clone",
-        json={"target_project_ids": [PROJECT_ID]},
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
     ).json()
     assert len(data["created"]) == 1
     clone = data["created"][0]
     assert clone["authorized_public"] is False
-    assert clone["authorized_project_id"] == PROJECT_ID
+    assert clone["authorized_project_id"] == UNRELATED_PROJECT_ID
     assert clone["name"] == model.name
     assert clone["assets"] == []
     assert clone["contributions"] == []

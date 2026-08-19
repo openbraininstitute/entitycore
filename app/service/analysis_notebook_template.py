@@ -269,6 +269,14 @@ def clone(
             entity_id=id_,
         ),
     )
+
+    if notebook.authorized_public:
+        raise ApiError(
+            message="Source notebook must be private",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
     if not is_user_authorized_for_clone(
         user_context=user_context,
         target_project_ids=json_model.target_project_ids,
@@ -278,6 +286,22 @@ def clone(
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
+
+    public_conflict = repos.db.execute(
+        sa.select(AnalysisNotebookTemplate).where(
+            AnalysisNotebookTemplate.name == notebook.name,
+            AnalysisNotebookTemplate.authorized_project_id.in_(json_model.target_project_ids),
+            AnalysisNotebookTemplate.authorized_public.is_(True),
+        )
+    ).scalars().first()
+
+    if public_conflict:
+        raise ApiError(
+            message="A public notebook with the same name already exists in the target project",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
     db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
     created = []
 

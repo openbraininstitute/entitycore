@@ -2,6 +2,7 @@ import pytest
 
 from app.db.model import AnalysisNotebookTemplate, Role
 from app.db.types import EntityType
+
 from .utils import (
     MISSING_ID,
     PROJECT_ID,

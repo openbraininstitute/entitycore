@@ -64,6 +64,7 @@ TOKEN_USER_3 = "I'm user 3"  # ruff:ignore[hardcoded-password-string]
 TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # ruff:ignore[hardcoded-password-string]
 TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # ruff:ignore[hardcoded-password-string]
 TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_1_TWO_PROJECTS = "I'm user 1 two projects"  # ruff:ignore[hardcoded-password-string]
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}
@@ -72,6 +73,7 @@ AUTH_HEADER_USER_3 = {"Authorization": f"Bearer {TOKEN_USER_3}"}
 AUTH_HEADER_MAINTAINER_1 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_1}"}
 AUTH_HEADER_MAINTAINER_2 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_2}"}
 AUTH_HEADER_MAINTAINER_3 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_3}"}
+AUTH_HEADER_USER_1_TWO_PROJECTS = {"Authorization": f"Bearer {TOKEN_USER_1_TWO_PROJECTS}"}
 
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"

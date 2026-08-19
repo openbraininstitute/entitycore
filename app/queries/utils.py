@@ -76,6 +76,15 @@ def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]
     return False
 
 
+def is_user_authorized_for_clone(
+    user_context: UserContext,
+    target_project_ids: list[uuid.UUID],
+) -> bool:
+    if settings.APP_DISABLE_AUTH:
+        return True
+    return set(target_project_ids).issubset(user_context.admin_project_ids)
+
+
 def create_associations_to_entities(
     db: Session,
     *,

@@ -1,18 +1,23 @@
 import uuid
-from typing import TYPE_CHECKING
+from http import HTTPStatus
+from typing import TYPE_CHECKING, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
+from app.config import storages
 from app.db.model import (
     Agent,
     AnalysisNotebookTemplate,
     Contribution,
     PlatformUser,
 )
+from app.db.types import EntityType, StorageType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
-from app.dependencies.db import SessionDep
+from app.dependencies.db import RepoGroupDep, SessionDep
+from app.dependencies.s3 import StorageClientFactoryDep
+from app.errors import ApiError, ApiErrorCode
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.queries.common import (
     router_create_one,
@@ -23,14 +28,23 @@ from app.queries.common import (
 )
 from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
+from app.queries.utils import get_or_create_user, is_user_authorized_for_clone
 from app.schemas.analysis_notebook_template import (
     AnalysisNotebookTemplateAdminUpdate,
     AnalysisNotebookTemplateCreate,
     AnalysisNotebookTemplateRead,
     AnalysisNotebookTemplateUpdate,
+    NotebookCloneRequest,
+    NotebookCloneResponse,
+    NotebookDeleteClonesRequest,
+    NotebookDeleteClonesResponse,
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.service import entity as entity_service
+from app.service.asset import create_entity_asset_unverified, delete_asset_unverified
+from app.utils.s3 import build_s3_path, copy_file
+from app.utils.virtual_lab import resolve_virtual_lab_id
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -239,3 +253,212 @@ def delete_one(
         db_model_class=AnalysisNotebookTemplate,
         user_context=user_context,
     )
+
+
+def _get_validated_clone_source_and_targets(
+    repos: RepoGroupDep,
+    user_context: UserContextDep,
+    id_: uuid.UUID,
+    target_project_ids: list[uuid.UUID],
+) -> tuple["AnalysisNotebookTemplate", list["AnalysisNotebookTemplate"]]:
+    """Fetch and validate source notebook and matching targets for clone/delete-clones operations.
+
+    Raises 403 if the source is public, the source project is in the target list,
+    the user lacks admin rights on any target, or any matching target notebook is public.
+    Returns the source notebook and the list of matching target notebooks.
+    """
+    notebook = cast(
+        "AnalysisNotebookTemplate",
+        entity_service.get_writable_entity_by_context(
+            repos=repos,
+            user_context=user_context,
+            entity_type=EntityType.analysis_notebook_template,
+            entity_id=id_,
+        ),
+    )
+    if notebook.authorized_public:
+        raise ApiError(
+            message="Source notebook must be private",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    if notebook.authorized_project_id in target_project_ids:
+        raise ApiError(
+            message="Source project cannot be a target project",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    if not is_user_authorized_for_clone(
+        user_context=user_context,
+        target_project_ids=target_project_ids,
+    ):
+        raise ApiError(
+            message="User is not admin of all required projects",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    targets = (
+        repos.db.execute(
+            sa.select(AnalysisNotebookTemplate).where(
+                AnalysisNotebookTemplate.name == notebook.name,
+                AnalysisNotebookTemplate.authorized_project_id.in_(target_project_ids),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if any(t.authorized_public for t in targets):
+        raise ApiError(
+            message="A public notebook with the same name already exists in the target project",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    return notebook, list(targets)
+
+
+def clone(
+    user_context: UserContextDep,
+    repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
+    id_: uuid.UUID,
+    json_model: NotebookCloneRequest,
+) -> NotebookCloneResponse:
+    """Clone a private notebook into one or more target projects.
+
+    Upserts by name: updates existing private notebooks, creates new ones.
+    Assets and contributions are synced to match the source.
+    """
+    notebook, _ = _get_validated_clone_source_and_targets(
+        repos=repos,
+        user_context=user_context,
+        id_=id_,
+        target_project_ids=json_model.target_project_ids,
+    )
+    db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
+    created = []
+
+    for project_id in json_model.target_project_ids:
+        existing = repos.db.execute(
+            sa.select(AnalysisNotebookTemplate).where(
+                AnalysisNotebookTemplate.name == notebook.name,
+                AnalysisNotebookTemplate.authorized_project_id == project_id,
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.description = notebook.description
+            existing.scale = notebook.scale
+            existing.specifications = notebook.specifications
+            existing.assignment_id = notebook.assignment_id
+            existing.updated_by_id = db_user.id
+            repos.db.flush()
+            repos.db.refresh(existing, ["assets"])
+
+            for asset in list(existing.assets):
+                delete_asset_unverified(
+                    repos,
+                    entity_type=EntityType.analysis_notebook_template,
+                    entity_id=existing.id,
+                    asset_id=asset.id,
+                )
+            clone_db = existing
+        else:
+            clone_db = AnalysisNotebookTemplate(
+                name=notebook.name,
+                description=notebook.description,
+                scale=notebook.scale,
+                specifications=notebook.specifications,
+                assignment_id=notebook.assignment_id,
+                authorized_project_id=project_id,
+                authorized_public=False,
+                created_by_id=db_user.id,
+                updated_by_id=db_user.id,
+            )
+            repos.db.add(clone_db)
+            repos.db.flush()
+            repos.db.refresh(clone_db)
+
+        virtual_lab_id = resolve_virtual_lab_id(user_context, project_id)
+        storage = storages[StorageType.aws_s3_internal]
+        s3_client = storage_client_factory(storage)
+
+        for asset in notebook.assets:
+            dst_key = build_s3_path(
+                vlab_id=virtual_lab_id,
+                proj_id=project_id,
+                entity_type=EntityType.analysis_notebook_template,
+                entity_id=clone_db.id,
+                filename=asset.path,
+                is_public=False,
+            )
+            copy_file(
+                s3_client,
+                src_bucket_name=storage.bucket,
+                dst_bucket_name=storage.bucket,
+                src_key=str(asset.full_path),
+                dst_key=dst_key,
+            )
+            create_entity_asset_unverified(
+                repos,
+                entity=clone_db,
+                filename=asset.path,
+                content_type=asset.content_type,
+                size=asset.size,
+                sha256_digest=asset.sha256_digest.hex() if asset.sha256_digest else None,
+                meta=asset.meta,
+                label=asset.label,
+                is_directory=asset.is_directory,
+                storage_type=asset.storage_type,
+                full_path=dst_key,
+                status=asset.status,
+                user_profile=user_context.profile,
+                virtual_lab_id=virtual_lab_id,
+            )
+        repos.db.refresh(clone_db, ["assets", "contributions"])
+
+        existing_contribs = {(c.agent_id, c.role_id): c for c in clone_db.contributions}
+        source_contribs = {(c.agent_id, c.role_id) for c in notebook.contributions}
+
+        for key, contrib in list(existing_contribs.items()):
+            if key not in source_contribs:
+                repos.db.delete(contrib)
+
+        for contrib in notebook.contributions:
+            if (contrib.agent_id, contrib.role_id) not in existing_contribs:
+                repos.db.add(
+                    Contribution(
+                        agent_id=contrib.agent_id,
+                        role_id=contrib.role_id,
+                        entity_id=clone_db.id,
+                        created_by_id=db_user.id,
+                        updated_by_id=db_user.id,
+                    )
+                )
+
+        repos.db.flush()
+        repos.db.refresh(clone_db, ["contributions"])
+        created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
+    return NotebookCloneResponse(created=created)
+
+
+def delete_clones(
+    user_context: UserContextDep,
+    repos: RepoGroupDep,
+    id_: uuid.UUID,
+    json_model: NotebookDeleteClonesRequest,
+) -> NotebookDeleteClonesResponse:
+    """Delete notebooks matching the source name in the target projects.
+
+    Only private notebooks are deleted. Contributions and assets are removed via cascade.
+    """
+    _, targets = _get_validated_clone_source_and_targets(
+        repos=repos,
+        user_context=user_context,
+        id_=id_,
+        target_project_ids=json_model.target_project_ids,
+    )
+    deleted = [AnalysisNotebookTemplateRead.model_validate(t) for t in targets]
+    for target in targets:
+        repos.db.delete(target)
+    repos.db.flush()
+    return NotebookDeleteClonesResponse(deleted=deleted)

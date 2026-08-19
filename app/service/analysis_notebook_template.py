@@ -261,6 +261,12 @@ def _get_validated_clone_source_and_targets(
     id_: uuid.UUID,
     target_project_ids: list[uuid.UUID],
 ) -> tuple["AnalysisNotebookTemplate", list["AnalysisNotebookTemplate"]]:
+    """Fetch and validate source notebook and matching targets for clone/delete-clones operations.
+
+    Raises 403 if the source is public, the source project is in the target list,
+    the user lacks admin rights on any target, or any matching target notebook is public.
+    Returns the source notebook and the list of matching target notebooks.
+    """
     notebook = cast(
         "AnalysisNotebookTemplate",
         entity_service.get_writable_entity_by_context(
@@ -317,6 +323,11 @@ def clone(
     id_: uuid.UUID,
     json_model: NotebookCloneRequest,
 ) -> NotebookCloneResponse:
+    """Clone a private notebook into one or more target projects.
+
+    Upserts by name: updates existing private notebooks, creates new ones.
+    Assets and contributions are synced to match the source.
+    """
     notebook, _ = _get_validated_clone_source_and_targets(
         repos=repos,
         user_context=user_context,
@@ -436,6 +447,10 @@ def delete_clones(
     id_: uuid.UUID,
     json_model: NotebookDeleteClonesRequest,
 ) -> NotebookDeleteClonesResponse:
+    """Delete notebooks matching the source name in the target projects.
+
+    Only private notebooks are deleted. Contributions and assets are removed via cascade.
+    """
     _, targets = _get_validated_clone_source_and_targets(
         repos=repos,
         user_context=user_context,

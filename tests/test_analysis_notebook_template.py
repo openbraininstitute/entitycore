@@ -1,5 +1,6 @@
 import pytest
 
+from app.config import settings
 from app.db.model import AnalysisNotebookTemplate, Role
 from app.db.types import EntityType
 
@@ -426,6 +427,52 @@ def test_clone_syncs_contributions(
     contribs = data["created"][0]["contributions"]
     assert len(contribs) == 1
     assert contribs[0]["role"]["id"] == str(role_id)
+
+
+def test_clone_syncs_contributions_already_matching(
+    client_user_1_two_projects, db, json_data, user_id, person_id, role_id
+):
+    """If target already has the same contrib as source, it is kept and no duplicate is created."""
+    notebook_id = assert_request(
+        client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
+    ).json()["id"]
+    add_contribution(db, notebook_id, person_id, role_id, user_id)
+
+    target = add_db(
+        db,
+        AnalysisNotebookTemplate(
+            **json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": UNRELATED_PROJECT_ID,
+                "authorized_public": False,
+            },
+        ),
+    )
+    add_contribution(db, target.id, person_id, role_id, user_id)
+
+    data = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{notebook_id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()
+
+    contribs = data["created"][0]["contributions"]
+    assert len(contribs) == 1
+    assert contribs[0]["role"]["id"] == str(role_id)
+
+
+def test_clone_auth_disabled(monkeypatch, client, model):
+    """When APP_DISABLE_AUTH is True, admin check on target project is bypassed."""
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+    data = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()
+    assert len(data["created"]) == 1
+    assert data["created"][0]["authorized_project_id"] == UNRELATED_PROJECT_ID
 
 
 def test_delete_clones_forbidden_not_admin_of_notebook_project(client_user_2, model):

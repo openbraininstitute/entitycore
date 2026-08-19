@@ -277,6 +277,13 @@ def clone(
             http_status_code=HTTPStatus.FORBIDDEN,
         )
 
+    if notebook.authorized_project_id in json_model.target_project_ids:
+        raise ApiError(
+            message="Source project cannot be a target project",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
     if not is_user_authorized_for_clone(
         user_context=user_context,
         target_project_ids=json_model.target_project_ids,

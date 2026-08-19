@@ -7,6 +7,7 @@ from .utils import (
     MISSING_ID,
     PROJECT_ID,
     UNRELATED_PROJECT_ID,
+    add_db,
     assert_request,
     check_authorization,
     check_creation_fields,
@@ -208,6 +209,54 @@ def test_clone_missing_notebook(client):
         url=f"{ROUTE}/{MISSING_ID}/clone",
         json={"target_project_ids": [PROJECT_ID]},
         expected_status_code=404,
+    )
+
+
+def test_clone_forbidden_source_in_target(client, model):
+    """Source project cannot be listed as a target project."""
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_clone_forbidden_public_source(client, json_data):
+    """Source notebook must be private; cloning a public one returns 403."""
+    notebook_id = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()["id"]
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{notebook_id}/clone",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_clone_forbidden_public_existing_in_target(client_user_1_two_projects, db, json_data, user_id):
+    """If a public notebook with the same name already exists in the target project, return 403."""
+    notebook_id = assert_request(
+        client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
+    ).json()["id"]
+    add_db(
+        db,
+        AnalysisNotebookTemplate(
+            **json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": UNRELATED_PROJECT_ID,
+                "authorized_public": True,
+            },
+        ),
+    )
+    assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{notebook_id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
     )
 
 

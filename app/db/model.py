@@ -338,6 +338,9 @@ class Person(Agent):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     given_name: Mapped[str | None]
     family_name: Mapped[str | None]
+    sub_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("platform_user.id"), unique=True, index=True
+    )
     orcid: Mapped[str | None] = mapped_column(String(37), unique=True, index=True)
 
     __mapper_args__ = {  # ruff:ignore[mutable-class-default]

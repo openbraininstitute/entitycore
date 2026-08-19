@@ -4,7 +4,7 @@ import pytest
 import sqlalchemy as sa
 
 from app.db import model, utils as test_module
-from app.db.model import PlatformUser
+from app.db.model import Person, PlatformUser
 from app.queries.utils import get_or_create_user, get_user
 from app.schemas.auth import UserProfile
 
@@ -39,6 +39,13 @@ def test_get_or_create_user__creates(db):
     assert user.pref_label == "Jane Smith"
     assert db.get(PlatformUser, sub) is not None
 
+    # A Person is auto-created with matching sub_id
+    person = db.execute(sa.select(Person).where(Person.sub_id == sub)).scalar_one_or_none()
+    assert person is not None
+    assert person.pref_label == "Jane Smith"
+    assert person.created_by_id == sub
+    assert person.updated_by_id == sub
+
 
 def test_get_or_create_user__idempotent(db):
     sub = uuid.uuid4()
@@ -49,6 +56,12 @@ def test_get_or_create_user__idempotent(db):
         sa.select(sa.func.count()).select_from(PlatformUser).where(PlatformUser.id == sub)
     ).scalar()
     assert count == 1
+
+    # Only one Person was created
+    person_count = db.execute(
+        sa.select(sa.func.count()).select_from(Person).where(Person.sub_id == sub)
+    ).scalar()
+    assert person_count == 1
 
 
 def test_get_user__found(db):

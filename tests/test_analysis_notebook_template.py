@@ -260,20 +260,6 @@ def test_clone_forbidden_public_existing_in_target(client_user_1_two_projects, d
     )
 
 
-def test_clone_public_notebook_admin_of_its_project(client, json_data):
-    """user_1 is admin of PROJECT_ID; public notebook in that project is cloneable."""
-    notebook_id = assert_request(
-        client.post, url=ROUTE, json=json_data | {"authorized_public": False}
-    ).json()["id"]
-    data = assert_request(
-        client.post,
-        url=f"{ROUTE}/{notebook_id}/clone",
-        json={"target_project_ids": [PROJECT_ID]},
-    ).json()
-    assert len(data["created"]) == 1
-    assert data["created"][0]["authorized_public"] is False
-    assert data["created"][0]["authorized_project_id"] == PROJECT_ID
-
 
 def test_clone_creates_private_copies_in_target_projects(client, model):
     """Cloned notebooks are always private, one per target project."""

@@ -294,13 +294,17 @@ def clone(
             http_status_code=HTTPStatus.FORBIDDEN,
         )
 
-    public_conflict = repos.db.execute(
-        sa.select(AnalysisNotebookTemplate).where(
-            AnalysisNotebookTemplate.name == notebook.name,
-            AnalysisNotebookTemplate.authorized_project_id.in_(json_model.target_project_ids),
-            AnalysisNotebookTemplate.authorized_public.is_(True),
+    public_conflict = (
+        repos.db.execute(
+            sa.select(AnalysisNotebookTemplate).where(
+                AnalysisNotebookTemplate.name == notebook.name,
+                AnalysisNotebookTemplate.authorized_project_id.in_(json_model.target_project_ids),
+                AnalysisNotebookTemplate.authorized_public.is_(True),
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
     if public_conflict:
         raise ApiError(
@@ -326,7 +330,6 @@ def clone(
             existing.specifications = notebook.specifications
             existing.assignment_id = notebook.assignment_id
             existing.updated_by_id = db_user.id
-            existing.authorized_public = False
             repos.db.flush()
             repos.db.refresh(existing, ["assets"])
 

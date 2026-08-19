@@ -343,7 +343,7 @@ def test_clone_upserts_existing_notebook_with_assets(client_user_1_two_projects,
     assert second["assets"][0]["path"] == "new.ipynb"
 
 
-def test_clone_upserts_reflects_source_changes(client_user_1_two_projects, model, json_data):
+def test_clone_upserts_reflects_source_changes(client_user_1_two_projects, model):
     """Clone, then mutate source (swap asset + update field), clone again: target mirrors source."""
     old_asset_id = upload_entity_asset(
         client_user_1_two_projects,

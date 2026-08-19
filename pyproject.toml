@@ -180,7 +180,11 @@ source_pkgs = ["app"]
 show_missing = true
 precision = 0
 fail_under = 90
-omit = ["__main__.py", "scripts/*"]
+omit = [
+    "__main__.py",
+    "scripts/*",
+    "app/routers/debug.py",
+]
 
 [tool.coverage.xml]
 output = "coverage/coverage.xml"

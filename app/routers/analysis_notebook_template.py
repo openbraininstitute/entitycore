@@ -10,6 +10,7 @@ ROUTE = EntityRoute.analysis_notebook_template
 
 def _add_clone_route(router: APIRouter) -> None:
     router.post("/{id_}/clone")(service.clone)
+    router.post("/{id_}/delete-clones")(service.delete_clones)
 
 
 router = create_user_router(route=ROUTE, service=service, after_routes=[_add_clone_route])

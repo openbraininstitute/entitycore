@@ -36,6 +36,8 @@ from app.schemas.analysis_notebook_template import (
     AnalysisNotebookTemplateUpdate,
     NotebookCloneRequest,
     NotebookCloneResponse,
+    NotebookDeleteClonesRequest,
+    NotebookDeleteClonesResponse,
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
@@ -253,13 +255,12 @@ def delete_one(
     )
 
 
-def clone(
-    user_context: UserContextDep,
+def _get_validated_clone_source_and_targets(
     repos: RepoGroupDep,
-    storage_client_factory: StorageClientFactoryDep,
+    user_context: UserContextDep,
     id_: uuid.UUID,
-    json_model: NotebookCloneRequest,
-) -> NotebookCloneResponse:
+    target_project_ids: list[uuid.UUID],
+) -> tuple["AnalysisNotebookTemplate", list["AnalysisNotebookTemplate"]]:
     notebook = cast(
         "AnalysisNotebookTemplate",
         entity_service.get_writable_entity_by_context(
@@ -269,50 +270,59 @@ def clone(
             entity_id=id_,
         ),
     )
-
     if notebook.authorized_public:
         raise ApiError(
             message="Source notebook must be private",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
-
-    if notebook.authorized_project_id in json_model.target_project_ids:
+    if notebook.authorized_project_id in target_project_ids:
         raise ApiError(
             message="Source project cannot be a target project",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
-
     if not is_user_authorized_for_clone(
         user_context=user_context,
-        target_project_ids=json_model.target_project_ids,
+        target_project_ids=target_project_ids,
     ):
         raise ApiError(
             message="User is not admin of all required projects",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
-
-    public_conflict = (
+    targets = (
         repos.db.execute(
             sa.select(AnalysisNotebookTemplate).where(
                 AnalysisNotebookTemplate.name == notebook.name,
-                AnalysisNotebookTemplate.authorized_project_id.in_(json_model.target_project_ids),
-                AnalysisNotebookTemplate.authorized_public.is_(True),
+                AnalysisNotebookTemplate.authorized_project_id.in_(target_project_ids),
             )
         )
         .scalars()
-        .first()
+        .all()
     )
-
-    if public_conflict:
+    if any(t.authorized_public for t in targets):
         raise ApiError(
             message="A public notebook with the same name already exists in the target project",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
+    return notebook, list(targets)
 
+
+def clone(
+    user_context: UserContextDep,
+    repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
+    id_: uuid.UUID,
+    json_model: NotebookCloneRequest,
+) -> NotebookCloneResponse:
+    notebook, _ = _get_validated_clone_source_and_targets(
+        repos=repos,
+        user_context=user_context,
+        id_=id_,
+        target_project_ids=json_model.target_project_ids,
+    )
     db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
     created = []
 
@@ -418,3 +428,22 @@ def clone(
         repos.db.refresh(clone_db, ["contributions"])
         created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
     return NotebookCloneResponse(created=created)
+
+
+def delete_clones(
+    user_context: UserContextDep,
+    repos: RepoGroupDep,
+    id_: uuid.UUID,
+    json_model: NotebookDeleteClonesRequest,
+) -> NotebookDeleteClonesResponse:
+    _, targets = _get_validated_clone_source_and_targets(
+        repos=repos,
+        user_context=user_context,
+        id_=id_,
+        target_project_ids=json_model.target_project_ids,
+    )
+    deleted = [AnalysisNotebookTemplateRead.model_validate(t) for t in targets]
+    for target in targets:
+        repos.db.delete(target)
+    repos.db.flush()
+    return NotebookDeleteClonesResponse(deleted=deleted)

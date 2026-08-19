@@ -1,8 +1,7 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.auth import (
     constrain_to_readable_entities_by_project,
@@ -22,6 +21,7 @@ from app.dependencies.db import SessionDep
 from app.filters.scientific_artifact_external_url_link import (
     ScientificArtifactExternalUrlLinkFilterDep,
 )
+from app.queries.alias_registry import build_aliases, get_alias, merge_aliases
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
@@ -34,9 +34,6 @@ from app.schemas.types import ListResponse
 from app.service import admin as admin_service
 from app.types import AssociationRoute
 from app.utils.entity import ensure_readable
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select) -> sa.Select:
@@ -109,23 +106,25 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
-    scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
-    external_url_alias = aliased(ExternalUrl, flat=True, name="external_url")
-    aliases: Aliases = {
-        ScientificArtifact: {"scientific_artifact": scientific_artifact_alias},
-        ExternalUrl: {"external_url": external_url_alias},
-    }
+    scientific_artifact_alias = get_alias(ScientificArtifact, "scientific_artifact")
+    external_url_alias = get_alias(ExternalUrl, "external_url")
+
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    name_to_facet_query_params, join_specs, aliases = query_params_factory(
+    name_to_facet_query_params, join_specs, factory_aliases = query_params_factory(
         db_model_class=ScientificArtifactExternalUrlLink,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
+    service_aliases = build_aliases(
+        (ScientificArtifact, "scientific_artifact"),
+        (ExternalUrl, "external_url"),
+    )
+    aliases = merge_aliases(factory_aliases, service_aliases)
+
     base_join_query = lambda q: q.join(
         scientific_artifact_alias,
         ScientificArtifactExternalUrlLink.scientific_artifact_id == scientific_artifact_alias.id,

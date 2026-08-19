@@ -1,6 +1,6 @@
 import uuid
 from http import HTTPStatus
-from typing import Annotated, NotRequired, Protocol, TypedDict
+from typing import Annotated, Protocol
 
 import sqlalchemy as sa
 from fastapi import Depends, Query
@@ -13,6 +13,7 @@ from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
 from app.queries.expand import EntityExpand
+from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
 
 
@@ -68,16 +69,10 @@ def forbid_extra_query_params(
         )
 
 
-class FacetQueryParams(TypedDict):
-    id: sa.SQLColumnExpression[uuid.UUID]
-    label: sa.SQLColumnExpression[str]
-    type: NotRequired[sa.SQLColumnExpression[str]]
-
-
 def _get_facets(
     db: Session,
     build_facet_query: BuildFacetQuery,
-    name_to_facet_query_params: dict[str, FacetQueryParams],
+    name_to_facet_query_params: FacetQueryParamsMap,
     count_distinct_field: sa.SQLColumnExpression,
 ) -> Facets:
     facets = {}
@@ -115,7 +110,7 @@ class WithFacets(BaseModel):
         self,
         db: Session,
         build_facet_query: BuildFacetQuery,
-        name_to_facet_query_params: dict[str, FacetQueryParams],
+        name_to_facet_query_params: FacetQueryParamsMap,
         count_distinct_field: sa.SQLColumnExpression,
     ):
         if not self.with_facets:

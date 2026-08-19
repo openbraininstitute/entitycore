@@ -1,13 +1,23 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict
 
 import sqlalchemy as sa
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
 type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
+
+
+type FacetQueryParamsMap = Mapping[str, FacetQueryParams]
+type JoinSpecMap = Mapping[str, JoinSpec]
+
+
+class FacetQueryParams(TypedDict):
+    id: sa.SQLColumnExpression[uuid.UUID]
+    label: sa.SQLColumnExpression[str]
+    type: NotRequired[sa.SQLColumnExpression[str]]
 
 
 @dataclass(frozen=True)

@@ -10,10 +10,8 @@ from pydantic import field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
+from app.queries.alias_registry import Aliases
 from app.utils.pattern import convert_to_ilike_pattern
-
-type Aliases[T: DeclarativeBase] = dict[type[T], dict[str, type[T]]]
-
 
 NESTED_SEPARATOR = "__"
 ILIKE_SEARCH_FIELDS = ["name", "description"]
@@ -109,7 +107,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         Args:
             query: The select query to filter.
-            aliases: Dict of {ModelClass: {name: alias}} for alias resolution.
+            aliases: Aliases mapping for alias resolution.
             _ancestors: Ancestor filter names leading to this node in the filter hierarchy.
         """
         model = self.Constants.model
@@ -141,7 +139,9 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     query = query.filter(getattr(model_field, operator)(value))
         return query
 
-    def sort(self, query: Select[tuple[T]], aliases: Aliases | None = None) -> Select[tuple[T]]:  # type:ignore[override]
+    def sort(  # type:ignore[override]
+        self, query: Select[tuple[T]], aliases: Aliases | None = None
+    ) -> Select[tuple[T]]:
         """Sort query taking into account nested fields and aliases.
 
         Nested ordering fields (e.g. "me_model__etype__pref_label") are split into
@@ -157,9 +157,6 @@ class CustomFilter[T: DeclarativeBase](Filter):
             - subject__species__name
             - me_model__etype__pref_label
         """
-        if aliases is None:
-            aliases = {}
-
         if not self.ordering_values:
             return query
 
@@ -180,7 +177,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     model = nested_filter.Constants.model
                     path_parts.append(part)
 
-                    if alias_dict := aliases.get(model):
+                    if aliases and (alias_dict := aliases.get(model)):
                         qualified_key = ".".join(path_parts)
                         model = alias_dict[qualified_key]
 

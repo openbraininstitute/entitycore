@@ -8,8 +8,9 @@ from sqlalchemy import Select
 
 from app.db.model import PlatformUser
 from app.dependencies.filter import FilterDepends
-from app.filters.base import Aliases, CustomFilter
+from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, PrefLabelMixin
+from app.queries.alias_registry import Aliases
 
 
 class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
@@ -19,9 +20,7 @@ class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
     class Constants(CustomFilter.Constants):
         model = PlatformUser
 
-    def filter(
-        self, query: Select, aliases: Aliases | None = None, *, _ancestors: tuple[str, ...] = ()
-    ) -> Select:
+    def filter(self, query: Select, aliases: Aliases | None = None, **kwargs) -> Select:
         """Remap deprecated sub_id/sub_id__in to id/id__in for backward compatibility."""
         if self.sub_id is not None and self.id is None:
             self.id = self.sub_id
@@ -29,7 +28,7 @@ class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
             self.id__in = self.sub_id__in
         self.sub_id = None
         self.sub_id__in = None
-        return super().filter(query, aliases, _ancestors=_ancestors)
+        return super().filter(query, aliases, **kwargs)
 
 
 NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedPlatformUserFilter))

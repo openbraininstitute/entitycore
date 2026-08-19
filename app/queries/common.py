@@ -18,7 +18,6 @@ from app.db.utils import (
     update_model,
 )
 from app.dependencies.common import (
-    FacetQueryParams,
     InBrainRegionQuery,
     PaginationQuery,
     Search,
@@ -32,12 +31,18 @@ from app.errors import (
     ensure_result,
     ensure_uniqueness,
 )
-from app.filters.base import Aliases, CustomFilter
+from app.filters.base import CustomFilter
 from app.queries import crud
+from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.expand import apply_derivation_expand
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations, JoinSpec, SupportsModelValidate
+from app.queries.types import (
+    ApplyOperations,
+    FacetQueryParamsMap,
+    JoinSpecMap,
+    SupportsModelValidate,
+)
 from app.queries.utils import (
     create_associations_to_entities,
     get_or_create_user,
@@ -340,9 +345,9 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
     response_schema_class: SupportsModelValidate[T],
-    name_to_facet_query_params: dict[str, FacetQueryParams] | None,
+    name_to_facet_query_params: FacetQueryParamsMap | None,
     filter_model: CustomFilter[I],
-    join_specs: dict[str, JoinSpec] | None = None,
+    join_specs: JoinSpecMap | None = None,
     embedding: list[float] | None = None,
     check_authorized_project: bool = True,
     expand: AbstractSet[str] | None = None,
@@ -356,7 +361,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         with_search: search query (str).
         with_in_brain_region: enable family queries based on BrainRegion
         facets: facet query (bool).
-        aliases: dict of table aliases for the filter query.
+        aliases: Aliases mapping for the filter query, or None.
         apply_filter_query_operations: optional callable to transform the filter query.
         apply_data_query_operations: optional callable to transform the data query.
         pagination_request: pagination.

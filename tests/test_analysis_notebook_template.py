@@ -427,6 +427,84 @@ def test_clone_syncs_contributions(
     assert contribs[0]["role"]["id"] == str(role_id)
 
 
+def test_delete_clones_forbidden_not_admin_of_notebook_project(client_user_2, model):
+    """user_2 is not in PROJECT_ID, so cannot delete clones."""
+    assert_request(
+        client_user_2.post,
+        url=f"{ROUTE}/{model.id}/delete-clones",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=404,
+    )
+
+
+def test_delete_clones_forbidden_not_admin_of_target_project(client, model):
+    """user_1 is admin of PROJECT_ID but not of UNRELATED_PROJECT_ID."""
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/delete-clones",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_delete_clones_forbidden_member_not_admin(client_user_3, model):
+    """user_3 is a member of PROJECT_ID, not an admin."""
+    assert_request(
+        client_user_3.post,
+        url=f"{ROUTE}/{model.id}/delete-clones",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_delete_clones_forbidden_source_in_target(client, model):
+    """Source project cannot be listed as a target project."""
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/delete-clones",
+        json={"target_project_ids": [PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_delete_clones_forbidden_public_source(client, json_data):
+    """Source notebook must be private."""
+    notebook_id = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()["id"]
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{notebook_id}/delete-clones",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+def test_delete_clones_success(client_user_1_two_projects, model):
+    """Clone into target, then delete-clones: target notebook is gone."""
+    clone_data = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()
+    clone_id = clone_data["created"][0]["id"]
+
+    data = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{model.id}/delete-clones",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()
+
+    assert len(data["deleted"]) == 1
+    assert data["deleted"][0]["id"] == clone_id
+
+    assert_request(
+        client_user_1_two_projects.get,
+        url=f"{ROUTE}/{clone_id}",
+        expected_status_code=404,
+    )
+
+
 def test_missing(client):
     check_missing(ROUTE, client)
 

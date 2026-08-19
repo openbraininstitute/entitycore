@@ -1,12 +1,12 @@
 import pytest
 
-from app.db.model import AnalysisNotebookTemplate
+from app.db.model import AnalysisNotebookTemplate, Role
 from app.db.types import EntityType
-
 from .utils import (
     MISSING_ID,
     PROJECT_ID,
     UNRELATED_PROJECT_ID,
+    add_contribution,
     add_db,
     assert_request,
     check_authorization,
@@ -387,6 +387,44 @@ def test_clone_upserts_reflects_source_changes(client_user_1_two_projects, model
     assert second["description"] == "updated description"
     assert len(second["assets"]) == 1
     assert second["assets"][0]["path"] == "new.ipynb"
+
+
+def test_clone_syncs_contributions(
+    client_user_1_two_projects, db, json_data, user_id, person_id, role_id
+):
+    """Clone replaces target contributions to match source: removes old, adds new."""
+    notebook_id = assert_request(
+        client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
+    ).json()["id"]
+    add_contribution(db, notebook_id, person_id, role_id, user_id)
+
+    target = add_db(
+        db,
+        AnalysisNotebookTemplate(
+            **json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": UNRELATED_PROJECT_ID,
+                "authorized_public": False,
+            },
+        ),
+    )
+    other_role = add_db(
+        db,
+        Role(role_id="other-role", name="other-role", created_by_id=user_id, updated_by_id=user_id),
+    )
+    add_contribution(db, target.id, person_id, other_role.id, user_id)
+
+    data = assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{notebook_id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+    ).json()
+
+    contribs = data["created"][0]["contributions"]
+    assert len(contribs) == 1
+    assert contribs[0]["role"]["id"] == str(role_id)
 
 
 def test_missing(client):

@@ -393,6 +393,28 @@ def clone(
                 user_profile=user_context.profile,
                 virtual_lab_id=virtual_lab_id,
             )
-        repos.db.refresh(clone_db, ["assets"])
+        repos.db.refresh(clone_db, ["assets", "contributions"])
+
+        existing_contribs = {(c.agent_id, c.role_id): c for c in clone_db.contributions}
+        source_contribs = {(c.agent_id, c.role_id) for c in notebook.contributions}
+
+        for key, contrib in list(existing_contribs.items()):
+            if key not in source_contribs:
+                repos.db.delete(contrib)
+
+        for contrib in notebook.contributions:
+            if (contrib.agent_id, contrib.role_id) not in existing_contribs:
+                repos.db.add(
+                    Contribution(
+                        agent_id=contrib.agent_id,
+                        role_id=contrib.role_id,
+                        entity_id=clone_db.id,
+                        created_by_id=db_user.id,
+                        updated_by_id=db_user.id,
+                    )
+                )
+
+        repos.db.flush()
+        repos.db.refresh(clone_db, ["contributions"])
         created.append(AnalysisNotebookTemplateRead.model_validate(clone_db))
     return NotebookCloneResponse(created=created)

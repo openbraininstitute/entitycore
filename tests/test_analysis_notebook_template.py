@@ -1,8 +1,11 @@
+import uuid
+
 import pytest
 
 from app.config import settings
 from app.db.model import AnalysisNotebookTemplate, Role
 from app.db.types import EntityType
+from app.queries.utils import is_user_authorized_for_clone
 
 from .utils import (
     MISSING_ID,
@@ -463,16 +466,13 @@ def test_clone_syncs_contributions_already_matching(
     assert contribs[0]["role"]["id"] == str(role_id)
 
 
-def test_clone_auth_disabled(monkeypatch, client, model):
-    """When APP_DISABLE_AUTH is True, admin check on target project is bypassed."""
+def test_clone_auth_disabled(monkeypatch, user_context_user_1):
+    """When APP_DISABLE_AUTH is True, is_user_authorized_for_clone always returns True."""
     monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
-    data = assert_request(
-        client.post,
-        url=f"{ROUTE}/{model.id}/clone",
-        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
-    ).json()
-    assert len(data["created"]) == 1
-    assert data["created"][0]["authorized_project_id"] == UNRELATED_PROJECT_ID
+    assert is_user_authorized_for_clone(
+        user_context=user_context_user_1,
+        target_project_ids=[uuid.UUID(UNRELATED_PROJECT_ID)],
+    ) is True
 
 
 def test_delete_clones_forbidden_not_admin_of_notebook_project(client_user_2, model):

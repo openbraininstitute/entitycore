@@ -1,9 +1,8 @@
-import threading
-from collections.abc import Hashable
+import functools
 from itertools import chain
+from types import MappingProxyType
 from typing import Any, NamedTuple
 
-import cachetools
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase
 
@@ -83,7 +82,9 @@ class _SpecRegistry:
 
     def collected_aliases(self) -> Aliases:
         """Return the Aliases mapping from all aliases collected during spec resolution."""
-        return self._collected_aliases
+        return MappingProxyType(
+            {k: MappingProxyType(v) for k, v in self._collected_aliases.items()}
+        )
 
     def spec_species(self) -> _Spec:
         m = self._m
@@ -571,14 +572,14 @@ class _SpecRegistry:
         return method()
 
 
-def _expand_filter_keys(filter_keys: list[str]) -> list[str]:
+def _expand_filter_keys(filter_keys: tuple[str, ...]) -> tuple[str, ...]:
     """Ensure parent keys are present for every dot-separated child key.
 
     Examples:
-        ["subject.species", "brain_region"] -> ["subject", "subject.species", "brain_region"]
-        ["subject", "subject.species"] -> ["subject", "subject.species"]  (no change)
+        ("subject.species", "brain_region") -> ("subject", "subject.species", "brain_region")
+        ("subject", "subject.species") -> ("subject", "subject.species")  (no change)
     """
-    return list(dict.fromkeys(chain.from_iterable(expand_dotted_key(k) for k in filter_keys)))
+    return tuple(dict.fromkeys(chain.from_iterable(expand_dotted_key(k) for k in filter_keys)))
 
 
 def _is_entity_model(db_model_class: type[DeclarativeBase]) -> bool:
@@ -592,23 +593,40 @@ def _ensure_facet(facet: FacetQueryParams | None, key: str) -> FacetQueryParams:
     return facet
 
 
-def _cache_key(
+@functools.cache
+def _query_params_factory_cached(
     db_model_class: type[DeclarativeBase],
-    facet_keys: list[str],
-    filter_keys: list[str],
-) -> Hashable:
+    facet_keys: tuple[str, ...],
+    filter_keys: tuple[str, ...],
+) -> tuple[
+    FacetQueryParamsMap,
+    JoinSpecMap,
+    Aliases,
+]:
+    filter_keys = _expand_filter_keys(filter_keys)
+
+    if facet_keys_not_in_filter := set(facet_keys) - set(filter_keys):
+        msg = f"Facet keys missing from filter_keys: {facet_keys_not_in_filter}"
+        raise ValueError(msg)
+
+    if _is_entity_model(db_model_class):
+        derivation_keys = ["generated_derivation", "used_derivation"]
+        filter_keys = (
+            *filter_keys,
+            *(k for k in derivation_keys if k not in filter_keys),
+        )
+
+    registry = _SpecRegistry(db_model_class)
+    resolved: dict[str, _Spec] = {k: registry.resolve(k) for k in filter_keys}
+    facet_params = {k: _ensure_facet(resolved[k].facet, k) for k in facet_keys}
+    join_specs = {k: resolved[k].join for k in filter_keys}
     return (
-        db_model_class,
-        tuple(facet_keys),
-        tuple(filter_keys),
+        facet_params,
+        join_specs,
+        registry.collected_aliases(),
     )
 
 
-@cachetools.cached(
-    cache=cachetools.LRUCache(maxsize=256),
-    key=_cache_key,
-    lock=threading.Lock(),
-)
 def query_params_factory(
     db_model_class: type[DeclarativeBase],
     facet_keys: list[str],
@@ -633,34 +651,9 @@ def query_params_factory(
         - dict of FacetQueryParams keyed by facet_keys
         - dict of JoinSpec keyed by filter_keys (plus derivation keys for entity models)
         - Aliases mapping for use in filter/sort calls
-
-    Examples:
-        >>> from app.db.model import CellMorphology
-        >>> facet_params, join_specs, aliases = query_params_factory(
-        ...     db_model_class=CellMorphology,
-        ...     facet_keys=["brain_region", "created_by"],
-        ...     filter_keys=["brain_region", "created_by", "updated_by"],
-        ... )
     """
-    filter_keys = _expand_filter_keys(filter_keys)
-
-    if facet_keys_not_in_filter := set(facet_keys) - set(filter_keys):
-        msg = f"Facet keys missing from filter_keys: {facet_keys_not_in_filter}"
-        raise ValueError(msg)
-
-    if _is_entity_model(db_model_class):
-        derivation_keys = ["generated_derivation", "used_derivation"]
-        filter_keys = [
-            *filter_keys,
-            *(k for k in derivation_keys if k not in filter_keys),
-        ]
-
-    registry = _SpecRegistry(db_model_class)
-    resolved: dict[str, _Spec] = {k: registry.resolve(k) for k in filter_keys}
-    facet_params = {k: _ensure_facet(resolved[k].facet, k) for k in facet_keys}
-    join_specs = {k: resolved[k].join for k in filter_keys}
-    return (
-        facet_params,
-        join_specs,
-        registry.collected_aliases(),
+    return _query_params_factory_cached(
+        db_model_class=db_model_class,
+        facet_keys=tuple(facet_keys),
+        filter_keys=tuple(filter_keys),
     )

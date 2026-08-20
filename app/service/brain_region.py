@@ -1,8 +1,7 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchy, Species, Strain
@@ -11,14 +10,12 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
-from app.queries.types import JoinSpec
+from app.queries.alias_registry import build_aliases
+from app.queries.types import JoinSpec, JoinSpecMap
 from app.schemas.brain_region import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(select: sa.Select):
@@ -37,15 +34,13 @@ def read_many(
     semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
     db_model_class = BrainRegion
-    brh_species_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_species")
-    brh_strain_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_strain")
-    aliases: Aliases = {
-        BrainRegionHierarchy: {
-            "species": brh_species_alias,
-            "strain": brh_strain_alias,
-        },
-    }
-    join_specs: dict[str, JoinSpec] = {
+    aliases = build_aliases(
+        (BrainRegionHierarchy, "species"),
+        (BrainRegionHierarchy, "strain"),
+    )
+    brh_species_alias = aliases[BrainRegionHierarchy]["species"]
+    brh_strain_alias = aliases[BrainRegionHierarchy]["strain"]
+    join_specs: JoinSpecMap = {
         "species": JoinSpec(
             join=lambda q: q.join(
                 brh_species_alias, db_model_class.hierarchy_id == brh_species_alias.id

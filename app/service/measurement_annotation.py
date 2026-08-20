@@ -156,11 +156,10 @@ def read_many(
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, join_specs, _ = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
     )
     return router_read_many(
         db=db,
@@ -169,7 +168,7 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=_load_from_db_with_entity,
         pagination_request=pagination_request,
@@ -194,11 +193,10 @@ def admin_read_many(
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, join_specs, _ = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
     )
     return router_read_many(
         db=db,
@@ -207,7 +205,7 @@ def admin_read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=_load_from_db_with_entity,
         pagination_request=pagination_request,

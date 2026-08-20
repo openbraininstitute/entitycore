@@ -1,8 +1,10 @@
+import functools
 from itertools import chain
-from typing import Any, NamedTuple, cast
+from types import MappingProxyType
+from typing import Any, NamedTuple
 
 import sqlalchemy as sa
-from sqlalchemy.orm import DeclarativeBase, aliased
+from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import (
     Agent,
@@ -43,9 +45,13 @@ from app.db.model import (
     ValidationResult,
 )
 from app.db.types import MeasurementStatistic
-from app.dependencies.common import FacetQueryParams
-from app.filters.base import Aliases
-from app.queries.types import JoinSpec
+from app.queries.alias_registry import Aliases, get_alias
+from app.queries.types import (
+    FacetQueryParams,
+    FacetQueryParamsMap,
+    JoinSpec,
+    JoinSpecMap,
+)
 from app.queries.utils import expand_dotted_key
 from app.utils.uuid import value_to_uuid
 
@@ -58,20 +64,27 @@ class _Spec(NamedTuple):
 class _SpecRegistry:
     """Registry of spec_* methods, each returning a _Spec (facet + join) for a filter/facet key."""
 
-    def __init__(self, db_model_class: Any, aliases: Aliases) -> None:
+    def __init__(self, db_model_class: Any) -> None:
         self._m = db_model_class
-        self._aliases = aliases
+        self._collected_aliases: dict[type[DeclarativeBase], dict[str, Any]] = {}
 
     def _a[T: type[DeclarativeBase]](self, db_cls: T, name: str) -> T:
-        """Return or create a named alias for db_cls.
+        """Return or retrieve a cached named alias for db_cls.
 
         The name MUST match the key that CustomFilter.filter()/sort() will use to look up
         this alias. For top-level specs this is the filter field name (e.g. "me_model").
         For nested specs accessed through a parent, it's the dot-qualified path
         (e.g. "synaptome.me_model") so that path-aware resolution finds it.
         """
-        names = self._aliases.setdefault(db_cls, {})
-        return cast("T", names.setdefault(name, aliased(db_cls, flat=True)))
+        alias = get_alias(db_cls, name)
+        self._collected_aliases.setdefault(db_cls, {})[name] = alias
+        return alias
+
+    def collected_aliases(self) -> Aliases:
+        """Return the Aliases mapping from all aliases collected during spec resolution."""
+        return MappingProxyType(
+            {k: MappingProxyType(v) for k, v in self._collected_aliases.items()}
+        )
 
     def spec_species(self) -> _Spec:
         m = self._m
@@ -559,17 +572,17 @@ class _SpecRegistry:
         return method()
 
 
-def _expand_filter_keys(filter_keys: list[str]) -> list[str]:
+def _expand_filter_keys(filter_keys: tuple[str, ...]) -> tuple[str, ...]:
     """Ensure parent keys are present for every dot-separated child key.
 
     Examples:
-        ["subject.species", "brain_region"] -> ["subject", "subject.species", "brain_region"]
-        ["subject", "subject.species"] -> ["subject", "subject.species"]  (no change)
+        ("subject.species", "brain_region") -> ("subject", "subject.species", "brain_region")
+        ("subject", "subject.species") -> ("subject", "subject.species")  (no change)
     """
-    return list(dict.fromkeys(chain.from_iterable(expand_dotted_key(k) for k in filter_keys)))
+    return tuple(dict.fromkeys(chain.from_iterable(expand_dotted_key(k) for k in filter_keys)))
 
 
-def _is_entity_model(db_model_class: Any) -> bool:
+def _is_entity_model(db_model_class: type[DeclarativeBase]) -> bool:
     return isinstance(db_model_class, type) and issubclass(db_model_class, Entity)
 
 
@@ -580,12 +593,49 @@ def _ensure_facet(facet: FacetQueryParams | None, key: str) -> FacetQueryParams:
     return facet
 
 
+@functools.cache
+def _query_params_factory_cached(
+    db_model_class: type[DeclarativeBase],
+    facet_keys: tuple[str, ...],
+    filter_keys: tuple[str, ...],
+) -> tuple[
+    FacetQueryParamsMap,
+    JoinSpecMap,
+    Aliases,
+]:
+    filter_keys = _expand_filter_keys(filter_keys)
+
+    if facet_keys_not_in_filter := set(facet_keys) - set(filter_keys):
+        msg = f"Facet keys missing from filter_keys: {facet_keys_not_in_filter}"
+        raise ValueError(msg)
+
+    if _is_entity_model(db_model_class):
+        derivation_keys = ["generated_derivation", "used_derivation"]
+        filter_keys = (
+            *filter_keys,
+            *(k for k in derivation_keys if k not in filter_keys),
+        )
+
+    registry = _SpecRegistry(db_model_class)
+    resolved: dict[str, _Spec] = {k: registry.resolve(k) for k in filter_keys}
+    facet_params = {k: _ensure_facet(resolved[k].facet, k) for k in facet_keys}
+    join_specs = {k: resolved[k].join for k in filter_keys}
+    return (
+        facet_params,
+        join_specs,
+        registry.collected_aliases(),
+    )
+
+
 def query_params_factory(
-    db_model_class: Any,
+    db_model_class: type[DeclarativeBase],
     facet_keys: list[str],
     filter_keys: list[str],
-    aliases: Aliases | None = None,
-) -> tuple[dict[str, FacetQueryParams], dict[str, JoinSpec], Aliases]:
+) -> tuple[
+    FacetQueryParamsMap,
+    JoinSpecMap,
+    Aliases,
+]:
     """Build and return query parameters.
 
     Args:
@@ -595,41 +645,15 @@ def query_params_factory(
         filter_keys: List of JoinSpec keys. Order matters: joins are applied in this order,
             so inner joins should precede outer joins.
             Keys use dot-separated notation matching nested filter field names.
-        aliases: Optional dict of pre-built aliases (e.g. named aliases). Missing aliases
-            are created automatically by the registry as needed.
 
     Returns:
         Tuple of:
         - dict of FacetQueryParams keyed by facet_keys
         - dict of JoinSpec keyed by filter_keys (plus derivation keys for entity models)
-        - complete aliases dict for use in filter/sort calls
+        - Aliases mapping for use in filter/sort calls
     """
-    filter_keys = _expand_filter_keys(filter_keys)
-
-    if facet_keys_not_in_filter := set(facet_keys) - set(filter_keys):
-        msg = f"Facet keys missing from filter_keys: {facet_keys_not_in_filter}"
-        raise ValueError(msg)
-
-    # Copy nested mappings while preserving the identity of alias objects
-    aliases = (
-        {key: dict(alias_mapping) for key, alias_mapping in aliases.items()}
-        if aliases is not None
-        else {}
+    return _query_params_factory_cached(
+        db_model_class=db_model_class,
+        facet_keys=tuple(facet_keys),
+        filter_keys=tuple(filter_keys),
     )
-
-    if _is_entity_model(db_model_class):
-        derivation_keys = ["generated_derivation", "used_derivation"]
-        if Derivation not in aliases:
-            aliases[Derivation] = {k: aliased(Derivation, flat=True) for k in derivation_keys}
-        filter_keys = [
-            *filter_keys,
-            *(k for k in derivation_keys if k not in filter_keys),
-        ]
-
-    registry = _SpecRegistry(db_model_class, aliases)
-    resolved: dict[str, _Spec] = {k: registry.resolve(k) for k in filter_keys}
-    facet_params: dict[str, FacetQueryParams] = {
-        k: _ensure_facet(resolved[k].facet, k) for k in facet_keys
-    }
-    join_specs: dict[str, JoinSpec] = {k: resolved[k].join for k in filter_keys}
-    return (facet_params, join_specs, aliases)

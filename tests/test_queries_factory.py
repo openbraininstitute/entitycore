@@ -1,6 +1,7 @@
-"""Validate _SpecRegistry resolution and spec coverage."""
+"""Validate query factory and registry."""
 
 import re
+from collections.abc import Mapping
 from itertools import chain
 from unittest.mock import MagicMock
 
@@ -37,7 +38,7 @@ def _collect_used_spec_keys() -> set[str]:
 
 def test_query_params_factory_entity_model():
     """Entity subclass: derivation keys are auto-appended and aliases resolved."""
-    facet_params, join_specs, _aliases = query_params_factory(
+    facet_params, join_specs, aliases = query_params_factory(
         db_model_class=Entity,
         facet_keys=["created_by", "updated_by", "contribution"],
         filter_keys=["created_by", "updated_by", "contribution"],
@@ -45,6 +46,7 @@ def test_query_params_factory_entity_model():
     assert "generated_derivation" in join_specs
     assert "used_derivation" in join_specs
     assert set(facet_params) == {"created_by", "updated_by", "contribution"}
+    assert isinstance(aliases, Mapping)
 
 
 def test_query_params_factory_non_entity_model():

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from app.db.model import Identifiable
 from app.filters.base import NESTED_SEPARATOR, CustomFilter
 from app.logger import L
-from app.queries.types import JoinSpec
+from app.queries.types import JoinSpecMap
 from app.queries.utils import expand_dotted_key
 
 
@@ -21,7 +21,7 @@ def _underscores_to_dots(names: list[str]) -> list[str]:
 def filter_from_db[I: Identifiable](
     query: sa.Select,
     filter_model: CustomFilter[I],
-    join_specs: dict[str, JoinSpec],
+    join_specs: JoinSpecMap,
     *,
     facet_key: str | None = None,
 ) -> sa.Select:

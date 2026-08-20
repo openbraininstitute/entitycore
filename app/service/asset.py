@@ -92,7 +92,7 @@ def get_entity_assets(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases={},
+        aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=None,
         pagination_request=pagination_request,

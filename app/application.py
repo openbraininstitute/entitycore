@@ -20,6 +20,7 @@ from app.config import settings
 from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
+from app.gc_control import configure_gc, start_gc_thread
 from app.logger import L
 from app.middleware import RequestContextMiddleware
 from app.routers import router
@@ -42,6 +43,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     configure_mappers()
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
+    configure_gc()
+    start_gc_thread()
     http_client = httpx2.Client()
     try:
         yield {

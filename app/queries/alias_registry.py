@@ -28,7 +28,7 @@ type Aliases = Mapping[type[DeclarativeBase], Mapping[str, Any]]
 
 
 @functools.lru_cache(maxsize=512)
-def get_alias[T: type[DeclarativeBase]](cls: T, name: str) -> T:  # ruff:ignore[unused-function-argument]
+def get_alias[T: type[DeclarativeBase]](cls: T, name: str) -> T:
     """Return a cached SQLAlchemy alias for the given model class and name.
 
     The same `(cls, name)` pair always returns the same Python object (identity guarantee).
@@ -50,7 +50,7 @@ def get_alias[T: type[DeclarativeBase]](cls: T, name: str) -> T:  # ruff:ignore[
         >>> a is b
         True
     """
-    return cast("T", aliased(cls, flat=True))
+    return cast("T", aliased(cls, flat=True, name=f"{name}_alias"))
 
 
 def build_aliases(*pairs: tuple[type[DeclarativeBase], str]) -> Aliases:

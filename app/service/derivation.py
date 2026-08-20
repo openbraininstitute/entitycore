@@ -21,7 +21,7 @@ from app.errors import (
 from app.filters.derivation import DerivationFilterDep
 from app.filters.entity import BasicEntityFilterDep
 from app.queries import crud
-from app.queries.alias_registry import build_aliases, get_alias, merge_aliases
+from app.queries.alias_registry import build_aliases, merge_aliases
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -67,8 +67,6 @@ def _read_many(
 ) -> ListResponse[DerivationRead]:
 
     project_ids = user_context.authorized_project_ids
-    used_alias = get_alias(Entity, "used")
-    generated_alias = get_alias(Entity, "generated")
 
     # `used`/`generated` cannot go in filter_keys because the registry's spec_used/spec_generated
     # join through Usage/Generation tables (designed for Activity models), while Derivation has
@@ -80,6 +78,8 @@ def _read_many(
     )
     service_aliases = build_aliases((Entity, "used"), (Entity, "generated"))
     aliases = merge_aliases(factory_aliases, service_aliases)
+    used_alias = service_aliases[Entity]["used"]
+    generated_alias = service_aliases[Entity]["generated"]
 
     def apply_filter_query_operations(q):
         q = q.join(used_alias, Derivation.used_id == used_alias.id).join(

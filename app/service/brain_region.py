@@ -10,7 +10,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
-from app.queries.alias_registry import build_aliases, get_alias
+from app.queries.alias_registry import build_aliases
 from app.queries.types import JoinSpec, JoinSpecMap
 from app.schemas.brain_region import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionRead
 from app.schemas.routers import DeleteResponse
@@ -34,12 +34,12 @@ def read_many(
     semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
     db_model_class = BrainRegion
-    brh_species_alias = get_alias(BrainRegionHierarchy, "species")
-    brh_strain_alias = get_alias(BrainRegionHierarchy, "strain")
     aliases = build_aliases(
         (BrainRegionHierarchy, "species"),
         (BrainRegionHierarchy, "strain"),
     )
+    brh_species_alias = aliases[BrainRegionHierarchy]["species"]
+    brh_strain_alias = aliases[BrainRegionHierarchy]["strain"]
     join_specs: JoinSpecMap = {
         "species": JoinSpec(
             join=lambda q: q.join(

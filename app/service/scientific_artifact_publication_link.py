@@ -21,7 +21,7 @@ from app.dependencies.db import SessionDep
 from app.filters.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkFilterDep,
 )
-from app.queries.alias_registry import build_aliases, get_alias, merge_aliases
+from app.queries.alias_registry import build_aliases, merge_aliases
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
@@ -106,9 +106,6 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
-    scientific_artifact_alias = get_alias(ScientificArtifact, "scientific_artifact")
-    publication_alias = get_alias(Publication, "publication")
-
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
@@ -124,6 +121,8 @@ def _read_many(
         (Publication, "publication"),
     )
     aliases = merge_aliases(factory_aliases, service_aliases)
+    scientific_artifact_alias = service_aliases[ScientificArtifact]["scientific_artifact"]
+    publication_alias = service_aliases[Publication]["publication"]
 
     base_join_query = lambda q: q.join(
         scientific_artifact_alias,

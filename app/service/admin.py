@@ -108,7 +108,7 @@ def get_entity_assets(
         Asset.entity_id == entity_id,
         Entity.type == entity_type.name,
     )
-    name_to_facet_query_params = filter_joins = None
+    name_to_facet_query_params = join_specs = None
     return router_read_many(
         db=repos.db,
         db_model_class=db_model_class,
@@ -116,14 +116,14 @@ def get_entity_assets(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases={},
+        aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=AssetRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

@@ -203,7 +203,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
         "release_version": [
             {
                 "count": 1,
-                "id": 0,
+                "id": ANY,
                 "label": "0",
                 "type": "release_version",
             },

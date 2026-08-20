@@ -6,7 +6,7 @@ from app.db.model import MEModel
 from app.db.types import ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
@@ -19,7 +19,7 @@ from app.filters.common import (
 )
 from app.filters.emodel import NestedEModelFilter
 from app.filters.entity import EntityFilterMixin
-from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin
+from app.filters.species import NestedSpeciesFilter, SpeciesFilterMixin
 
 
 class NestedMEModelFilter(
@@ -29,25 +29,9 @@ class NestedMEModelFilter(
 ):
     validation_status: ValidationStatus | None = None
 
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("me_model__brain_region", NestedBrainRegionFilter)),
-    ] = None
     species: Annotated[
         NestedSpeciesFilter | None,
         FilterDepends(with_prefix("me_model__species", NestedSpeciesFilter)),
-    ] = None
-    strain: Annotated[
-        NestedStrainFilter | None,
-        FilterDepends(with_prefix("me_model__strain", NestedStrainFilter)),
-    ] = None
-    morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("me_model__morphology", NestedCellMorphologyFilter)),
-    ] = None
-    emodel: Annotated[
-        NestedEModelFilter | None,
-        FilterDepends(with_prefix("me_model__emodel", NestedEModelFilter)),
     ] = None
     mtype: Annotated[
         NestedMTypeClassFilter | None,

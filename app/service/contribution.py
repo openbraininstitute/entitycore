@@ -11,7 +11,7 @@ from app.db.auth import (
     constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
-from app.db.model import Agent, Contribution, Entity, PlatformUser
+from app.db.model import Contribution, Entity
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -50,33 +50,17 @@ def _read_many(
     pagination_request: PaginationQuery,
     check_authorized_project: bool,
 ) -> ListResponse[ContributionRead]:
-    agent_alias = aliased(Agent, flat=True)
-    entity_alias = aliased(Entity, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
 
-    aliases = {
-        Agent: {
-            "agent": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        Entity: entity_alias,
-    }
     facet_keys = []
     filter_keys = [
         "agent",
         "created_by",
         "updated_by",
-        "entity",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=Contribution,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     if check_authorized_project:
         filter_query = lambda q: constrain_to_readable_entities_by_project(
@@ -99,7 +83,7 @@ def _read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

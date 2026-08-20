@@ -1,25 +1,21 @@
 import uuid
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import Query
 from sqlalchemy.orm import (
-    aliased,
     joinedload,
     raiseload,
     selectinload,
 )
 
 from app.db.model import (
-    Agent,
     CellMorphology,
-    CellMorphologyProtocol,
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
-    PlatformUser,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -48,9 +44,6 @@ from app.schemas.cell_morphology import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 class ExpandableAttribute(StrEnum):
@@ -203,22 +196,6 @@ def _read_many(
     expand: set[ExpandableAttribute] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
-    subject_alias = aliased(Subject, flat=True)
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    cell_morphology_protocol_alias = aliased(CellMorphologyProtocol, flat=True)
-    aliases: Aliases = {
-        Subject: subject_alias,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        CellMorphologyProtocol: cell_morphology_protocol_alias,
-    }
     facet_keys = [
         "brain_region",
         "subject.species",
@@ -230,18 +207,14 @@ def _read_many(
         "cell_morphology_protocol",
     ]
     filter_keys = [
-        "subject",
         *facet_keys,
-        "measurement_annotation",
-        "measurement_annotation.measurement_kind",
         "measurement_annotation.measurement_kind.measurement_item",
         "measurement_annotation.measurement_kind.pref_label",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=CellMorphology,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     response_schema_class = (
         CellMorphologyAnnotationExpandedRead
@@ -262,7 +235,7 @@ def _read_many(
         response_schema_class=response_schema_class,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

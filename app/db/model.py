@@ -632,6 +632,15 @@ class Entity(LegacyMixin, Identifiable):
                     "id",
                     postgresql_where=sa.text("authorized_public = true"),
                 ),
+                Index(
+                    "ix_entity_type",
+                    "type",
+                ),
+                Index(
+                    "ix_entity_type_public",
+                    "type",
+                    postgresql_where=sa.text("authorized_public = true"),
+                ),
                 *args,
             )
         return args

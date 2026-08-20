@@ -332,6 +332,59 @@ def _retrieve_rows[I: Identifiable](
     return db.execute(data_query).scalars().unique()
 
 
+def _count_total_items[I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    filter_query: sa.Select[tuple[I]],
+    use_fast_count: bool = False,
+    authorized_project_id: uuid.UUID | None = None,
+    check_authorized_project: bool = True,
+) -> int:
+    """Execute an optimized count query.
+
+    Strategy:
+    - When use_fast_count is True: builds a count query directly on the root polymorphic
+      table using the `type` discriminator column. This avoids the expensive multi-table
+      inheritance join (entity → scientific_artifact → leaf) and uses the
+      ix_entity_type_public index. Valid only when no additional filter/search/join
+      conditions are active (caller is responsible for this check).
+    - Otherwise: falls back to count(DISTINCT id) on the full filter_query.
+      DISTINCT is always used in the fallback because filter joins or
+      apply_filter_query_operations may introduce one-to-many joins.
+    """
+    if use_fast_count:
+        # Fast path: count from the root polymorphic table using the type discriminator.
+        # Avoids the expensive multi-table inheritance join (e.g. entity → scientific_artifact
+        # → cell_morphology). Uses indexes on (type) or (type) WHERE authorized_public = true.
+        # Works for Entity, Agent, Activity and any joined-table inheritance hierarchy.
+        mapper = sa.inspect(db_model_class)
+        poly_identity = mapper.polymorphic_identity
+        if poly_identity is not None:
+            root_mapper = mapper
+            while root_mapper.inherits:
+                root_mapper = root_mapper.inherits
+            root_class = root_mapper.class_
+            # Only use fast path if the root has a `type` column used as discriminator.
+            if root_mapper.polymorphic_on is not None:
+                count_query = sa.select(sa.func.count()).select_from(root_class)
+                count_query = count_query.where(root_class.type == poly_identity)  # pyright: ignore[reportAttributeAccessIssue]
+                if check_authorized_project and hasattr(root_class, "authorized_project_id"):
+                    count_query = constrain_to_readable_entities_by_project(
+                        query=count_query,
+                        project_id=authorized_project_id,
+                        db_model_class=root_class,  # pyright: ignore[reportArgumentType]
+                    )
+                return db.execute(count_query).scalar_one()
+
+    # Fallback: count on the full filter_query. Always use DISTINCT because
+    # apply_filter_query_operations or filter joins may introduce one-to-many joins.
+    count_query = filter_query.with_only_columns(
+        sa.func.count(sa.func.distinct(db_model_class.id)).label("count")
+    )
+    return db.execute(count_query).scalar_one()
+
+
 def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-arguments]
     *,
     db: Session,
@@ -419,12 +472,21 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         expand=expand,
         filter_query=filter_query,
     )
-
-    total_items = db.execute(
-        filter_query.with_only_columns(
-            sa.func.count(sa.func.distinct(db_model_class.id)).label("count")
-        )
-    ).scalar_one()
+    # Use fast Entity-based count when no search/filter/join conditions are active.
+    use_fast_count = (
+        not with_search
+        and not with_in_brain_region
+        and not filter_model.has_filtering_fields()
+        and not apply_filter_query_operations
+    )
+    total_items = _count_total_items(
+        db=db,
+        db_model_class=db_model_class,
+        filter_query=filter_query,
+        use_fast_count=use_fast_count,
+        authorized_project_id=authorized_project_id,
+        check_authorized_project=check_authorized_project,
+    )
 
     facets_result = None
     if facets and name_to_facet_query_params:
@@ -434,6 +496,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
             name_to_facet_query_params=name_to_facet_query_params,
             count_distinct_field=db_model_class.id,
         )
+
     return ListResponse[T](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(

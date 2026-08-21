@@ -1,7 +1,7 @@
 import asyncio
 import os
 import tracemalloc
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any
@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import iter_route_contexts
 from sqlalchemy.orm import configure_mappers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
@@ -21,14 +22,14 @@ from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
 from app.gc_control import configure_gc, start_gc_thread
-from app.logger import L
+from app.logger import L, timed
 from app.middleware import RequestContextMiddleware
 from app.routers import router
 from app.schemas.api import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     """Execute actions on server startup and shutdown."""
     L.info(
         "Starting application [PID={}, CPU_COUNT={}, ENVIRONMENT={}]",
@@ -36,19 +37,21 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         os.cpu_count(),
         settings.ENVIRONMENT,
     )
-    if settings.TRACEMALLOC_ENABLED:
-        tracemalloc.start()
-        L.info("tracemalloc started")
-    # Eagerly configure SQLAlchemy mappers to avoid a latency spike on the first request.
-    configure_mappers()
+    with timed("Eagerly configuring SQLAlchemy mappers"):
+        configure_mappers()
+    with timed("Forcing FastAPI to build the effective route contexts at startup"):
+        list(iter_route_contexts(app.router.routes))
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
+    http_client = httpx2.Client()
     if settings.GC_CONTROL_ENABLED:
         configure_gc()
         stop_gc = start_gc_thread()
     else:
         stop_gc = lambda: None
-    http_client = httpx2.Client()
+    if settings.TRACEMALLOC_ENABLED:
+        with timed("Starting tracemalloc"):
+            tracemalloc.start()
     try:
         yield {
             "database_session_manager": database_session_manager,

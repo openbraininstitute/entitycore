@@ -1,18 +1,15 @@
 import uuid
-from http import HTTPStatus
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Session, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
     AnalysisNotebookTemplate,
     Contribution,
-    Entity,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilterDep
 from app.queries.common import (
     router_create_one,
@@ -31,24 +28,6 @@ from app.schemas.analysis_notebook_template import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-
-def _check_unique_name(
-    db: Session, name: str, project_id: uuid.UUID, exclude_id: uuid.UUID | None = None
-) -> None:
-    query = sa.select(AnalysisNotebookTemplate.id).where(
-        AnalysisNotebookTemplate.name == name,
-        Entity.authorized_project_id == project_id,
-        AnalysisNotebookTemplate.id == Entity.id,
-    )
-    if exclude_id is not None:
-        query = query.where(AnalysisNotebookTemplate.id != exclude_id)
-    if db.execute(query).first() is not None:
-        raise ApiError(
-            message="AnalysisNotebookTemplate already exists or breaks unique constraints",
-            error_code=ApiErrorCode.ENTITY_DUPLICATED,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
 
 
 def _load(query: sa.Select):

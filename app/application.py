@@ -43,8 +43,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     configure_mappers()
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
-    configure_gc()
-    stop_gc = start_gc_thread()
+    if settings.GC_CONTROL_ENABLED:
+        configure_gc()
+        stop_gc = start_gc_thread()
+    else:
+        stop_gc = lambda: None
     http_client = httpx2.Client()
     try:
         yield {

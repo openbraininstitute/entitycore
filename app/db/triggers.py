@@ -303,8 +303,9 @@ def _get_unique_name_per_project_trigger_name(table: str) -> str:
 
 
 def unique_name_per_project_function(model: type[Entity]) -> PGFunction:
-    """Return a PGFunction that acquires a transaction-scoped advisory lock on (project_id, name)
-    and enforces uniqueness of name within the project for the given entity table.
+    """Return a PGFunction that acquires a transaction-scoped advisory lock on (project_id, name).
+
+    Enforces uniqueness of name within the project for the given entity table.
     """
     table = model.__tablename__
     function_name = _get_unique_name_per_project_function_name(table)
@@ -321,7 +322,8 @@ def unique_name_per_project_function(model: type[Entity]) -> PGFunction:
                 FROM entity WHERE id = NEW.id;
 
                 lock_key := (
-                    ('x' || substring(md5(project_id::text || ':' || NEW.name), 1, 16))::bit(64)::bigint
+                    ('x' || substring(md5(project_id::text || ':' || NEW.name), 1, 16))
+                    ::bit(64)::bigint
                 ) >> 1;
                 PERFORM pg_advisory_xact_lock(lock_key);
 
@@ -344,7 +346,7 @@ def unique_name_per_project_function(model: type[Entity]) -> PGFunction:
 
 
 def unique_name_per_project_trigger(model: type[Entity]) -> PGTrigger:
-    """Return a PGTrigger that calls the unique_name_per_project function before insert or name update."""
+    """Return a PGTrigger that calls unique_name_per_project before insert or name update."""
     table = model.__tablename__
     trigger_name = _get_unique_name_per_project_trigger_name(table)
     function_name = _get_unique_name_per_project_function_name(table)

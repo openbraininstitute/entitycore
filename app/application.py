@@ -20,6 +20,7 @@ from app.config import settings
 from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
+from app.gc_control import configure_gc, start_gc_thread
 from app.logger import L
 from app.middleware import RequestContextMiddleware
 from app.routers import router
@@ -42,6 +43,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     configure_mappers()
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
+    if settings.GC_CONTROL_ENABLED:
+        configure_gc()
+        stop_gc = start_gc_thread()
+    else:
+        stop_gc = lambda: None
     http_client = httpx2.Client()
     try:
         yield {
@@ -52,6 +58,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         # this can happen if the task is cancelled without sending SIGINT
         L.info("Ignored {} in lifespan", err)
     finally:
+        stop_gc()
         database_session_manager.close()
         http_client.close()
         L.info("Stopping application")

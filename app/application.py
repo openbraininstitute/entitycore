@@ -24,6 +24,7 @@ from app.errors import ApiError, ApiErrorCode
 from app.gc_control import configure_gc, start_gc_thread
 from app.logger import L, timed
 from app.middleware import RequestContextMiddleware
+from app.profiling import install_profiling
 from app.routers import router
 from app.schemas.api import ErrorResponse
 
@@ -52,6 +53,9 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     if settings.TRACEMALLOC_ENABLED:
         with timed("Starting tracemalloc"):
             tracemalloc.start()
+    if settings.PROFILING_ENABLED:
+        with timed("Enabling SQL profiling"):
+            install_profiling(database_session_manager.engine)
     try:
         yield {
             "database_session_manager": database_session_manager,

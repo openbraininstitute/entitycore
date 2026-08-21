@@ -39,16 +39,16 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     )
     with timed("Eagerly configuring SQLAlchemy mappers"):
         configure_mappers()
+    with timed("Forcing FastAPI to build the effective route contexts at startup"):
+        list(iter_route_contexts(app.router.routes))
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
+    http_client = httpx2.Client()
     if settings.GC_CONTROL_ENABLED:
         configure_gc()
         stop_gc = start_gc_thread()
     else:
         stop_gc = lambda: None
-    http_client = httpx2.Client()
-    with timed("Forcing FastAPI to build the effective route contexts at startup"):
-        list(iter_route_contexts(app.router.routes))
     if settings.TRACEMALLOC_ENABLED:
         with timed("Starting tracemalloc"):
             tracemalloc.start()

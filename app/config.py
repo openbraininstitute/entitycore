@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     TRACEMALLOC_ENABLED: bool = False
     TRACEMALLOC_TOP_N: int = 20
+    GC_CONTROL_ENABLED: bool = True
+    GC_GEN1_INTERVAL_SECONDS: float = 5.0
+    GC_GEN2_INTERVAL_SECONDS: float = 600.0
 
     OPENAI_API_KEY: SecretStr | None = None
 

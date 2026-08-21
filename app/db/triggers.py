@@ -292,23 +292,26 @@ for model, field_name in must_match_entity_relationships:
     ]
 
 
+def _get_unique_name_per_project_function_name(table: str) -> str:
+    name = _truncate_identifier(f"unique_name_fnc_{table}")
+    return _check_name_length(name)
+
+
 def _get_unique_name_per_project_trigger_name(table: str) -> str:
     name = _truncate_identifier(f"unique_name_trg_{table}")
     return _check_name_length(name)
 
 
-def unique_name_per_project_function() -> PGFunction:
-    """Return a PGFunction that acquires a transaction-scoped advisory lock on (project_id, name).
-
-    Reusable on any entity table with a name column by adding a trigger that calls it.
-    The lock key is derived from the entity's authorized_project_id (looked up from the
-    entity table) and NEW.name, preventing concurrent inserts or renames to the same name
-    within the same project.
+def unique_name_per_project_function(model: type[Entity]) -> PGFunction:
+    """Return a PGFunction that acquires a transaction-scoped advisory lock on (project_id, name)
+    and enforces uniqueness of name within the project for the given entity table.
     """
+    table = model.__tablename__
+    function_name = _get_unique_name_per_project_function_name(table)
     return PGFunction(
         schema="public",
-        signature="unique_name_per_project()",
-        definition="""
+        signature=f"{function_name}()",
+        definition=f"""
             RETURNS TRIGGER AS $$
             DECLARE
                 lock_key bigint;
@@ -321,28 +324,39 @@ def unique_name_per_project_function() -> PGFunction:
                     ('x' || substring(md5(project_id::text || ':' || NEW.name), 1, 16))::bit(64)::bigint
                 ) >> 1;
                 PERFORM pg_advisory_xact_lock(lock_key);
+
+                IF EXISTS (
+                    SELECT 1 FROM entity e
+                    JOIN {table} t ON t.id = e.id
+                    WHERE e.authorized_project_id = project_id
+                    AND t.name = NEW.name
+                    AND t.id != NEW.id
+                ) THEN
+                    RAISE EXCEPTION 'duplicate name % in project %', NEW.name, project_id
+                        USING ERRCODE = '23505';
+                END IF;
+
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-        """,
+        """,  # ruff:ignore[hardcoded-sql-expression]
     )
 
 
 def unique_name_per_project_trigger(model: type[Entity]) -> PGTrigger:
-    """Return a PGTrigger that calls unique_name_per_project() before insert or name update."""
+    """Return a PGTrigger that calls the unique_name_per_project function before insert or name update."""
     table = model.__tablename__
     trigger_name = _get_unique_name_per_project_trigger_name(table)
+    function_name = _get_unique_name_per_project_function_name(table)
     return PGTrigger(
         schema="public",
         signature=trigger_name,
         on_entity=table,
         definition=f"""BEFORE INSERT OR UPDATE OF name ON {table}
-            FOR EACH ROW EXECUTE FUNCTION unique_name_per_project();
+            FOR EACH ROW EXECUTE FUNCTION {function_name}();
         """,
     )
 
-
-entities += [unique_name_per_project_function()]
 
 # list of entity tables that require name uniqueness per project
 name_locked_entities = [
@@ -350,4 +364,7 @@ name_locked_entities = [
 ]
 
 for model in name_locked_entities:
-    entities += [unique_name_per_project_trigger(model)]
+    entities += [
+        unique_name_per_project_function(model),
+        unique_name_per_project_trigger(model),
+    ]

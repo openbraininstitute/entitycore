@@ -21,7 +21,7 @@ from app.config import settings
 from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
-from app.logger import L, logged
+from app.logger import L, timed
 from app.middleware import RequestContextMiddleware
 from app.routers import router
 from app.schemas.api import ErrorResponse
@@ -36,15 +36,15 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
         os.cpu_count(),
         settings.ENVIRONMENT,
     )
-    with logged("Eagerly configuring SQLAlchemy mappers"):
+    with timed("Eagerly configuring SQLAlchemy mappers"):
         configure_mappers()
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
     http_client = httpx2.Client()
-    with logged("Forcing FastAPI to build the effective route contexts at startup"):
+    with timed("Forcing FastAPI to build the effective route contexts at startup"):
         list(iter_route_contexts(app.router.routes))
     if settings.TRACEMALLOC_ENABLED:
-        with logged("Starting tracemalloc"):
+        with timed("Starting tracemalloc"):
             tracemalloc.start()
     try:
         yield {

@@ -135,7 +135,7 @@ def configure_warnings():
 
 
 @contextmanager
-def logged(msg: str, level: str = "INFO") -> Generator[None]:
+def timed(msg: str, level: str = "INFO") -> Generator[None]:
     """Context manager to log the execution of a block of code."""
     start = time.perf_counter()
     status = "unknown"

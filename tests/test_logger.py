@@ -62,8 +62,8 @@ def capture_logged_messages():
     logger.remove(handler_id)
 
 
-def test_logged_success(capture_logged_messages):
-    with test_module.logged("operation"):
+def test_timed_success(capture_logged_messages):
+    with test_module.timed("operation"):
         pass
 
     assert len(capture_logged_messages) == 2
@@ -73,11 +73,11 @@ def test_logged_success(capture_logged_messages):
     assert final.endswith("ms")
 
 
-def test_logged_failure(capture_logged_messages):
+def test_timed_failure(capture_logged_messages):
     err_msg = "boom"
     with (
         pytest.raises(ValueError, match=err_msg),
-        test_module.logged("operation"),
+        test_module.timed("operation"),
     ):
         raise ValueError(err_msg)
 
@@ -88,8 +88,8 @@ def test_logged_failure(capture_logged_messages):
     assert final.endswith("ms")
 
 
-def test_logged_custom_level(capture_logged_messages):
-    with test_module.logged("operation", level="WARNING"):
+def test_timed_custom_level(capture_logged_messages):
+    with test_module.timed("operation", level="WARNING"):
         pass
 
     assert all(m.record["level"].name == "WARNING" for m in capture_logged_messages)

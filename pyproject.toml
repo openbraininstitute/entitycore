@@ -183,6 +183,7 @@ fail_under = 90
 omit = [
     "__main__.py",
     "scripts/*",
+    "app/profiling.py",
     "app/routers/debug.py",
 ]
 

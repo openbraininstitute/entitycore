@@ -100,6 +100,8 @@ class Settings(BaseSettings):
     GC_CONTROL_ENABLED: bool = True
     GC_GEN1_INTERVAL_SECONDS: float = 5.0
     GC_GEN2_INTERVAL_SECONDS: float = 600.0
+    PROFILING_ENABLED: bool = False
+    MAX_LOGGED_STATEMENT_LENGTH: int = 120
 
     OPENAI_API_KEY: SecretStr | None = None
 

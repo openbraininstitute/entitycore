@@ -5,8 +5,10 @@ import time
 from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.config import settings
 from app.context import RequestContext, request_context_provider
 from app.logger import L
+from app.profiling import log_profile_summary, reset_query_log
 from app.schemas.types import HeaderKey
 from app.utils.uuid import create_uuid
 
@@ -27,6 +29,9 @@ class RequestContextMiddleware:
         request_id = str(create_uuid())
         ctx = RequestContext(request_id=request_id)
         request_context_provider.set(ctx)
+
+        if settings.PROFILING_ENABLED:
+            reset_query_log()
 
         request = Request(scope, receive, send)
         status_code: int = 500
@@ -61,6 +66,9 @@ class RequestContextMiddleware:
         process_time = time.perf_counter() - start_time
         route = scope.get("route")
         route_template = route.path if route else None
+
+        if settings.PROFILING_ENABLED:
+            log_profile_summary(request, route_template, process_time)
 
         L.info(
             "request_completed",

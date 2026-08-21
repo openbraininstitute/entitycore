@@ -100,7 +100,6 @@ def create_one(
     json_model: AnalysisNotebookTemplateCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> AnalysisNotebookTemplateRead:
-    _check_unique_name(db, json_model.name, user_context.project_id)
     return router_create_one(
         db=db,
         json_model=json_model,
@@ -117,8 +116,6 @@ def update_one(
     id_: uuid.UUID,
     json_model: AnalysisNotebookTemplateUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> AnalysisNotebookTemplateRead:
-    if json_model.name is not None and user_context.project_id is not None:
-        _check_unique_name(db, json_model.name, user_context.project_id, exclude_id=id_)
     return router_update_one(
         id_=id_,
         db=db,

@@ -44,7 +44,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     database_session_manager = configure_database_session_manager()
     app.state.database_session_manager = database_session_manager
     configure_gc()
-    start_gc_thread()
+    stop_gc = start_gc_thread()
     http_client = httpx2.Client()
     try:
         yield {
@@ -55,6 +55,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         # this can happen if the task is cancelled without sending SIGINT
         L.info("Ignored {} in lifespan", err)
     finally:
+        stop_gc()
         database_session_manager.close()
         http_client.close()
         L.info("Stopping application")

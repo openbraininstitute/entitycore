@@ -1,12 +1,15 @@
+import uuid
+
 import pytest
 
-from app.db.model import Agent, Person
+from app.db.model import Agent, Person, PlatformUser
 
 from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     USER_SUB_ID_1,
     add_all_db,
+    add_db,
     assert_request,
     check_global_delete_one,
 )
@@ -28,6 +31,7 @@ def _assert_read_response(data, json_data):
     assert data["given_name"] == json_data["given_name"]
     assert data["family_name"] == json_data["family_name"]
     assert "id" in data
+    assert "sub_id" in data
 
 
 def test_create_person(client, json_data):
@@ -43,15 +47,6 @@ def test_create_person(client, json_data):
     data = response.json()
     _assert_read_response(data, json_data)
     assert data["id"] == id_
-
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    data = response.json()["data"]
-
-    assert len(data) == 1
-    person = data[0]
-    assert person["given_name"] == json_data["given_name"]
-    assert person["id"] == id_
 
     valid_orcids = [
         "https://orcid.org/0000-0002-1825-0097",
@@ -106,7 +101,8 @@ def test_read_many(clients, json_data):
 
     def _req(client, client_route):
         data = assert_request(client.get, url=client_route).json()["data"]
-        assert len(data) == 1
+        # 2 persons: auto-created (from get_or_create_user) + explicitly created
+        assert len(data) == 2
 
     # user that created the resource can read it
     _req(clients.user_1, route)
@@ -143,12 +139,13 @@ def test_delete_one(db, clients, json_data):
         admin_route=ADMIN_ROUTE,
         json_data=json_data,
         expected_counts_before={
-            Person: 1,
-            Agent: 1,
+            # 2 persons: auto-created (from get_or_create_user) + explicitly created
+            Person: 2,
+            Agent: 2,
         },
         expected_counts_after={
-            Person: 0,
-            Agent: 0,
+            Person: 1,
+            Agent: 1,
         },
     )
 
@@ -246,3 +243,58 @@ def test_filtering(client, models):
 
     data = _req({"created_by__sub_id__in": [USER_SUB_ID_1]})
     assert len(data) == len(models)
+
+
+def test_sub_id_filtering(db, client, user_id):
+    sub = uuid.uuid4()
+    add_db(
+        db,
+        PlatformUser(id=sub, pref_label="linked user"),
+    )
+    person = add_db(
+        db,
+        Person(
+            given_name="Linked",
+            family_name="User",
+            pref_label="Linked User",
+            sub_id=sub,
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+    add_db(
+        db,
+        Person(
+            given_name="Unlinked",
+            family_name="Person",
+            pref_label="Unlinked Person",
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+
+    def _req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = _req({"sub_id": str(sub)})
+    assert len(data) == 1
+    assert data[0]["id"] == str(person.id)
+    assert data[0]["sub_id"] == str(sub)
+
+    data = _req({"sub_id__in": [str(sub)]})
+    assert len(data) == 1
+    assert data[0]["sub_id"] == str(sub)
+
+    data = _req({"sub_id": str(user_id)})
+    assert len(data) == 0
+
+
+def test_create_person_does_not_accept_sub_id(client, json_data):
+    sub = str(uuid.uuid4())
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"sub_id": sub},
+    ).json()
+    # sub_id in the payload is ignored; it can only be set programmatically
+    assert data["sub_id"] is None

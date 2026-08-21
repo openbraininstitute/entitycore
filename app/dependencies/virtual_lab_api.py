@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import Depends
@@ -11,15 +12,19 @@ from app.utils.virtual_lab import AdminVirtualLabClient
 def get_admin_virtual_lab_client(
     _user_context: AdminContextDep,
     token: Annotated[HTTPAuthorizationCredentials, Depends(AuthHeader)],
-) -> AdminVirtualLabClient:
-    """Return admin client for virtual lab api.
+) -> Iterator[AdminVirtualLabClient]:
+    """Yield an admin client for the virtual lab API and close it after the request.
 
     Note: Virtual lab admin is determined by entitycore admin role.
     """
-    return AdminVirtualLabClient(
+    client = AdminVirtualLabClient(
         base_url=settings.VIRTUAL_LAB_API_URL,
         token=token.credentials,
     )
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 AdminVirtualLabClientDep = Annotated[

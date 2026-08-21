@@ -144,11 +144,12 @@ def test_delete_one(db, clients, json_data):
         json_data=json_data,
         expected_counts_before={
             Organization: 1,
-            Agent: 1,
+            # Agent count includes the auto-created Person from get_or_create_user
+            Agent: 2,
         },
         expected_counts_after={
             Organization: 0,
-            Agent: 0,
+            Agent: 1,
         },
     )
 

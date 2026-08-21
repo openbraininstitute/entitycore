@@ -1,16 +1,13 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
-    Agent,
     CellMorphology,
     Contribution,
     EModel,
     IonChannelModel,
-    PlatformUser,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -40,9 +37,6 @@ from app.schemas.emodel import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(select: sa.Select[tuple[EModel]]):
@@ -168,22 +162,6 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[EModelReadExpanded]:
-    morphology_alias = aliased(CellMorphology, flat=True)
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    ion_channel_model_alias = aliased(IonChannelModel, flat=True)
-    aliases: Aliases = {
-        CellMorphology: morphology_alias,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        IonChannelModel: ion_channel_model_alias,
-    }
     facet_keys = filter_keys = [
         "brain_region",
         "species",
@@ -195,11 +173,10 @@ def _read_many(
         "etype",
         "ion_channel_model",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=EModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -215,7 +192,7 @@ def _read_many(
         response_schema_class=EModelReadExpanded,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

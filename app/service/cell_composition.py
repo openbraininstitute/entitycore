@@ -1,13 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
     CellComposition,
     Contribution,
-    PlatformUser,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandDep, PaginationQuery, SearchDep
@@ -30,9 +28,6 @@ from app.schemas.cell_composition import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load_from_db(query: sa.Select):
@@ -156,21 +151,14 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellCompositionRead]:
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": aliased(PlatformUser, flat=True),
-            "updated_by": aliased(PlatformUser, flat=True),
-        }
-    }
 
     facet_keys = []
     filter_keys = ["created_by", "updated_by"]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=CellComposition,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
 
     return router_read_many(
@@ -186,7 +174,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=CellCompositionRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         name_to_facet_query_params=name_to_facet_query_params,
         check_authorized_project=check_authorized_project,
         expand=expand,

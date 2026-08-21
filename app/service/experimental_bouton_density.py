@@ -2,18 +2,14 @@ import uuid
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (
-    aliased,
     joinedload,
     raiseload,
     selectinload,
 )
 
 from app.db.model import (
-    Agent,
     Contribution,
     ExperimentalBoutonDensity,
-    Measurement,
-    PlatformUser,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -74,28 +70,6 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
-    subject = aliased(Subject, flat=True)
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    measurement_mean_alias = aliased(Measurement, flat=True)
-    measurement_standard_error = aliased(Measurement, flat=True)
-    measurement_sample_size_alias = aliased(Measurement, flat=True)
-    aliases = {
-        Subject: subject,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        Measurement: {
-            "measurement_mean": measurement_mean_alias,
-            "measurement_standard_error": measurement_standard_error,
-            "measurement_sample_size": measurement_sample_size_alias,
-        },
-    }
     facet_keys = [
         "brain_region",
         "created_by",
@@ -106,23 +80,15 @@ def _read_many(
         "subject.strain",
     ]
     filter_keys = [
-        "brain_region",
-        "created_by",
-        "updated_by",
-        "contribution",
-        "mtype",
-        "subject",
-        "subject.species",
-        "subject.strain",
+        *facet_keys,
         "measurement_mean",
         "measurement_standard_error",
         "measurement_sample_size",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=ExperimentalBoutonDensity,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -138,7 +104,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ExperimentalBoutonDensityRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

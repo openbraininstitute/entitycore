@@ -1,10 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, PlatformUser, Subject, ValidationResult
+from app.db.model import Contribution, Subject, ValidationResult
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandDep,
@@ -31,9 +30,6 @@ from app.schemas.validation import (
     ValidationResultRead,
     ValidationResultUserUpdate,
 )
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -145,21 +141,14 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[ValidationResultRead]:
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": aliased(PlatformUser, flat=True),
-            "updated_by": aliased(PlatformUser, flat=True),
-        }
-    }
     filter_keys = [
         "created_by",
         "updated_by",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=ValidationResult,
         facet_keys=[],
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -175,7 +164,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ValidationResultRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

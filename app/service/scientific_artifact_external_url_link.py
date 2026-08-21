@@ -1,15 +1,13 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.auth import (
     constrain_to_readable_entities_by_project,
 )
 from app.db.model import (
     ExternalUrl,
-    PlatformUser,
     ScientificArtifact,
     ScientificArtifactExternalUrlLink,
 )
@@ -23,6 +21,7 @@ from app.dependencies.db import SessionDep
 from app.filters.scientific_artifact_external_url_link import (
     ScientificArtifactExternalUrlLinkFilterDep,
 )
+from app.queries.alias_registry import build_aliases, merge_aliases
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
@@ -35,9 +34,6 @@ from app.schemas.types import ListResponse
 from app.service import admin as admin_service
 from app.types import AssociationRoute
 from app.utils.entity import ensure_readable
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select) -> sa.Select:
@@ -110,33 +106,24 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
-    external_url_alias = aliased(ExternalUrl, flat=True, name="external_url")
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        ScientificArtifact: scientific_artifact_alias,
-        ExternalUrl: external_url_alias,
-    }
-    facet_keys = [
-        "created_by",
-        "updated_by",
-    ]
-    filter_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, factory_aliases = query_params_factory(
         db_model_class=ScientificArtifactExternalUrlLink,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
+    service_aliases = build_aliases(
+        (ScientificArtifact, "scientific_artifact"),
+        (ExternalUrl, "external_url"),
+    )
+    aliases = merge_aliases(factory_aliases, service_aliases)
+    scientific_artifact_alias = service_aliases[ScientificArtifact]["scientific_artifact"]
+    external_url_alias = service_aliases[ExternalUrl]["external_url"]
+
     base_join_query = lambda q: q.join(
         scientific_artifact_alias,
         ScientificArtifactExternalUrlLink.scientific_artifact_id == scientific_artifact_alias.id,
@@ -168,7 +155,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

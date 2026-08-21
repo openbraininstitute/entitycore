@@ -37,7 +37,7 @@ class PaginationResponse(Schema):
 
 
 class Facet(Schema):
-    id: uuid.UUID | int  # int is for brain region
+    id: uuid.UUID
     label: str
     count: int
     type: str | None

@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
-from app.db.model import Derivation, DerivationType, Entity, PlatformUser
+from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -21,6 +21,7 @@ from app.errors import (
 from app.filters.derivation import DerivationFilterDep
 from app.filters.entity import BasicEntityFilterDep
 from app.queries import crud
+from app.queries.alias_registry import build_aliases, merge_aliases
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -43,7 +44,6 @@ from app.types import EntityRoute
 from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:
-    from app.filters.base import Aliases
     from app.schemas.auth import UserContext
 
 
@@ -67,28 +67,19 @@ def _read_many(
 ) -> ListResponse[DerivationRead]:
 
     project_ids = user_context.authorized_project_ids
-    used_alias = aliased(Entity, flat=True, name="used_alias")
-    generated_alias = aliased(Entity, flat=True, name="generated_alias")
-    created_by_alias = aliased(PlatformUser, flat=True, name="created_by_alias")
-    updated_by_alias = aliased(PlatformUser, flat=True, name="updated_by_alias")
-    aliases: Aliases = {
-        Entity: {
-            "used": used_alias,
-            "generated": generated_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    # `used`/`generated` are always joined below, so they are not declared here to
-    # avoid duplicate joins. `created_by`/`updated_by` are added on demand.
-    _, filter_joins = query_params_factory(
+
+    # `used`/`generated` cannot go in filter_keys because the registry's spec_used/spec_generated
+    # join through Usage/Generation tables (designed for Activity models), while Derivation has
+    # direct FK joins (used_id, generated_id). The joins are applied manually below instead.
+    _, join_specs, factory_aliases = query_params_factory(
         db_model_class=Derivation,
         facet_keys=[],
         filter_keys=["created_by", "updated_by"],
-        aliases=aliases,
     )
+    service_aliases = build_aliases((Entity, "used"), (Entity, "generated"))
+    aliases = merge_aliases(factory_aliases, service_aliases)
+    used_alias = service_aliases[Entity]["used"]
+    generated_alias = service_aliases[Entity]["generated"]
 
     def apply_filter_query_operations(q):
         q = q.join(used_alias, Derivation.used_id == used_alias.id).join(
@@ -115,7 +106,7 @@ def _read_many(
         response_schema_class=DerivationRead,
         name_to_facet_query_params=None,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=False,
     )
 
@@ -277,7 +268,7 @@ def _read_many_from_entity(
         )
     )
 
-    name_to_facet_query_params = filter_joins = None
+    name_to_facet_query_params = join_specs = None
     return router_read_many(
         db=db,
         db_model_class=used_db_model_class,
@@ -285,14 +276,14 @@ def _read_many_from_entity(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases={},
+        aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=BasicEntityRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=entity_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

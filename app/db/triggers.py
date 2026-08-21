@@ -270,6 +270,7 @@ entities = [
 
 entities += [
     PGExtension(schema="public", signature="vector"),
+    PGExtension(schema="public", signature="uuid-ossp"),
 ]
 
 for model, field_name in protected_entity_relationships:

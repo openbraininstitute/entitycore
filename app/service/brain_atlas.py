@@ -1,5 +1,4 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -24,9 +23,6 @@ from app.schemas.brain_atlas import (
 from app.schemas.brain_atlas_region import BrainAtlasRegionRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load_brain_atlas(query: sa.Select):
@@ -53,17 +49,15 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
-    aliases: Aliases = {}
     facet_keys = []
     filter_keys = [
         "species",
         "strain",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=BrainAtlas,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
 
     return app.queries.common.router_read_many(
@@ -80,7 +74,7 @@ def _read_many(
         response_schema_class=BrainAtlasRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

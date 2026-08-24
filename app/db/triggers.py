@@ -360,11 +360,11 @@ def unique_name_per_project_trigger(model: type[Entity]) -> PGTrigger:
 
 
 # list of entity tables that require name uniqueness per project
-name_locked_entities = [
+unique_name_per_project_entities = [
     AnalysisNotebookTemplate,
 ]
 
-for model in name_locked_entities:
+for model in unique_name_per_project_entities:
     entities += [
         unique_name_per_project_function(model),
         unique_name_per_project_trigger(model),

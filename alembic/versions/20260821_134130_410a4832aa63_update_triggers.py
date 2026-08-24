@@ -26,8 +26,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_table("_person_sub_id_mapping")
-
     op.execute(
         sql_text("""
         WITH duplicates AS (

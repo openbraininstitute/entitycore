@@ -480,7 +480,7 @@ def router_update_one[T: Schema, I: Identifiable](
 
     with (
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
-        ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),
+        ensure_uniqueness(f"{db_model_class.__name__} breaks unique constraints"),
     ):
         db_model_instance = db.execute(query).unique().scalar_one()
 

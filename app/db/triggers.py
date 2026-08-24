@@ -206,7 +206,7 @@ def must_match_reference_function(model: type[Entity], field_name: str) -> PGFun
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-        """,  # ruff:ignore[hardcoded-sql-expression, line-too-long]
+        """,  # ruff:ignore[hardcoded-sql-expression]
     )
 
 
@@ -322,8 +322,7 @@ def unique_name_per_project_function(model: type[Entity]) -> PGFunction:
                 FROM entity WHERE id = NEW.id;
 
                 lock_key := (
-                    ('x' || substring(md5(project_id::text || ':' || NEW.name), 1, 16))
-                    ::bit(64)::bigint
+                    ('x' || substring(md5(project_id::text || ':' || NEW.name), 1, 16))::bit(64)::bigint
                 ) >> 1;
                 PERFORM pg_advisory_xact_lock(lock_key);
 

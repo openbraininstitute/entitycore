@@ -135,6 +135,9 @@ builtins-ignorelist = ["license"]
 "app/db/model.py" = [
     "builtin-attribute-shadowing", # builtin-attribute-shadowing
 ]
+"app/db/triggers.py" = [
+    "line-too-long", # SQL strings may exceed line length
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

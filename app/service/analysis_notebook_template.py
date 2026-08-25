@@ -256,6 +256,7 @@ def _get_validated_clone_source_and_targets(
             user_context=user_context,
             entity_type=EntityType.analysis_notebook_template,
             entity_id=id_,
+            for_update=True,
         ),
     )
     if notebook.authorized_public:

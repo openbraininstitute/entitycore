@@ -310,7 +310,7 @@ def clone(
     Upserts by name: updates existing private notebooks, creates new ones.
     Assets and contributions are synced to match the source.
     """
-    notebook, _ = _get_validated_clone_source_and_targets(
+    source_notebook, _ = _get_validated_clone_source_and_targets(
         repos=repos,
         user_context=user_context,
         id_=id_,
@@ -322,16 +322,16 @@ def clone(
     for project_id in json_model.target_project_ids:
         existing = repos.db.execute(
             sa.select(AnalysisNotebookTemplate).where(
-                AnalysisNotebookTemplate.name == notebook.name,
+                AnalysisNotebookTemplate.name == source_notebook.name,
                 AnalysisNotebookTemplate.authorized_project_id == project_id,
             )
         ).scalar_one_or_none()
 
         if existing:
-            existing.description = notebook.description
-            existing.scale = notebook.scale
-            existing.specifications = notebook.specifications
-            existing.assignment_id = notebook.assignment_id
+            existing.description = source_notebook.description
+            existing.scale = source_notebook.scale
+            existing.specifications = source_notebook.specifications
+            existing.assignment_id = source_notebook.assignment_id
             existing.updated_by_id = db_user.id
             repos.db.flush()
             repos.db.refresh(existing, ["assets"])
@@ -346,11 +346,11 @@ def clone(
             clone_db = existing
         else:
             clone_db = AnalysisNotebookTemplate(
-                name=notebook.name,
-                description=notebook.description,
-                scale=notebook.scale,
-                specifications=notebook.specifications,
-                assignment_id=notebook.assignment_id,
+                name=source_notebook.name,
+                description=source_notebook.description,
+                scale=source_notebook.scale,
+                specifications=source_notebook.specifications,
+                assignment_id=source_notebook.assignment_id,
                 authorized_project_id=project_id,
                 authorized_public=False,
                 created_by_id=db_user.id,
@@ -364,7 +364,7 @@ def clone(
         storage = storages[StorageType.aws_s3_internal]
         s3_client = storage_client_factory(storage)
 
-        for asset in notebook.assets:
+        for asset in source_notebook.assets:
             dst_key = build_s3_path(
                 vlab_id=virtual_lab_id,
                 proj_id=project_id,
@@ -399,13 +399,13 @@ def clone(
         repos.db.refresh(clone_db, ["assets", "contributions"])
 
         existing_contribs = {(c.agent_id, c.role_id): c for c in clone_db.contributions}
-        source_contribs = {(c.agent_id, c.role_id) for c in notebook.contributions}
+        source_contribs = {(c.agent_id, c.role_id) for c in source_notebook.contributions}
 
         for key, contrib in list(existing_contribs.items()):
             if key not in source_contribs:
                 repos.db.delete(contrib)
 
-        for contrib in notebook.contributions:
+        for contrib in source_notebook.contributions:
             if (contrib.agent_id, contrib.role_id) not in existing_contribs:
                 repos.db.add(
                     Contribution(

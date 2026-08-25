@@ -610,7 +610,12 @@ def _add_execution(db, notebook_id, environment_id, user_id):
 
 @pytest.mark.parametrize("executed_notebook", ["source", "target"])
 def test_clone_forbidden_when_notebook_has_execution(
-    client_user_1_two_projects, db, json_data, user_id, analysis_notebook_environment, executed_notebook
+    client_user_1_two_projects,
+    db,
+    json_data,
+    user_id,
+    analysis_notebook_environment,
+    executed_notebook,
 ):
     """clone returns 403 if the source or an existing target notebook has an execution."""
     source_id = assert_request(
@@ -644,7 +649,12 @@ def test_clone_forbidden_when_notebook_has_execution(
 
 @pytest.mark.parametrize("executed_notebook", ["source", "target"])
 def test_delete_clones_forbidden_when_notebook_has_execution(
-    client_user_1_two_projects, db, json_data, user_id, analysis_notebook_environment, executed_notebook
+    client_user_1_two_projects,
+    db,
+    json_data,
+    user_id,
+    analysis_notebook_environment,
+    executed_notebook,
 ):
     """delete-clones returns 403 if the source or a target notebook has an execution."""
     source_id = assert_request(

@@ -1,11 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import Depends
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, Ion, IonChannelModel, PlatformUser, Subject
+from app.db.model import Contribution, Ion, IonChannelModel, Subject
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandDep,
@@ -35,9 +35,6 @@ from app.schemas.ion_channel_model import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load_minimal(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
@@ -73,40 +70,17 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[IonChannelModelExpanded]:
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    subject_alias = aliased(Subject, flat=True)
-    aliases: Aliases = {
-        Subject: subject_alias,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    facet_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
         "brain_region",
         "subject.species",
         "subject.strain",
     ]
-    filter_keys = [
-        "created_by",
-        "updated_by",
-        "brain_region",
-        "subject",
-        "subject.species",
-        "subject.strain",
-    ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=IonChannelModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -122,7 +96,7 @@ def _read_many(
         response_schema_class=IonChannelModelExpanded,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

@@ -1,18 +1,16 @@
 import uuid
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Query
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
     Contribution,
     EMCellMesh,
-    EMDenseReconstructionDataset,
     MeasurementAnnotation,
     MeasurementKind,
-    PlatformUser,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -40,9 +38,6 @@ from app.schemas.em_cell_mesh import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 class Expandable(StrEnum):
@@ -98,16 +93,6 @@ def _read_many(
     expand: set[Expandable] | None,
     check_authorized_project: bool,
 ) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
-    subject_alias = aliased(Subject, flat=True)
-    em_dense_reconstruction_dataset_alias = aliased(EMDenseReconstructionDataset, flat=True)
-    aliases: Aliases = {
-        Subject: subject_alias,
-        EMDenseReconstructionDataset: em_dense_reconstruction_dataset_alias,
-        PlatformUser: {
-            "created_by": aliased(PlatformUser, flat=True),
-            "updated_by": aliased(PlatformUser, flat=True),
-        },
-    }
     facet_keys = [
         "brain_region",
         "subject.species",
@@ -119,18 +104,14 @@ def _read_many(
         "release_version",
     ]
     filter_keys = [
-        "subject",
         *facet_keys,
-        "measurement_annotation",
-        "measurement_annotation.measurement_kind",
         "measurement_annotation.measurement_kind.measurement_item",
         "measurement_annotation.measurement_kind.pref_label",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=EMCellMesh,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     response_schema_class = (
         EMCellMeshAnnotationExpandedRead
@@ -151,7 +132,7 @@ def _read_many(
         response_schema_class=response_schema_class,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

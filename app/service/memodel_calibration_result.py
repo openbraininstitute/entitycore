@@ -1,10 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, MEModelCalibrationResult, PlatformUser
+from app.db.model import Contribution, MEModelCalibrationResult
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandDep,
@@ -31,9 +30,6 @@ from app.schemas.memodel_calibration_result import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -143,22 +139,12 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[MEModelCalibrationResultRead]:
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": aliased(PlatformUser, flat=True),
-            "updated_by": aliased(PlatformUser, flat=True),
-        },
-        Agent: {
-            "contribution": aliased(Agent, flat=True),
-        },
-    }
     filter_keys = ["created_by", "updated_by", "contribution"]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MEModelCalibrationResult,
         filter_keys=filter_keys,
         facet_keys=[],
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -174,7 +160,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=MEModelCalibrationResultRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

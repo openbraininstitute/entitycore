@@ -3,7 +3,7 @@ import logging
 import pytest
 from loguru import logger
 
-from app.logger import InterceptHandler
+from app import logger as test_module
 
 
 @pytest.fixture(autouse=True)
@@ -24,7 +24,7 @@ def _simulate_sentry_logging_patch(monkeypatch):
 def _intercept_one_message(logger_name):
     messages = []
     handler_id = logger.add(messages.append, level="INFO")
-    handler = InterceptHandler()
+    handler = test_module.InterceptHandler()
     stdlib_logger = logging.getLogger(logger_name)
     stdlib_logger.setLevel(logging.INFO)
     stdlib_logger.propagate = False
@@ -52,3 +52,44 @@ def test_intercept_handler_reports_logger_name():
 
     assert record["message"] == "intercepted message"
     assert record["name"] == "some.library"
+
+
+@pytest.fixture
+def capture_logged_messages():
+    messages = []
+    handler_id = logger.add(messages.append, level="INFO")
+    yield messages
+    logger.remove(handler_id)
+
+
+def test_timed_success(capture_logged_messages):
+    with test_module.timed("operation"):
+        pass
+
+    assert len(capture_logged_messages) == 2
+    assert capture_logged_messages[0].record["message"] == "operation..."
+    final = capture_logged_messages[1].record["message"]
+    assert final.startswith("operation... done in ")
+    assert final.endswith("ms")
+
+
+def test_timed_failure(capture_logged_messages):
+    err_msg = "boom"
+    with (
+        pytest.raises(ValueError, match=err_msg),
+        test_module.timed("operation"),
+    ):
+        raise ValueError(err_msg)
+
+    assert len(capture_logged_messages) == 2
+    assert capture_logged_messages[0].record["message"] == "operation..."
+    final = capture_logged_messages[1].record["message"]
+    assert final.startswith("operation... failed in ")
+    assert final.endswith("ms")
+
+
+def test_timed_custom_level(capture_logged_messages):
+    with test_module.timed("operation", level="WARNING"):
+        pass
+
+    assert all(m.record["level"].name == "WARNING" for m in capture_logged_messages)

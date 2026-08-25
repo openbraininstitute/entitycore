@@ -241,6 +241,15 @@ def test_filtering_ordering(client, models, public_campaign_id):
     data = _req({"task_config_generator_id__in": [public_campaign_id]})
     assert len(data) == len(models)
 
+    data = _req({"task_config_generator__name": "campaign"})
+    assert len(data) == len(models)
+
+    data = _req({"task_config_generator__name": "nonexistent"})
+    assert len(data) == 0
+
+    data = _req({"task_config_generator__task_config_type": "skeletonization__campaign"})
+    assert len(data) == len(models)
+
     data = _req({"order_by": "-name"})
     assert [d["name"] for d in data] == ["config-2", "config-1", "config-0"]
 

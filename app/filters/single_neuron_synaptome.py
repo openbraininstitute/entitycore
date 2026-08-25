@@ -5,7 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import SingleNeuronSynaptome
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
     IdFilterMixin,
     ILikeSearchFilterMixin,
@@ -20,11 +20,6 @@ class NestedSingleNeuronSynaptomeFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("synaptome__brain_region", NestedBrainRegionFilter)),
-    ] = None
-
     me_model: Annotated[
         NestedMEModelFilter | None,
         FilterDepends(with_prefix("synaptome__me_model", NestedMEModelFilter)),

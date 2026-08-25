@@ -1,10 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.model import Person, PlatformUser
+from app.db.model import Person
 from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -21,9 +20,6 @@ from app.schemas.agent import PersonAdminUpdate, PersonCreate, PersonRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
-
 
 def _load(query: sa.Select):
     return query.options(
@@ -39,26 +35,16 @@ def read_many(
     pagination_request: PaginationQuery,
     person_filter: PersonFilterDep,
 ) -> ListResponse[PersonRead]:
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
 
     filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    _, filter_joins = query_params_factory(
+    _, join_specs, aliases = query_params_factory(
         db_model_class=Person,
         filter_keys=filter_keys,
         facet_keys=[],
-        aliases=aliases,
     )
 
     return router_read_many(
@@ -75,7 +61,7 @@ def read_many(
         response_schema_class=PersonRead,
         name_to_facet_query_params=None,
         filter_model=person_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

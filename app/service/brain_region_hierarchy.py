@@ -1,7 +1,6 @@
 import json
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from fastapi import HTTPException, Response
@@ -22,9 +21,6 @@ from app.schemas.brain_region_hierarchy import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
-
 
 def _load(query: sa.Select):
     return query.options(
@@ -43,16 +39,14 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[BrainRegionHierarchyRead]:
     db_model_class = BrainRegionHierarchy
-    aliases: Aliases = {}
     facet_keys = filter_keys = [
         "species",
         "strain",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=db_model_class,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return app.queries.common.router_read_many(
         db=db,
@@ -68,7 +62,7 @@ def read_many(
         response_schema_class=BrainRegionHierarchyRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=brain_region_name_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 

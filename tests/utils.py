@@ -51,6 +51,7 @@ from app.utils.uuid import create_uuid
 DateTimeAdapter = TypeAdapter(datetime)
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
+SERVICE_DIR = Path(__file__).parents[1] / "app" / "service"
 
 ADMIN_SUB_ID = "00000000-0000-0000-0000-000000000000"
 USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"

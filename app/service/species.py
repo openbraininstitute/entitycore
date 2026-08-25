@@ -1,11 +1,10 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.db.model import PlatformUser, Species
+from app.db.model import Species
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -15,9 +14,6 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.species import SpeciesAdminUpdate, SpeciesCreate, SpeciesRead
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -79,13 +75,6 @@ def read_many(
 ) -> ListResponse[SpeciesRead]:
     embedding = None
 
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": aliased(PlatformUser, flat=True),
-            "updated_by": aliased(PlatformUser, flat=True),
-        }
-    }
-
     if semantic_search is not None:
         embedding = generate_embedding(semantic_search)
 
@@ -93,11 +82,10 @@ def read_many(
         "created_by",
         "updated_by",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=Species,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return app.queries.common.router_read_many(
         db=db,
@@ -113,7 +101,7 @@ def read_many(
         response_schema_class=SpeciesRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=species_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         embedding=embedding,
     )
 

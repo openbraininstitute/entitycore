@@ -1,6 +1,6 @@
 import uuid
 from http import HTTPStatus
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated, Protocol
 
 import sqlalchemy as sa
 from fastapi import Depends, Query
@@ -11,12 +11,16 @@ from starlette.requests import Request
 
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
-from app.filters.base import CustomFilter
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
 from app.queries.expand import EntityExpand
-from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations
+from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
+
+
+class BuildFacetQuery(Protocol):
+    """Build a facet query with the given facet key."""
+
+    def __call__(self, *, facet_key: str) -> sa.Select: ...
 
 
 def forbid_extra_query_params(
@@ -65,20 +69,11 @@ def forbid_extra_query_params(
         )
 
 
-class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[uuid.UUID] | InstrumentedAttribute[int]
-    # ColumnElement covers cast() expressions for facets on scalar base-table columns
-    label: InstrumentedAttribute[str] | sa.ColumnElement[str]
-    type: NotRequired[InstrumentedAttribute[str]]
-
-
 def _get_facets(
     db: Session,
-    query: sa.Select,
-    name_to_facet_query_params: dict[str, FacetQueryParams],
-    count_distinct_field: InstrumentedAttribute,
-    filter_model: CustomFilter,
-    filter_joins: dict[str, ApplyOperations] | None = None,
+    build_facet_query: BuildFacetQuery,
+    name_to_facet_query_params: FacetQueryParamsMap,
+    count_distinct_field: sa.SQLColumnExpression,
 ) -> Facets:
     facets = {}
     groupby_keys = ["id", "label", "type"]
@@ -87,12 +82,7 @@ def _get_facets(
         groupby_fields = {"type": sa.literal(facet_type), **fields}
         groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
         groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
-        facet_q = (
-            # ensure that only the required joins are added
-            filter_from_db(query, filter_model, filter_joins, forced_joins={facet_type})
-            if filter_joins
-            else query
-        )
+        facet_q = build_facet_query(facet_key=facet_type)
         # ensure that only the required columns are selected
         facet_q = (
             facet_q.with_only_columns(
@@ -119,22 +109,18 @@ class WithFacets(BaseModel):
     def __call__(
         self,
         db: Session,
-        query: sa.Select,
-        name_to_facet_query_params: dict[str, FacetQueryParams],
-        count_distinct_field: InstrumentedAttribute,
-        filter_model: CustomFilter,
-        filter_joins: dict[str, ApplyOperations] | None = None,
+        build_facet_query: BuildFacetQuery,
+        name_to_facet_query_params: FacetQueryParamsMap,
+        count_distinct_field: sa.SQLColumnExpression,
     ):
         if not self.with_facets:
             return None
 
         return _get_facets(
             db,
-            query,
+            build_facet_query,
             name_to_facet_query_params,
             count_distinct_field,
-            filter_model=filter_model,
-            filter_joins=filter_joins,
         )
 
 

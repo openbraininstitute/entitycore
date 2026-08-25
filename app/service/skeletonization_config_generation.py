@@ -1,10 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.model import Entity, PlatformUser, SkeletonizationConfigGeneration
+from app.db.model import SkeletonizationConfigGeneration
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -31,9 +30,6 @@ from app.schemas.skeletonization_config_generation import (
     SkeletonizationConfigGenerationUserUpdate,
 )
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 DBModel = SkeletonizationConfigGeneration
 ReadSchema = SkeletonizationConfigGenerationRead
@@ -107,21 +103,7 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    used_alias = aliased(Entity, flat=True)
-    generated_alias = aliased(Entity, flat=True)
 
-    aliases: Aliases = {
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        Entity: {
-            "used": used_alias,
-            "generated": generated_alias,
-        },
-    }
     facet_keys = []
     filter_keys = [
         "created_by",
@@ -129,11 +111,10 @@ def _read_many(
         "used",
         "generated",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=DBModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -149,7 +130,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ReadSchema,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 

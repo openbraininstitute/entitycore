@@ -3,8 +3,11 @@
 import json
 import logging
 import sys
+import time
 import traceback
 import warnings
+from collections.abc import Generator
+from contextlib import contextmanager
 
 import loguru
 import sqlalchemy.exc
@@ -129,3 +132,21 @@ def configure_warnings():
     - An alias is being generated automatically
     """
     warnings.simplefilter("error", sqlalchemy.exc.SAWarning)
+
+
+@contextmanager
+def timed(msg: str, level: str = "INFO") -> Generator[None]:
+    """Context manager to log the execution of a block of code."""
+    start = time.perf_counter()
+    status = "unknown"
+    L.log(level, "{}...", msg)
+    try:
+        yield
+    except Exception:
+        status = "failed"
+        raise
+    else:
+        status = "done"
+    finally:
+        elapsed = time.perf_counter() - start
+        L.log(level, "{}... {} in {:.1f}ms", msg, status, elapsed * 1000)

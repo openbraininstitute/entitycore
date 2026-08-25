@@ -1,15 +1,13 @@
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import Body
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
-    Agent,
     CellMorphologyProtocol,
     Contribution,
-    PlatformUser,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -34,9 +32,6 @@ from app.schemas.cell_morphology_protocol import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load_from_db(query: sa.Select) -> sa.Select:
@@ -111,18 +106,6 @@ def _read_many(
     expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyProtocolRead]:
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(PlatformUser, flat=True)
-    updated_by_alias = aliased(PlatformUser, flat=True)
-    aliases: Aliases = {
-        Agent: {
-            "contribution": agent_alias,
-        },
-        PlatformUser: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
     facet_keys = [
         "created_by",
         "updated_by",
@@ -131,11 +114,10 @@ def _read_many(
         "created_by",
         "updated_by",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=CellMorphologyProtocol,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -151,7 +133,7 @@ def _read_many(
         response_schema_class=CellMorphologyProtocolReadAdapter,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
         expand=expand,
     )

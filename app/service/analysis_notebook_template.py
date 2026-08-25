@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.config import storages
 from app.db.model import (
+    AnalysisNotebookExecution,
     AnalysisNotebookTemplate,
     Contribution,
 )
@@ -295,6 +296,18 @@ def _get_validated_clone_source_and_targets(
     if any(t.authorized_public for t in targets):
         raise ApiError(
             message="A public notebook with the same name already exists in the target project",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    notebook_ids = [notebook.id, *(t.id for t in targets)]
+    executed_id = repos.db.execute(
+        sa.select(AnalysisNotebookExecution.analysis_notebook_template_id)
+        .where(AnalysisNotebookExecution.analysis_notebook_template_id.in_(notebook_ids))
+        .limit(1)
+    ).scalar_one_or_none()
+    if executed_id is not None:
+        raise ApiError(
+            message="Cannot clone: one or more notebooks already have an execution",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
             http_status_code=HTTPStatus.FORBIDDEN,
         )

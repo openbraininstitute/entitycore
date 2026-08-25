@@ -282,10 +282,12 @@ def _get_validated_clone_source_and_targets(
         )
     targets = (
         repos.db.execute(
-            sa.select(AnalysisNotebookTemplate).where(
+            sa.select(AnalysisNotebookTemplate)
+            .where(
                 AnalysisNotebookTemplate.name == notebook.name,
                 AnalysisNotebookTemplate.authorized_project_id.in_(target_project_ids),
             )
+            .with_for_update()
         )
         .scalars()
         .all()
@@ -311,16 +313,17 @@ def clone(
     Upserts by name: updates existing private notebooks, creates new ones.
     Assets and contributions are synced to match the source.
     """
+    target_project_ids = sorted(json_model.target_project_ids)
     source_notebook, _ = _get_validated_clone_source_and_targets(
         repos=repos,
         user_context=user_context,
         id_=id_,
-        target_project_ids=json_model.target_project_ids,
+        target_project_ids=target_project_ids,
     )
     db_user = get_or_create_user(repos.db, user_profile=user_context.profile)
     created = []
 
-    for project_id in json_model.target_project_ids:
+    for project_id in target_project_ids:
         existing = repos.db.execute(
             sa.select(AnalysisNotebookTemplate).where(
                 AnalysisNotebookTemplate.name == source_notebook.name,
@@ -438,7 +441,7 @@ def delete_clones(
         repos=repos,
         user_context=user_context,
         id_=id_,
-        target_project_ids=json_model.target_project_ids,
+        target_project_ids=sorted(json_model.target_project_ids),
     )
     deleted = [AnalysisNotebookTemplateRead.model_validate(t) for t in targets]
     for target in targets:

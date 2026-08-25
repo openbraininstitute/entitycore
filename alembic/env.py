@@ -1,6 +1,6 @@
 import logging
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, MutableMapping
 from logging.config import fileConfig
 
 import alembic_postgresql_enum  # ruff:ignore[unused-import]
@@ -50,6 +50,13 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def include_name(name: str | None, type_: str, _parent_names: MutableMapping) -> bool:
+    """Exclude tables starting with underscore from autogenerate."""
+    if type_ == "table" and name is not None:
+        return not name.startswith("_")
+    return True
+
+
 def process_revision_directives(
     _context: MigrationContext,
     _revision: str | Iterable[str | None] | Iterable[str],
@@ -86,6 +93,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -115,6 +123,7 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             transaction_per_migration=False,
             process_revision_directives=process_revision_directives,
+            include_name=include_name,
         )
 
         with context.begin_transaction():

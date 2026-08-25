@@ -3,8 +3,8 @@ import uuid
 import pytest
 
 from app.config import settings
-from app.db.model import AnalysisNotebookTemplate, Role
-from app.db.types import EntityType
+from app.db.model import AnalysisNotebookExecution, AnalysisNotebookTemplate, Role
+from app.db.types import ActivityStatus, EntityType
 from app.errors import ApiErrorCode
 from app.queries.utils import is_user_authorized_for_clone
 
@@ -592,3 +592,86 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
+
+
+def _add_execution(db, notebook_id, environment_id, user_id):
+    add_db(
+        db,
+        AnalysisNotebookExecution(
+            analysis_notebook_template_id=notebook_id,
+            analysis_notebook_environment_id=environment_id,
+            authorized_project_id=PROJECT_ID,
+            status=ActivityStatus.done,
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+
+
+@pytest.mark.parametrize("executed_notebook", ["source", "target"])
+def test_clone_forbidden_when_notebook_has_execution(
+    client_user_1_two_projects, db, json_data, user_id, analysis_notebook_environment, executed_notebook
+):
+    """clone returns 403 if the source or an existing target notebook has an execution."""
+    source_id = assert_request(
+        client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
+    ).json()["id"]
+
+    if executed_notebook == "target":
+        target = add_db(
+            db,
+            AnalysisNotebookTemplate(
+                **json_data
+                | {
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
+                    "authorized_project_id": UNRELATED_PROJECT_ID,
+                    "authorized_public": False,
+                },
+            ),
+        )
+        _add_execution(db, target.id, analysis_notebook_environment.id, user_id)
+    else:
+        _add_execution(db, source_id, analysis_notebook_environment.id, user_id)
+
+    assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{source_id}/clone",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
+    )
+
+
+@pytest.mark.parametrize("executed_notebook", ["source", "target"])
+def test_delete_clones_forbidden_when_notebook_has_execution(
+    client_user_1_two_projects, db, json_data, user_id, analysis_notebook_environment, executed_notebook
+):
+    """delete-clones returns 403 if the source or a target notebook has an execution."""
+    source_id = assert_request(
+        client_user_1_two_projects.post, url=ROUTE, json=json_data | {"authorized_public": False}
+    ).json()["id"]
+
+    target = add_db(
+        db,
+        AnalysisNotebookTemplate(
+            **json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": UNRELATED_PROJECT_ID,
+                "authorized_public": False,
+            },
+        ),
+    )
+
+    if executed_notebook == "target":
+        _add_execution(db, target.id, analysis_notebook_environment.id, user_id)
+    else:
+        _add_execution(db, source_id, analysis_notebook_environment.id, user_id)
+
+    assert_request(
+        client_user_1_two_projects.post,
+        url=f"{ROUTE}/{source_id}/delete-clones",
+        json={"target_project_ids": [UNRELATED_PROJECT_ID]},
+        expected_status_code=403,
+    )

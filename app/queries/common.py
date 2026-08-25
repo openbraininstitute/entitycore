@@ -478,7 +478,9 @@ def router_update_one[T: Schema, I: Identifiable](
     if apply_operations:
         query = apply_operations(query)
 
-    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+    with (
+        ensure_result(error_message=f"{db_model_class.__name__} not found"),
+    ):
         db_model_instance = db.execute(query).unique().scalar_one()
 
     db_model_instance = update_model(
@@ -500,7 +502,9 @@ def router_update_one[T: Schema, I: Identifiable](
         action="update",
     )
 
-    db.flush()
+    with ensure_uniqueness(f"{db_model_class.__name__} breaks unique constraints"):
+        db.flush()
+
     relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
     db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
 

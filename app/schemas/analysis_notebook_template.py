@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from pydantic import Field
@@ -66,3 +67,19 @@ class AnalysisNotebookTemplateRead(
     EntityRead,
 ):
     pass
+
+
+class NotebookCloneRequest(Schema):
+    target_project_ids: list[uuid.UUID]
+
+
+class NotebookCloneResponse(Schema):
+    created: list[AnalysisNotebookTemplateRead]
+
+
+class NotebookDeleteClonesRequest(Schema):
+    target_project_ids: list[uuid.UUID]
+
+
+class NotebookDeleteClonesResponse(Schema):
+    deleted: list[AnalysisNotebookTemplateRead]

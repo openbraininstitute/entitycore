@@ -73,6 +73,7 @@ from .utils import (
     AUTH_HEADER_MAINTAINER_2,
     AUTH_HEADER_MAINTAINER_3,
     AUTH_HEADER_USER_1,
+    AUTH_HEADER_USER_1_TWO_PROJECTS,
     AUTH_HEADER_USER_2,
     AUTH_HEADER_USER_3,
     PROJECT_HEADERS,
@@ -82,6 +83,7 @@ from .utils import (
     TOKEN_MAINTAINER_2,
     TOKEN_MAINTAINER_3,
     TOKEN_USER_1,
+    TOKEN_USER_1_TWO_PROJECTS,
     TOKEN_USER_2,
     TOKEN_USER_3,
     UNRELATED_PROJECT_HEADERS,
@@ -201,6 +203,34 @@ def user_context_user_1():
             UserProjectGroup(
                 virtual_lab_id=VIRTUAL_LAB_ID,
                 project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
+    )
+
+
+@pytest.fixture
+def user_context_user_1_two_projects():
+    """User with admin role in both PROJECT_ID and UNRELATED_PROJECT_ID."""
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_1),
+            name="User 1 Admin Two Projects",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+            UserProjectGroup(
+                virtual_lab_id=UNRELATED_VIRTUAL_LAB_ID,
+                project_id=UNRELATED_PROJECT_ID,
                 role="admin",
             ),
         ],
@@ -330,6 +360,7 @@ def _override_check_user_info(
     user_context_admin,
     user_context_admin_with_project,
     user_context_user_1,
+    user_context_user_1_two_projects,
     user_context_user_2,
     user_context_user_3,
     user_context_no_project,
@@ -343,6 +374,7 @@ def _override_check_user_info(
         (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
+        (TOKEN_USER_1_TWO_PROJECTS, UUID(PROJECT_ID)): user_context_user_1_two_projects,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
         (TOKEN_USER_3, UUID(PROJECT_ID)): user_context_user_3,
         (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
@@ -402,6 +434,12 @@ def client_admin_with_project(client_no_auth):
 def client_user_1(client_no_auth):
     """Return a web client instance, authenticated as regular user with a specific project-id."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1 | PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_user_1_two_projects(client_no_auth):
+    """User 1 authenticated as admin of both PROJECT_ID and UNRELATED_PROJECT_ID."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1_TWO_PROJECTS | PROJECT_HEADERS)
 
 
 @pytest.fixture

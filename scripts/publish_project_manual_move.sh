@@ -42,7 +42,13 @@
 #        sso_registration_scopes = sso:account:access
 #   2. aws sso login --sso-session obi
 #   3. Fill in the CONFIG section below (or export the env vars before running).
-#   4. AWS_PROFILE=entitycore-storage-admin bash scripts/publish_project_manual_move.sh
+#      Set OBI_ENV=production (or staging). The entitycore admin JWT is minted
+#      just-in-time via `obi-auth get-token -e $OBI_ENV` immediately before each
+#      API call, so a long STEP 3 move cannot cause the token to expire before
+#      STEP 5/6. (obi-auth reads a local cache or opens a browser as needed.)
+#      Alternatively pre-set AUTH_TOKEN to reuse a specific token.
+#   4. AWS_PROFILE=entitycore-storage-admin OBI_ENV=production \
+#        bash scripts/publish_project_manual_move.sh
 #
 set -euo pipefail
 
@@ -66,9 +72,14 @@ PROJECT_ID="${PROJECT_ID:-f04e3094-f342-4664-b4ed-f2c88e7d588e}"
 
 # entitycore admin API. The publish endpoint is POST /admin/publish-project/{project_id}
 # Confirm the exact base URL and auth for production before running.
-API_BASE_URL="${API_BASE_URL:-https://REPLACE_ME_ENTITYCORE_HOST}"
-# Bearer token with service_admin privileges (required by /admin routes).
-AUTH_TOKEN="${AUTH_TOKEN:-REPLACE_ME_JWT}"
+API_BASE_URL="${API_BASE_URL:-https://cell-a.openbraininstitute.org/api/entitycore}"
+
+# Environment for obi-auth token minting: "production" or "staging".
+OBI_ENV="${OBI_ENV:-production}"
+# Optional: pre-supplied bearer token. If set, it is used as-is and obi-auth is
+# NOT called. Leave empty to mint a FRESH token just-in-time before each API call
+# (recommended — avoids expiry while the long STEP 3 move runs).
+AUTH_TOKEN="${AUTH_TOKEN:-}"
 
 # Derived prefixes (note the trailing slash — required to avoid sibling-prefix matches)
 SRC_PREFIX="private/${VLAB_ID}/${PROJECT_ID}/assets/"
@@ -95,6 +106,48 @@ confirm() {
 
 hr() { printf '%.0s-' {1..72}; echo; }
 
+# Mint (or reuse) a bearer token for the entitycore admin API.
+# If AUTH_TOKEN is preset, reuse it; otherwise fetch a FRESH token via obi-auth.
+# Called just-in-time immediately before each API call so a long STEP 3 move
+# cannot cause the token to expire before STEP 5/6.
+get_token() {
+  if [[ -n "${AUTH_TOKEN}" ]]; then
+    printf '%s' "${AUTH_TOKEN}"
+    return 0
+  fi
+  local tok
+  tok=$(obi-auth get-token -e "${OBI_ENV}") || {
+    echo "ERROR: obi-auth get-token -e ${OBI_ENV} failed." >&2
+    return 1
+  }
+  if [[ -z "${tok}" ]]; then
+    echo "ERROR: obi-auth returned an empty token." >&2
+    return 1
+  fi
+  printf '%s' "${tok}"
+}
+
+# POST the publish endpoint with a freshly-minted token. $1 = true|false (dry_run).
+# Writes response to $2. Fails clearly on HTTP errors.
+publish_call() {
+  local dry_run="$1" outfile="$2" token http_code
+  token=$(get_token) || return 1
+  http_code=$(curl -sS -o "${outfile}" -w '%{http_code}' -X POST \
+    "${PUBLISH_URL}?dry_run=${dry_run}" \
+    -H "Authorization: Bearer ${token}" \
+    -H "accept: application/json")
+  echo "HTTP ${http_code}"
+  cat "${outfile}"
+  echo
+  if [[ "${http_code}" != "200" ]]; then
+    echo "ERROR: publish call returned HTTP ${http_code} (expected 200)." >&2
+    if [[ "${http_code}" == "401" || "${http_code}" == "403" ]]; then
+      echo "Auth failed — token may be expired/insufficient. Re-run 'obi-auth get-token -e ${OBI_ENV}'." >&2
+    fi
+    return 1
+  fi
+}
+
 ########################################
 # Step 0 — sanity echo of config       #
 ########################################
@@ -102,6 +155,7 @@ hr
 echo "BUCKET      : ${BUCKET}"
 echo "REGION      : ${REGION}"
 echo "AWS_PROFILE : ${AWS_PROFILE}"
+echo "OBI_ENV     : ${OBI_ENV}  (obi-auth token environment)"
 echo "VLAB_ID     : ${VLAB_ID}"
 echo "PROJECT_ID  : ${PROJECT_ID}"
 echo "SRC_URI     : ${SRC_URI}"
@@ -132,7 +186,7 @@ hr
 echo "STEP 1: Baseline source listing (before move)"
 aws s3 ls "${SRC_URI}" --recursive --summarize --region "${REGION}"
 hr
-echo "Record the 'Total Objects' and 'Total Size' above. Expected: 69 objects, 197149183431 bytes."
+echo "Record the 'Total Objects' and 'Total Size' above."
 confirm "Baseline looks right?"
 
 ########################################
@@ -140,13 +194,12 @@ confirm "Baseline looks right?"
 ########################################
 hr
 echo "STEP 2: dry_run=true publish call (before manual move) — captures the plan"
-curl -sS -X POST \
-  "${PUBLISH_URL}?dry_run=true" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -H "accept: application/json" | tee /tmp/publish_dryrun_before.json
-echo
+publish_call true /tmp/publish_dryrun_before.json
 hr
 echo "Review /tmp/publish_dryrun_before.json (asset/file counts, move sizes)."
+echo "NOTE: counts/sizes may be inflated because directory_child rows are counted"
+echo "      in addition to the parent directory listing. This is a known cosmetic"
+echo "      issue and does not affect correctness of the update."
 confirm "Dry-run (before) looks right?"
 
 ########################################
@@ -172,7 +225,7 @@ echo "Move command finished."
 ########################################
 hr
 echo "STEP 4: Verify destination and source after move"
-echo "Destination (should list 69 objects, 197149183431 bytes):"
+echo "Destination (should list the expected number of objects and bytes):"
 aws s3 ls "${DST_URI}" --recursive --summarize --region "${REGION}"
 hr
 echo "Source current versions (should be EMPTY — only delete markers remain):"
@@ -186,11 +239,7 @@ confirm "Destination complete and source empty?"
 hr
 echo "STEP 5: dry_run=true publish call (after move) — should report ~0 moves,"
 echo "        because every asset is already at its public/ key."
-curl -sS -X POST \
-  "${PUBLISH_URL}?dry_run=true" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -H "accept: application/json" | tee /tmp/publish_dryrun_after.json
-echo
+publish_call true /tmp/publish_dryrun_after.json
 hr
 echo "Review /tmp/publish_dryrun_after.json — move_assets_result sizes should be ~0"
 echo "(the endpoint sees sources as already-moved), and completed should be true."
@@ -206,11 +255,7 @@ echo "        rows, and single-file assets. No large copy happens (all already m
 hr
 confirm "Execute the REAL publish now?"
 
-curl -sS -X POST \
-  "${PUBLISH_URL}?dry_run=false" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -H "accept: application/json" | tee /tmp/publish_real.json
-echo
+publish_call false /tmp/publish_real.json
 hr
 echo "Review /tmp/publish_real.json — expect completed=true and message 'made public'."
 echo

@@ -891,6 +891,10 @@ class MEModel(
         uselist=False,
         foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
         lazy="joined",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        passive_deletes=False,
+        back_populates="calibrated_entity",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
@@ -1516,7 +1520,9 @@ class ValidationResult(Entity):
 
     name: Mapped[str] = mapped_column(index=True)
 
-    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
     validated_entity: Mapped[Entity] = relationship(
         "Entity",
         uselist=False,
@@ -1535,11 +1541,14 @@ class MEModelCalibrationResult(Entity):
     holding_current: Mapped[float]
     threshold_current: Mapped[float]
     rin: Mapped[float | None]
-    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
-    calibrated_entity: Mapped[Entity] = relationship(
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("memodel.id", ondelete="CASCADE"), index=True
+    )
+    calibrated_entity: Mapped["MEModel"] = relationship(
         "MEModel",
         uselist=False,
         foreign_keys=[calibrated_entity_id],
+        back_populates="calibration_result",
     )
 
     __mapper_args__ = {  # ruff:ignore[mutable-class-default]

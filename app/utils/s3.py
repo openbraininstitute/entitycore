@@ -1,3 +1,4 @@
+import base64
 import math
 import os
 import threading
@@ -140,36 +141,42 @@ def get_s3_client(storage: StorageUnion) -> S3Client:
     return clients[storage.type]
 
 
-def upload_to_s3(
+def upload_to_s3_single_part(
     s3_client: S3Client,
     file_obj: IO,
     bucket_name: str,
     s3_key: str,
-) -> bool:
-    """Upload an object to an S3 bucket.
+) -> str | None:
+    """Upload an object via ``put_object`` and return its SHA256 digest in hex.
+
+    S3 computes the checksum server-side (``ChecksumAlgorithm=SHA256``), avoiding a
+    second read of the payload. Only use for files within ``API_ASSET_POST_MAX_SIZE``.
 
     Args:
         s3_client: S3 client instance.
-        file_obj: file-like object.
+        file_obj: file-like object positioned at the start of the content.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+
+    Returns:
+        SHA256 hex digest, or ``None`` if the upload failed.
     """
     try:
-        s3_client.upload_fileobj(
-            file_obj,
+        response = s3_client.put_object(
+            Body=file_obj,
             Bucket=bucket_name,
             Key=s3_key,
-            Config=TransferConfig(
-                multipart_threshold=settings.S3_MULTIPART_UPLOAD_THRESHOLD,
-                multipart_chunksize=settings.S3_MULTIPART_UPLOAD_CHUNKSIZE,
-                max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
-            ),
+            ChecksumAlgorithm="SHA256",
         )
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
-        return False
+        return None
+    checksum_b64 = response.get("ChecksumSHA256")
+    if not checksum_b64:
+        L.error("S3 did not return a SHA256 checksum for s3://{}/{}", bucket_name, s3_key)
+        return None
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
-    return True
+    return base64.b64decode(checksum_b64).hex()
 
 
 def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:

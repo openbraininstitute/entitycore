@@ -484,7 +484,7 @@ def test_upload_entity_asset_invalid_content_type(client, entity):
 
 def test_upload_entity_asset_s3_failure(client, entity):
     """Test upload when S3 upload fails."""
-    with patch("app.service.asset.upload_to_s3", return_value=False):
+    with patch("app.service.asset.upload_to_s3_single_part", return_value=None):
         response = _upload_entity_asset(
             client,
             entity_type=entity.type,
@@ -584,7 +584,7 @@ def test_upload_entity_asset_admin_non_authorized(clients, entity):
 
 @pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
 def test_upload_entity_asset_admin_s3_failure(client_admin, entity):
-    with patch("app.service.admin.upload_to_s3", return_value=False):
+    with patch("app.service.asset.upload_to_s3_single_part", return_value=None):
         response = _upload_entity_asset_admin(
             client_admin,
             entity_type=entity.type,

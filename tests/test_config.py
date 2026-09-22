@@ -8,6 +8,7 @@ def test_multipart_upload_size_valid(monkeypatch):
     monkeypatch.setenv("S3_MULTIPART_UPLOAD_MAX_SIZE", str(5 * 1024**3))
     monkeypatch.setenv("S3_MULTIPART_UPLOAD_MAX_PART_SIZE", str(5 * 1024**2))
     monkeypatch.setenv("S3_MULTIPART_UPLOAD_MAX_PARTS", "2000")
+    monkeypatch.setenv("API_ASSET_POST_MAX_SIZE", str(1024**2))
 
     settings = Settings()
 
@@ -22,6 +23,24 @@ def test_multipart_upload_size_invalid(monkeypatch):
     monkeypatch.setenv("S3_MULTIPART_UPLOAD_MAX_PARTS", "100")
 
     with pytest.raises(ValueError, match="S3 multipart upload max size outside allowed limits"):
+        Settings()
+
+
+def test_api_asset_post_max_size_valid(monkeypatch):
+    monkeypatch.setenv("API_ASSET_POST_MAX_SIZE", str(5 * 1024**3))
+
+    settings = Settings()
+
+    assert settings.API_ASSET_POST_MAX_SIZE <= settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE
+
+
+def test_api_asset_post_max_size_invalid(monkeypatch):
+    monkeypatch.setenv("API_ASSET_POST_MAX_SIZE", str(6 * 1024**3))
+
+    with pytest.raises(
+        ValueError,
+        match="API_ASSET_POST_MAX_SIZE must not exceed S3_MULTIPART_UPLOAD_MAX_PART_SIZE",
+    ):
         Settings()
 
 

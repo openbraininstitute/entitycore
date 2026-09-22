@@ -159,7 +159,7 @@ def test_delete_one(db, clients, public_json_data):
     )
 
 
-def test_deletion_cascades(db, clients, memodel_id):
+def test_deletion_cascades_classifications(db, clients, memodel_id):
     check_deletion_cascades(
         db=db,
         route=ROUTE,

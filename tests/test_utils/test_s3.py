@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import io
 import math
 from unittest.mock import Mock
@@ -379,3 +381,53 @@ def test_move_directory_dry_run(s3, s3_internal_bucket):
     assert result.size == 3
     assert _exists(s3, bucket, "srcdir2/c.txt")
     assert not _exists(s3, bucket, "dstdir2/c.txt")
+
+
+def test_upload_to_s3_single_part(s3, s3_internal_bucket):
+    data = b"single part content"
+    expected = hashlib.sha256(data).hexdigest()
+
+    result = test_module.upload_to_s3_single_part(
+        s3,
+        file_obj=io.BytesIO(data),
+        bucket_name=s3_internal_bucket,
+        s3_key="single/part.txt",
+    )
+
+    assert result == expected
+    assert _read(s3, s3_internal_bucket, "single/part.txt") == data
+    # sanity: the returned digest is what S3 stored
+    head = s3.head_object(Bucket=s3_internal_bucket, Key="single/part.txt", ChecksumMode="ENABLED")
+    assert base64.b64decode(head["ChecksumSHA256"]).hex() == result
+
+
+def test_upload_to_s3_single_part_upload_error():
+    """put_object raising is caught and reported as a failed upload."""
+    s3_client = Mock()
+    s3_client.put_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "AccessDenied", "Message": "denied"}}, "PutObject"
+    )
+
+    result = test_module.upload_to_s3_single_part(
+        s3_client,
+        file_obj=io.BytesIO(b"data"),
+        bucket_name="bucket",
+        s3_key="key.txt",
+    )
+
+    assert result is None
+
+
+def test_upload_to_s3_single_part_missing_checksum():
+    """A response without ChecksumSHA256 is treated as a failed upload."""
+    s3_client = Mock()
+    s3_client.put_object.return_value = {}
+
+    result = test_module.upload_to_s3_single_part(
+        s3_client,
+        file_obj=io.BytesIO(b"data"),
+        bucket_name="bucket",
+        s3_key="key.txt",
+    )
+
+    assert result is None

@@ -1,7 +1,6 @@
 import uuid
-from typing import cast
 
-from fastapi import HTTPException, UploadFile
+from fastapi import UploadFile
 from starlette.responses import RedirectResponse
 
 from app.config import storages
@@ -30,21 +29,18 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service.asset import (
     create_asset_download_redirect,
-    create_entity_asset_unverified,
     directory_multipart_upload_complete_unverified,
     directory_multipart_upload_initiate_unverified,
     list_directory_unverified,
     multipart_upload_complete_unverified,
     multipart_upload_initiate_unverified,
     register_entity_asset_unverified,
-    validate_uploadfile_for_small_entity_post,
+    upload_and_create_entity_asset,
 )
 from app.types import EntityRoute, ResourceRoute
-from app.utils.files import calculate_sha256_digest
 from app.utils.routers import entity_route_to_type, route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
-    upload_to_s3,
 )
 
 
@@ -178,33 +174,17 @@ def upload_entity_asset(
     meta: dict | None = None,
 ) -> AssetRead:
     """Upload an asset through admin flow."""
-    storage = storages[StorageType.aws_s3_internal]
-    s3_client = storage_client_factory(storage)
-    content_type = validate_uploadfile_for_small_entity_post(file)
-    sha256_digest = calculate_sha256_digest(file)
     entity, virtual_lab_id = _get_entity_and_vlab(repos, virtual_lab_client, entity_type, entity_id)
-    asset_db = create_entity_asset_unverified(
+    return upload_and_create_entity_asset(
         repos,
         entity=entity,
-        filename=cast("str", file.filename),
-        content_type=content_type,
-        size=file.size or 0,
-        sha256_digest=sha256_digest,
-        meta=meta,
-        label=label,
-        is_directory=False,
-        storage_type=storage.type,
         user_profile=user_context.profile,
         virtual_lab_id=virtual_lab_id,
+        storage_client_factory=storage_client_factory,
+        file=file,
+        label=label,
+        meta=meta,
     )
-    if not upload_to_s3(
-        s3_client,
-        file_obj=file.file,
-        bucket_name=storage.bucket,
-        s3_key=asset_db.full_path,
-    ):
-        raise HTTPException(status_code=500, detail="Failed to upload object")
-    return AssetRead.model_validate(asset_db)
 
 
 def register_entity_asset(

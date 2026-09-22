@@ -46,7 +46,7 @@ from app.service.asset_helpers import (
     initiate_multipart_upload,
 )
 from app.types import EntityRoute
-from app.utils.files import calculate_sha256_digest, get_content_type
+from app.utils.files import get_content_type
 from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
@@ -54,7 +54,7 @@ from app.utils.s3 import (
     check_object,
     generate_presigned_url,
     list_directory_with_details,
-    upload_to_s3,
+    upload_to_s3_single_part,
     validate_filename,
     validate_filesize,
     validate_multipart_filesize,
@@ -230,70 +230,64 @@ def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
         )
 
 
-def create_entity_asset(  # ruff:ignore[too-many-arguments]
+def upload_and_create_entity_asset(
     repos: RepositoryGroup,
     *,
-    user_context: UserContext,
-    entity_type: EntityType,
-    entity_id: uuid.UUID,
-    filename: str,
-    content_type: ContentType,
-    size: int,
-    sha256_digest: str | None,
-    meta: dict | None,
+    entity: Entity,
+    user_profile: UserProfile,
+    virtual_lab_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    file: UploadFile,
     label: AssetLabel,
-    is_directory: bool,
-    storage_type: StorageType,
-    full_path: str | None = None,
-    status: AssetStatus = AssetStatus.CREATED,
-    parent_id: uuid.UUID | None = None,
+    meta: dict | None,
 ) -> AssetRead:
-    """Create an asset for the specified entity id and type.
+    """Upload a small file to S3 and create its asset row.
+
+    Shared by the standard and admin upload flows. The caller is responsible for
+    resolving ``entity`` and ``virtual_lab_id`` (including any authorization checks).
+
+    The asset row is created first, then the file is uploaded to S3 (which computes its
+    SHA256 digest in a single request) and the digest is set on the row. The upload is
+    the last step, so if it fails the surrounding request transaction is rolled back and
+    no orphan row or object is left behind.
 
     Args:
         repos: Repository group for database access.
-        user_context: User context for authorization.
-        entity_type: Type of the entity the asset is associated with.
-        entity_id: ID of the entity the asset is associated with.
-        filename: Name of the file to be stored in the asset path.
-        content_type: Content type of the asset.
-        size: Size of the asset in bytes.
-        sha256_digest: Optional sha256 digest of the asset content.
-        meta: Optional metadata dictionary to store additional information about the asset.
-        label: Label for categorizing the asset.
-        is_directory: Whether the asset represents a directory (True) or a file (False).
-        storage_type: The storage type where the asset will be stored.
-        full_path: Optional full path for the asset in storage. If not provided, it will be
-            automatically constructed based on conventions.
-        status: Initial status of the asset. Defaults to CREATED.
-        parent_id: Optional ID of the parent asset if this asset is a sub-path of a directory asset.
+        entity: The writable entity the asset is associated with.
+        user_profile: The uploader's profile.
+        virtual_lab_id: The virtual lab used to construct the S3 path.
+        storage_client_factory: Factory returning an S3 client for a storage.
+        file: The uploaded file.
+        label: Label categorizing the asset.
+        meta: Optional metadata to store with the asset.
     """
-    entity = entity_service.get_writable_entity_by_context(
+    storage = storages[StorageType.aws_s3_internal]
+    s3_client = storage_client_factory(storage)
+    content_type = validate_uploadfile_for_small_entity_post(file)
+    asset_db = create_entity_asset_unverified(
         repos,
-        user_context=user_context,
-        entity_type=entity_type,
-        entity_id=entity_id,
+        entity=entity,
+        filename=cast("str", file.filename),
+        content_type=content_type,
+        size=file.size or 0,
+        sha256_digest=None,
+        meta=meta,
+        label=label,
+        is_directory=False,
+        storage_type=storage.type,
+        user_profile=user_profile,
+        virtual_lab_id=virtual_lab_id,
     )
-    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
-    return AssetRead.model_validate(
-        create_entity_asset_unverified(
-            repos,
-            entity=entity,
-            filename=filename,
-            content_type=content_type,
-            size=size,
-            sha256_digest=sha256_digest,
-            meta=meta,
-            label=label,
-            is_directory=is_directory,
-            storage_type=storage_type,
-            full_path=full_path,
-            status=status,
-            parent_id=parent_id,
-            user_profile=user_context.profile,
-            virtual_lab_id=virtual_lab_id,
-        )
+    sha256_digest = upload_to_s3_single_part(
+        s3_client,
+        file_obj=file.file,
+        bucket_name=storage.bucket,
+        s3_key=asset_db.full_path,
     )
+    if sha256_digest is None:
+        raise HTTPException(status_code=500, detail="Failed to upload object")
+    asset_db.sha256_digest = bytes.fromhex(sha256_digest)
+    return AssetRead.model_validate(asset_db)
 
 
 def validate_uploadfile_for_small_entity_post(file: UploadFile) -> ContentType:
@@ -339,33 +333,28 @@ def upload_entity_asset(
     label: AssetLabel,
     meta: dict | None = None,
 ) -> AssetRead:
-    """Upload a small file asset for standard project-authorized users."""
-    storage = storages[StorageType.aws_s3_internal]
-    s3_client = storage_client_factory(storage)
-    content_type = validate_uploadfile_for_small_entity_post(file)
-    sha256_digest = calculate_sha256_digest(file)
-    asset_read = create_entity_asset(
-        repos=repos,
+    """Upload a small file asset for standard project-authorized users.
+
+    The entity's writability is verified before the file is uploaded and its asset row
+    is created (see ``upload_and_create_entity_asset``).
+    """
+    entity = entity_service.get_writable_entity_by_context(
+        repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
-        filename=cast("str", file.filename),
-        content_type=content_type,
-        size=file.size or 0,
-        sha256_digest=sha256_digest,
-        meta=meta,
-        label=label,
-        is_directory=False,
-        storage_type=storage.type,
     )
-    if not upload_to_s3(
-        s3_client,
-        file_obj=file.file,
-        bucket_name=storage.bucket,
-        s3_key=asset_read.full_path,
-    ):
-        raise HTTPException(status_code=500, detail="Failed to upload object")
-    return asset_read
+    virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+    return upload_and_create_entity_asset(
+        repos,
+        entity=entity,
+        user_profile=user_context.profile,
+        virtual_lab_id=virtual_lab_id,
+        storage_client_factory=storage_client_factory,
+        file=file,
+        label=label,
+        meta=meta,
+    )
 
 
 def delete_entity_asset(

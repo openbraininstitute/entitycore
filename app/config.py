@@ -130,6 +130,10 @@ class Settings(BaseSettings):
         ):
             msg = "S3 multipart upload max size outside allowed limits."
             raise ValueError(msg)
+        if self.API_ASSET_POST_MAX_SIZE > self.S3_MULTIPART_UPLOAD_MAX_PART_SIZE:
+            # The simple POST uploads with a single PutObject, capped at 5 GiB.
+            msg = "API_ASSET_POST_MAX_SIZE must not exceed S3_MULTIPART_UPLOAD_MAX_PART_SIZE"
+            raise ValueError(msg)
         return self
 
 

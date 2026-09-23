@@ -533,6 +533,7 @@ class AssetLabel(StrEnum):
     efeature_extraction_figures = auto()
     efeature_extraction_cells = auto()
     efeature_extraction_protocols = auto()
+    current_report = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -982,6 +983,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ],
     },
     EntityType.simulation_result: {
+        AssetLabel.current_report: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation current report.",
+            ),
+        ],
         AssetLabel.spike_report: [
             LabelRequirements(
                 content_type=ContentType.h5,

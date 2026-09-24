@@ -106,7 +106,7 @@ if TYPE_CHECKING:
     from app.db.session import DatabaseSessionManager
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def _setup_env_variables():
     # Mock AWS Credentials for moto
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
@@ -115,7 +115,7 @@ def _setup_env_variables():
     os.environ["AWS_SESSION_TOKEN"] = "testing"  # ruff:ignore[hardcoded-password-string]
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def _configure_logging():
     configure_logging()
 
@@ -388,7 +388,7 @@ def _override_check_user_info(
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def _override_embedding_generation(monkeypatch):
     """Mock the embedding generation to avoid making actual OpenAI API calls during tests."""
 
@@ -508,7 +508,7 @@ def clients(
     )
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def db(session_client, monkeypatch) -> Iterator[Session]:
     """Yield a session that shares a transaction with all app requests for this test.
 

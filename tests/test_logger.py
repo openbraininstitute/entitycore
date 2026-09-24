@@ -6,7 +6,7 @@ from loguru import logger
 from app import logger as test_module
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def _simulate_sentry_logging_patch(monkeypatch):
     """Wrap Logger.callHandlers with an extra frame, as sentry's LoggingIntegration does.
 

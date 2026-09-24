@@ -103,7 +103,9 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: SecretStr | None = None
 
-    VIRTUAL_LAB_API_URL: str = "https://staging.cell-a.openbraininstute.org/api/virtual-lab-manager"
+    VIRTUAL_LAB_API_URL: str = (
+        "https://staging.cell-a.openbraininstitute.org/api/virtual-lab-manager"
+    )
 
     @field_validator("DB_URI", mode="before")
     @classmethod

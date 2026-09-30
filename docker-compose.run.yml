@@ -24,8 +24,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio:
-        condition: service_started
+      rustfs-init:
+        condition: service_completed_successfully
 
   db:
     profiles: [run]
@@ -52,23 +52,59 @@ services:
     - -clog_min_duration_statement=100ms
     - -clog_lock_waits=on
 
-  minio:
-    image: minio/minio:latest
+  rustfs:
+    image: rustfs/rustfs:1.0.0
     environment:
-      MINIO_ROOT_USER: entitycore
-      MINIO_ROOT_PASSWORD: entitycore
+      RUSTFS_ACCESS_KEY: entitycore
+      RUSTFS_SECRET_KEY: entitycore
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: :9000
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: :9001
     ports:
-      - 127.0.0.1:9000:9000
-      - 127.0.0.1:9001:9001
+    - 127.0.0.1:9000:9000
+    - 127.0.0.1:9001:9001
     volumes:
-    - s3data:/data
+    - rustfsdata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
+    restart: unless-stopped
+
+  # One-off job creating the local buckets; names must match the defaults in app/config.py
+  rustfs-init:
+    image: amazon/aws-cli:2.37.6
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: entitycore
+      AWS_SECRET_ACCESS_KEY: entitycore
+      AWS_ENDPOINT_URL: http://rustfs:9000
+      AWS_DEFAULT_REGION: us-east-1
+    restart: "no"
     entrypoint: sh
     command:
-      - -cx
-      - |
-        mkdir -p /data/entitycore-data-dev &&
-        minio server /data --console-address :9001
+    - -ec
+    - |
+      for bucket in entitycore-data-dev openbluebrain; do
+        aws s3api head-bucket --bucket "$$bucket" 2>/dev/null || aws s3api create-bucket --bucket "$$bucket"
+      done
+      aws s3api put-bucket-versioning --bucket entitycore-data-dev \
+        --versioning-configuration Status=Enabled
+      aws s3api put-bucket-policy --bucket openbluebrain --policy '{
+        "Version": "2012-10-17",
+        "Statement": [
+          {"Effect": "Allow", "Principal": "*", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::openbluebrain/*"},
+          {"Effect": "Allow", "Principal": "*", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::openbluebrain"}
+        ]
+      }'
+      echo "Buckets ready"
 
 volumes:
   pgdata: {}
-  s3data: {}
+  rustfsdata: {}

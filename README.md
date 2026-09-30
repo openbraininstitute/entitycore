@@ -30,8 +30,10 @@ If everything worked correctly, you can access the openapi docs at http://127.0.
 Note that the following ports are required by entitycore, so they shouldn't be already allocated by other services:
 
 - `127.0.0.1:8000` for entitycore
-- `127.0.0.1:9000-9001` for minio
+- `127.0.0.1:9000-9001` for RustFS (S3 API / console, login `entitycore` / `entitycore`)
 - `127.0.0.1:5433` for postgresql
+
+The local S3 storage was previously provided by MinIO. If you have an old MinIO volume, you can remove it with `docker volume rm entitycore_s3data` (the prefix is the Docker Compose project name, by default the name of the directory).
 
 ## Run tests in Docker
 

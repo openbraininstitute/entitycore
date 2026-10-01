@@ -3,6 +3,7 @@ import hashlib
 import io
 import math
 from unittest.mock import Mock
+from urllib.parse import urlparse
 
 import botocore.exceptions
 import pytest
@@ -431,3 +432,67 @@ def test_upload_to_s3_single_part_missing_checksum():
     )
 
     assert result is None
+
+
+def test_apply_presigned_url_netloc_unset(monkeypatch):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", None)
+    url = "http://rustfs:9000/bucket/key?X-Amz-Signature=abc"
+    assert test_module._apply_presigned_url_netloc(url) == url
+
+
+def test_apply_presigned_url_netloc_set(monkeypatch):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", "127.0.0.1:9000")
+    url = "http://rustfs:9000/bucket/key?X-Amz-Signature=abc"
+    result = test_module._apply_presigned_url_netloc(url)
+    assert urlparse(result).netloc == "127.0.0.1:9000"
+    # only the authority changes; path and query are preserved
+    assert urlparse(result).path == "/bucket/key"
+    assert urlparse(result).query == urlparse(url).query
+
+
+def test_generate_presigned_url_applies_netloc(s3, s3_internal_bucket, monkeypatch):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", "127.0.0.1:9000")
+    url = test_module.generate_presigned_url(
+        s3, operation="get_object", bucket_name=s3_internal_bucket, s3_key="some/key.txt"
+    )
+    assert url is not None
+    assert urlparse(url).netloc == "127.0.0.1:9000"
+
+
+def test_multipart_upload_create_part_presigned_url_applies_netloc(
+    s3, s3_internal_bucket, monkeypatch
+):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", "127.0.0.1:9000")
+    upload_id = test_module.multipart_upload_initiate(
+        s3,
+        bucket=s3_internal_bucket,
+        s3_key="some/key.txt",
+        content_type="application/octet-stream",
+    )
+    url = test_module.multipart_upload_create_part_presigned_url(
+        s3,
+        bucket=s3_internal_bucket,
+        s3_key="some/key.txt",
+        upload_id=upload_id,
+        part_number=1,
+    )
+    assert urlparse(url).netloc == "127.0.0.1:9000"
+
+
+def test_multipart_upload_create_part_presigned_url_no_netloc(s3, s3_internal_bucket, monkeypatch):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", None)
+    upload_id = test_module.multipart_upload_initiate(
+        s3,
+        bucket=s3_internal_bucket,
+        s3_key="some/key2.txt",
+        content_type="application/octet-stream",
+    )
+    url = test_module.multipart_upload_create_part_presigned_url(
+        s3,
+        bucket=s3_internal_bucket,
+        s3_key="some/key2.txt",
+        upload_id=upload_id,
+        part_number=1,
+    )
+    # unchanged: netloc remains whatever the moto client produced (not 127.0.0.1:9000)
+    assert urlparse(url).netloc != "127.0.0.1:9000"

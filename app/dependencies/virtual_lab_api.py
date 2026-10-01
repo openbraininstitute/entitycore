@@ -11,15 +11,17 @@ from app.utils.virtual_lab import AdminVirtualLabClient
 
 def get_admin_virtual_lab_client(
     _user_context: AdminContextDep,
-    token: Annotated[HTTPAuthorizationCredentials, Depends(AuthHeader)],
+    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
 ) -> Iterator[AdminVirtualLabClient]:
     """Yield an admin client for the virtual lab API and close it after the request.
 
     Note: Virtual lab admin is determined by entitycore admin role.
+
+    When ``APP_DISABLE_AUTH`` is enabled the client is built with an empty token and left unused.
     """
     client = AdminVirtualLabClient(
         base_url=settings.VIRTUAL_LAB_API_URL,
-        token=token.credentials,
+        token=token.credentials if token else "",
     )
     try:
         yield client

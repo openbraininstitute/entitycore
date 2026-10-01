@@ -83,6 +83,22 @@ def test_get_admin_virtual_lab_client_ignores_user_context(
     assert str(client._http_client.base_url) == virtual_lab_api_url
 
 
+def test_get_admin_virtual_lab_client_without_token(
+    user_context_admin,
+    virtual_lab_api_url,
+):
+    """When auth is disabled there is no token: the client is still built with an empty one."""
+    gen = test_module.get_admin_virtual_lab_client(
+        user_context_admin,
+        None,
+    )
+    client = next(gen)
+
+    assert isinstance(client, AdminVirtualLabClient)
+    assert str(client._http_client.base_url) == virtual_lab_api_url
+    assert client._http_client.headers["Authorization"] == "Bearer "
+
+
 def test_get_virtual_lab_by_project_success(
     httpx2_mock,
     virtual_lab_api_url,

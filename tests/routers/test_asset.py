@@ -385,6 +385,38 @@ def test_upload_entity_asset(client, entity, monkeypatch):
         assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
 
 
+def test_upload_entity_asset_auth_disabled_resolves_vlab(client, entity, monkeypatch):
+    """With APP_DISABLE_AUTH the vlab is resolved from headers even without Keycloak groups."""
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+
+    def groupless_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        # Mimic the APP_DISABLE_AUTH branch of user_verified: headers set, no groups.
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="Admin User"),
+            expiration=None,
+            is_authorized=True,
+            is_service_admin=True,
+            virtual_lab_id=project_context.virtual_lab_id,
+            project_id=project_context.project_id,
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", groupless_check_user_info)
+
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
+    assert response.status_code == 201, f"Failed to create asset: {response.text}"
+    data = response.json()
+    # the vlab from the headers (VIRTUAL_LAB_ID) is used to build the S3 path
+    assert data["full_path"] == _get_expected_full_path(entity, path="morph.asc")
+
+
 @pytest.mark.parametrize(
     ("client_fixture", "expected_status", "expected_error"),
     [

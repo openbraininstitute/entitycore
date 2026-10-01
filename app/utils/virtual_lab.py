@@ -4,6 +4,7 @@ from uuid import UUID
 
 import httpx2
 
+from app.config import settings
 from app.errors import ApiError, ApiErrorCode
 from app.schemas.auth import UserContext
 from app.schemas.virtual_lab import ProjectVirtualLabMapping
@@ -35,7 +36,13 @@ class AdminVirtualLabClient(VirtualLabClient):
 
 
 def resolve_virtual_lab_id(user_context: UserContext, project_id: uuid.UUID) -> uuid.UUID:
-    """Resolve the virtual lab id from the user context, raising if not found."""
+    """Resolve the virtual lab id from the user context, raising if not found.
+
+    When ``APP_DISABLE_AUTH`` is enabled it falls back to the header virtual lab id or the
+    ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID`` default, since Keycloak is unavailable in local dev.
+    """
+    if settings.APP_DISABLE_AUTH:
+        return user_context.virtual_lab_id or settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
     vlab_id = user_context.find_virtual_lab_from_project_id(project_id=project_id)
     if vlab_id is None:
         raise ApiError(

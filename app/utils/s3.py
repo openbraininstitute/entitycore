@@ -213,6 +213,18 @@ def delete_asset_storage_object(
             raise HTTPException(status_code=500, detail="Failed to delete object")
 
 
+def _apply_presigned_url_netloc(url: str) -> str:
+    """Rewrite the presigned URL netloc with ``S3_PRESIGNED_URL_NETLOC`` when configured.
+
+    Only the authority (host:port) is replaced, keeping the signature valid; used to make URLs
+    reachable from the host when the service talks to S3 via a docker-internal hostname.
+    """
+    if settings.S3_PRESIGNED_URL_NETLOC:
+        parsed = urlparse(url)
+        return urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
+    return url
+
+
 def generate_presigned_url(
     s3_client: S3Client, operation: str, bucket_name: str, s3_key: str
 ) -> str | None:
@@ -231,12 +243,9 @@ def generate_presigned_url(
             Params={"Bucket": bucket_name, "Key": s3_key},
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
-        if settings.S3_PRESIGNED_URL_NETLOC:
-            parsed = urlparse(url)
-            url = urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
-    return url
+    return _apply_presigned_url_netloc(url) if url is not None else None
 
 
 def multipart_upload_initiate(
@@ -270,8 +279,8 @@ def multipart_upload_create_part_presigned_url(
     s3_key: str,
     upload_id: str,
     part_number: int,
-):
-    return s3_client.generate_presigned_url(
+) -> str:
+    url = s3_client.generate_presigned_url(
         "upload_part",
         Params={
             "Bucket": bucket,
@@ -281,6 +290,7 @@ def multipart_upload_create_part_presigned_url(
         },
         ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
     )
+    return _apply_presigned_url_netloc(url)
 
 
 def multipart_upload_list_parts(

@@ -69,7 +69,8 @@ test-docker: build  ## Run tests in Docker
 
 run-local: ## Run the application locally
 	@$(call load_env,run-local)
-	docker compose up --wait db minio
+	docker compose up --wait db rustfs
+	docker compose run --rm rustfs-init
 	uv run -m alembic upgrade head
 	uv run -m app run --host $(UVICORN_HOST) --port $(UVICORN_PORT) --reload
 

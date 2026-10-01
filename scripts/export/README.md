@@ -139,4 +139,3 @@ The public assets can be extracted and imported, for example:
 
 - in a new S3 bucket with `aws s3 sync`
 - in a new S3 bucket that is mounted r/w with `mount-s3`
-- in the local instance of minio, by mounting the directory as the `/data/aws_s3_internal` volume.

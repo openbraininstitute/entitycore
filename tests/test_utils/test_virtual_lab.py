@@ -33,7 +33,9 @@ def test_resolve_virtual_lab_id_from_groups():
             )
         ],
     )
-    assert test_module.resolve_virtual_lab_id(user_context, UUID(PROJECT_ID)) == UUID(VIRTUAL_LAB_ID)
+    assert test_module.resolve_virtual_lab_id(user_context, UUID(PROJECT_ID)) == UUID(
+        VIRTUAL_LAB_ID
+    )
 
 
 def test_resolve_virtual_lab_id_not_found_raises():
@@ -48,7 +50,9 @@ def test_resolve_virtual_lab_id_auth_disabled_uses_header_vlab(monkeypatch):
     monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
     # No groups, but the virtual-lab-id header is set: it takes precedence.
     user_context = _user_context(virtual_lab_id=UUID(VIRTUAL_LAB_ID), project_id=UUID(PROJECT_ID))
-    assert test_module.resolve_virtual_lab_id(user_context, UUID(PROJECT_ID)) == UUID(VIRTUAL_LAB_ID)
+    assert test_module.resolve_virtual_lab_id(user_context, UUID(PROJECT_ID)) == UUID(
+        VIRTUAL_LAB_ID
+    )
 
 
 def test_resolve_virtual_lab_id_auth_disabled_uses_fallback(monkeypatch):

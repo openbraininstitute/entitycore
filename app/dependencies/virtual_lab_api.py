@@ -6,19 +6,27 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.config import settings
 from app.dependencies.auth import AdminContextDep, AuthHeader
-from app.utils.virtual_lab import AdminVirtualLabClient
+from app.utils.virtual_lab import (
+    AdminVirtualLabClient,
+    AdminVirtualLabClientProtocol,
+    DisabledAuthVirtualLabClient,
+)
 
 
 def get_admin_virtual_lab_client(
     _user_context: AdminContextDep,
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
-) -> Iterator[AdminVirtualLabClient]:
+) -> Iterator[AdminVirtualLabClientProtocol]:
     """Yield an admin client for the virtual lab API and close it after the request.
 
     Note: Virtual lab admin is determined by entitycore admin role.
 
-    When ``APP_DISABLE_AUTH`` is enabled the client is built with an empty token and left unused.
+    When ``APP_DISABLE_AUTH`` is enabled a no-op client is yielded, as the virtual lab API is
+    not available in local dev and the virtual lab id is resolved from the headers instead.
     """
+    if settings.APP_DISABLE_AUTH:
+        yield DisabledAuthVirtualLabClient()
+        return
     client = AdminVirtualLabClient(
         base_url=settings.VIRTUAL_LAB_API_URL,
         token=token.credentials if token else "",
@@ -30,6 +38,6 @@ def get_admin_virtual_lab_client(
 
 
 AdminVirtualLabClientDep = Annotated[
-    AdminVirtualLabClient,
+    AdminVirtualLabClientProtocol,
     Depends(get_admin_virtual_lab_client),
 ]

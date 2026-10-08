@@ -13,7 +13,11 @@ from app.config import settings
 from app.dependencies import virtual_lab_api as test_module
 from app.errors import ApiError, ApiErrorCode
 from app.schemas.virtual_lab import ProjectVirtualLabMapping
-from app.utils.virtual_lab import AdminVirtualLabClient, VirtualLabClient
+from app.utils.virtual_lab import (
+    AdminVirtualLabClient,
+    DisabledAuthVirtualLabClient,
+    VirtualLabClient,
+)
 
 from tests.utils import PROJECT_ID, TOKEN_ADMIN, VIRTUAL_LAB_ID
 
@@ -83,20 +87,21 @@ def test_get_admin_virtual_lab_client_ignores_user_context(
     assert str(client._http_client.base_url) == virtual_lab_api_url
 
 
-def test_get_admin_virtual_lab_client_without_token(
+def test_get_admin_virtual_lab_client_auth_disabled(
     user_context_admin,
-    virtual_lab_api_url,
+    monkeypatch,
 ):
-    """When auth is disabled there is no token: the client is still built with an empty one."""
+    """When APP_DISABLE_AUTH is enabled a no-op client is yielded that raises if used."""
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
     gen = test_module.get_admin_virtual_lab_client(
         user_context_admin,
         None,
     )
     client = next(gen)
 
-    assert isinstance(client, AdminVirtualLabClient)
-    assert str(client._http_client.base_url) == virtual_lab_api_url
-    assert client._http_client.headers["Authorization"] == "Bearer "
+    assert isinstance(client, DisabledAuthVirtualLabClient)
+    with pytest.raises(RuntimeError, match="APP_DISABLE_AUTH"):
+        client.get_virtual_lab_by_project(UUID(PROJECT_ID))
 
 
 def test_get_virtual_lab_by_project_success(

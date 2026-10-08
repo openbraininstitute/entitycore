@@ -1,5 +1,6 @@
 import uuid
 from http import HTTPStatus
+from typing import Protocol
 from uuid import UUID
 
 import httpx2
@@ -9,6 +10,14 @@ from app.errors import ApiError, ApiErrorCode
 from app.schemas.auth import UserContext
 from app.schemas.virtual_lab import ProjectVirtualLabMapping
 from app.utils.http import make_http_request
+
+
+class AdminVirtualLabClientProtocol(Protocol):
+    """Interface used by the service layer to resolve a virtual lab from a project."""
+
+    def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping: ...
+
+    def close(self) -> None: ...
 
 
 class VirtualLabClient:
@@ -33,6 +42,22 @@ class AdminVirtualLabClient(VirtualLabClient):
             method="GET",
         )
         return ProjectVirtualLabMapping.model_validate(response.json()["data"])
+
+
+class DisabledAuthVirtualLabClient:
+    """No-op admin client used when ``APP_DISABLE_AUTH`` is enabled.
+
+    The virtual lab API is neither reachable nor authenticated in local dev, so the virtual lab
+    id is resolved via ``resolve_virtual_lab_id`` instead. This client exists only to satisfy the
+    dependency and raises if it is ever actually used.
+    """
+
+    def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping:  # ruff:ignore[no-self-use, unused-method-argument]
+        msg = "Virtual lab API is not available when APP_DISABLE_AUTH is enabled."
+        raise RuntimeError(msg)
+
+    def close(self) -> None:
+        """No underlying resource to release."""
 
 
 def resolve_virtual_lab_id(user_context: UserContext, project_id: uuid.UUID) -> uuid.UUID:

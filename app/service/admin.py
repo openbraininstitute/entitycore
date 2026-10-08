@@ -9,7 +9,7 @@ from app.db.types import AssetLabel, EntityType, StorageType
 from app.db.utils import ENTITY_TYPE_TO_CLASS, RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.virtual_lab_api import AdminVirtualLabClient
+from app.dependencies.virtual_lab_api import AdminVirtualLabClientProtocol
 from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilterDep
 from app.queries import crud
@@ -48,7 +48,7 @@ from app.utils.virtual_lab import resolve_virtual_lab_id
 def _get_entity_and_vlab(
     repos: RepositoryGroup,
     user_context: UserContext,
-    virtual_lab_client: AdminVirtualLabClient,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
     entity_type: EntityType,
     entity_id: uuid.UUID,
 ) -> tuple[Entity, uuid.UUID]:
@@ -171,7 +171,7 @@ def download_entity_asset(
 def upload_entity_asset(
     repos: RepositoryGroup,
     user_context: UserContext,
-    virtual_lab_client: AdminVirtualLabClient,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
     storage_client_factory: StorageClientFactory,
     entity_id: uuid.UUID,
     entity_type: EntityType,
@@ -198,7 +198,7 @@ def upload_entity_asset(
 def register_entity_asset(
     repos: RepositoryGroup,
     user_context: UserContext,
-    virtual_lab_client: AdminVirtualLabClient,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
     storage_client_factory: StorageClientFactory,
     entity_id: uuid.UUID,
     entity_type: EntityType,
@@ -220,7 +220,7 @@ def register_entity_asset(
 def multipart_upload_initiate(
     repos: RepositoryGroup,
     user_context: UserContext,
-    virtual_lab_client: AdminVirtualLabClient,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
     storage_client_factory: StorageClientFactory,
     entity_id: uuid.UUID,
     entity_type: EntityType,
@@ -255,7 +255,7 @@ def list_directory(
 def directory_multipart_upload_initiate(
     repos: RepositoryGroup,
     user_context: UserContext,
-    virtual_lab_client: AdminVirtualLabClient,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
     storage_client_factory: StorageClientFactory,
     entity_id: uuid.UUID,
     entity_type: EntityType,

@@ -1,7 +1,7 @@
 """Api exceptions."""
 
 import dataclasses
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import StrEnum, auto
 from http import HTTPStatus
@@ -11,6 +11,7 @@ from psycopg2.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueVi
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 
+from app.logger import LogLevel
 from app.utils.enum import UpperStrEnum
 
 
@@ -64,6 +65,7 @@ class ApiError(Exception):
     error_code: ApiErrorCode
     http_status_code: HTTPStatus | int = HTTPStatus.BAD_REQUEST
     details: Any = None
+    log_level: LogLevel = "WARNING"
 
     def __repr__(self) -> str:
         """Return the repr of the error."""
@@ -88,7 +90,7 @@ class ApiError(Exception):
 @contextmanager
 def ensure_result(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_NOT_FOUND
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when no results are found after executing a query."""
     try:
         yield
@@ -97,13 +99,14 @@ def ensure_result(
             message=error_message,
             error_code=error_code,
             http_status_code=HTTPStatus.NOT_FOUND,
+            log_level="INFO",
         ) from err
 
 
 @contextmanager
 def ensure_uniqueness(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_DUPLICATED
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a UniqueViolation is raised."""
     try:
         yield
@@ -120,7 +123,7 @@ def ensure_uniqueness(
 @contextmanager
 def ensure_foreign_keys_integrity(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
     try:
         yield
@@ -138,7 +141,7 @@ def ensure_foreign_keys_integrity(
 @contextmanager
 def ensure_authorized_references(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when an InsufficientPrivilage error is raised."""
     try:
         yield
@@ -154,7 +157,7 @@ def ensure_authorized_references(
 @contextmanager
 def ensure_valid_schema(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a schema validation error is raised."""
     try:
         yield

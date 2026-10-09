@@ -1,6 +1,6 @@
 """Database session utils."""
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from sqlalchemy import Engine, create_engine
@@ -43,7 +43,7 @@ class DatabaseSessionManager:
         return self._engine
 
     @contextmanager
-    def session(self) -> Iterator[Session]:
+    def session(self) -> Generator[Session]:
         """Yield a new database session."""
         with Session(
             self.engine,

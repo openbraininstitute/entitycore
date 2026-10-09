@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from unittest.mock import ANY
 
@@ -15,7 +15,7 @@ from tests.utils import ADMIN_SUB_ID, AUTH_HEADER_ADMIN
 
 
 @asynccontextmanager
-async def _lifespan(_: FastAPI) -> AsyncIterator[dict]:
+async def _lifespan(_: FastAPI) -> AsyncGenerator[dict]:
     http_client = httpx2.Client()
     try:
         yield {"http_client": http_client}

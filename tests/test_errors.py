@@ -18,6 +18,7 @@ def test_errors():
     assert error.error_code == "INVALID_REQUEST"
     assert error.http_status_code == 400
     assert error.details is None
+    assert error.log_level == "WARNING"
 
     assert repr(error) == (
         "ApiError(message='Test error', error_code=INVALID_REQUEST, "
@@ -38,6 +39,7 @@ def test_ensure_result(db):
     assert exc_info.value.http_status_code == 404
     assert exc_info.value.error_code == test_module.ApiErrorCode.ENTITY_NOT_FOUND
     assert exc_info.value.message == "Custom error"
+    assert exc_info.value.log_level == "INFO"
 
 
 def test_ensure_uniqueness(db, user_id):

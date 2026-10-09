@@ -8,6 +8,7 @@ import traceback
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Literal
 
 import loguru
 import sqlalchemy.exc
@@ -17,6 +18,9 @@ from app.config import settings
 from app.context import request_context_provider
 
 L = logger
+
+# Supported subset of loguru levels (excludes TRACE and SUCCESS).
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class InterceptHandler(logging.Handler):

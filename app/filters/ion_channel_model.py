@@ -25,9 +25,9 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
 
     is_ljp_corrected: bool | None = None
     is_temperature_dependent: bool | None = None
-    temperature_celsius: int | None = None
-    temperature_celsius__lte: int | None = None
-    temperature_celsius__gte: int | None = None
+    temperature_celsius: float | None = None
+    temperature_celsius__lte: float | None = None
+    temperature_celsius__gte: float | None = None
     is_stochastic: bool | None = None
     conductance_name: str | None = None
     conductance_name__isnull: bool | None = None

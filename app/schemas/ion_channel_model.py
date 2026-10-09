@@ -31,7 +31,7 @@ class IonChannelModelBaseMixin(NameDescriptionMixin):
     nmodl_suffix: str
     is_ljp_corrected: bool = False
     is_temperature_dependent: bool = False
-    temperature_celsius: int | None
+    temperature_celsius: float | None
     is_stochastic: bool = False
     neuron_block: NeuronBlock
     conductance_name: str | None = None

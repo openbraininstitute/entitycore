@@ -87,6 +87,14 @@ def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
 
 
+def test_fractional_temperature(client, json_data):
+    data = assert_request(client.post, url=ROUTE, json=json_data | {"temperature_celsius": 34.5})
+    assert data.json()["temperature_celsius"] == pytest.approx(34.5)
+
+    data = assert_request(client.get, url=ROUTE, params={"temperature_celsius": 34.5}).json()
+    assert [d["temperature_celsius"] for d in data["data"]] == [pytest.approx(34.5)]
+
+
 def test_update_one(clients, json_data):
     check_entity_update_one(
         route=ROUTE,

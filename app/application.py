@@ -74,7 +74,8 @@ async def api_error_handler(request: Request, exception: ApiError) -> Response:
         error_code=exception.error_code,
         details=exception.details,
     )
-    L.warning(
+    L.log(
+        exception.log_level,
         "API error in {} {}: {}, cause: {}",
         request.method,
         request.url,

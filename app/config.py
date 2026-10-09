@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     APP_VERSION: str | None = None
     APP_DEBUG: bool = False
     APP_DISABLE_AUTH: bool = False
+    # Fallback virtual lab id used only when APP_DISABLE_AUTH is true and no header is provided.
+    APP_DISABLE_AUTH_VIRTUAL_LAB_ID: uuid.UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
     UUID_NAMESPACE: uuid.UUID = uuid.UUID("f87b7d5f-9155-4f24-9490-af32f6164ea4")
 
     COMMIT_SHA: str | None = None

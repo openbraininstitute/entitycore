@@ -1372,7 +1372,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
 
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    temperature_celsius: Mapped[int | None]
+    temperature_celsius: Mapped[float | None]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]

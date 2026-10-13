@@ -1,4 +1,5 @@
 import base64
+import itertools
 import math
 import os
 import threading
@@ -12,11 +13,11 @@ import boto3.session
 import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
 from types_boto3_s3 import S3Client
 from types_boto3_s3.type_defs import (
     CopySourceTypeDef,
     DeleteObjectRequestTypeDef,
+    ObjectIdentifierTypeDef,
     PaginatorConfigTypeDef,
 )
 
@@ -29,6 +30,9 @@ from app.utils.common import clip
 
 PUBLIC_ASSET_PREFIX = "public/"
 PRIVATE_ASSET_PREFIX = "private/"
+
+# S3 DeleteObjects accepts at most 1000 keys per request.
+S3_DELETE_OBJECTS_MAX_KEYS = 1000
 
 _thread_local = threading.local()
 
@@ -179,38 +183,109 @@ def upload_to_s3_single_part(
     return base64.b64decode(checksum_b64).hex()
 
 
-def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
-    """Delete an object from an S3 bucket.
+def delete_objects_batch(
+    s3_client: S3Client,
+    *,
+    bucket_name: str,
+    keys: list[str],
+) -> list[str]:
+    """Delete objects from an S3 bucket in batches of up to 1000 keys.
+
+    Never raises: per-key and per-request failures are collected and returned so the caller can
+    log them as orphans. No ``VersionId`` is passed, so versioning-enabled buckets keep a
+    recoverable previous version behind a delete marker.
 
     Args:
         s3_client: S3 client instance.
         bucket_name: name of the S3 bucket.
-        s3_key: S3 object key (file path in the bucket).
+        keys: object keys to delete.
+
+    Returns:
+        The list of keys that failed to delete (empty if all succeeded).
     """
-    try:
-        response = s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
-    except Exception:  # ruff:ignore[blind-except]
-        L.exception("Error while deleting file from s3://{}/{}", bucket_name, s3_key)
-        return False
-    # if using versioning-enabled buckets, we could store the version id for recovery
-    version_id = response.get("VersionId")
-    L.info(
-        "File deleted successfully from s3://{}/{}?versionId={}", bucket_name, s3_key, version_id
-    )
-    return True
+    failed_keys: list[str] = []
+    for chunk in itertools.batched(keys, S3_DELETE_OBJECTS_MAX_KEYS):
+        objects: list[ObjectIdentifierTypeDef] = [{"Key": key} for key in chunk]
+        try:
+            response = s3_client.delete_objects(
+                Bucket=bucket_name,
+                Delete={"Objects": objects, "Quiet": True},
+            )
+        except Exception:  # ruff:ignore[blind-except]
+            L.exception(
+                "Error while batch-deleting {} objects from s3://{}", len(chunk), bucket_name
+            )
+            failed_keys.extend(chunk)
+            continue
+        for error in response.get("Errors", []):
+            key = error.get("Key", "")
+            L.error(
+                "Failed to delete s3://{}/{}: {} {}",
+                bucket_name,
+                key,
+                error.get("Code"),
+                error.get("Message"),
+            )
+            failed_keys.append(key)
+    return failed_keys
 
 
-def delete_asset_storage_object(
-    *, storage_type: StorageType, s3_key: str, storage_client_factory: StorageClientFactory
-):
-    """Delete asset storage object."""
-    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
+def delete_storage_objects(
+    *,
+    storage_type: StorageType,
+    s3_keys: list[str],
+    storage_client_factory: StorageClientFactory,
+) -> None:
+    """Delete the given objects from a storage.
+
+    Never raises: failed keys are logged as orphans. Open (public) storages are left untouched.
+
+    Args:
+        storage_type: Storage type of the objects.
+        s3_keys: S3 object keys to delete.
+        storage_client_factory: Factory returning an S3 client for the storage.
+    """
     storage = storages[storage_type]
-    # delete the file from S3 only if not using an open data storage
-    if not storage.is_open:
-        s3_client = storage_client_factory(storage)
-        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=s3_key):
-            raise HTTPException(status_code=500, detail="Failed to delete object")
+    if storage.is_open or not s3_keys:
+        return
+    s3_client = storage_client_factory(storage)
+    failed_keys = delete_objects_batch(s3_client, bucket_name=storage.bucket, keys=s3_keys)
+    if failed_keys:
+        L.error("Failed to delete {} object(s) from s3://{}", len(failed_keys), storage.bucket)
+
+
+def delete_directory_storage_objects(
+    *,
+    storage_type: StorageType,
+    s3_prefix: str,
+    storage_client_factory: StorageClientFactory,
+) -> None:
+    """Recursively delete all objects under an S3 prefix.
+
+    Never raises: failed keys are logged as orphans. An empty prefix is refused as a blast-radius
+    guard, and open (public) storages are left untouched.
+
+    Args:
+        storage_type: Storage type of the directory asset.
+        s3_prefix: The directory asset ``full_path`` (common prefix) on S3.
+        storage_client_factory: Factory returning an S3 client for the storage.
+    """
+    storage = storages[storage_type]
+    if storage.is_open:
+        return
+
+    prefix = ensure_directory_prefix(s3_prefix)
+    if not prefix.strip("/"):
+        L.error("Refusing to recursively delete empty S3 prefix on bucket {}", storage.bucket)
+        return
+
+    s3_client = storage_client_factory(storage)
+    objects = list_directory_with_details(s3_client, bucket_name=storage.bucket, prefix=prefix)
+    delete_storage_objects(
+        storage_type=storage_type,
+        s3_keys=[f"{prefix}{name}" for name in objects],
+        storage_client_factory=storage_client_factory,
+    )
 
 
 def _apply_presigned_url_netloc(url: str) -> str:

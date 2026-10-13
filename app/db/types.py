@@ -204,6 +204,8 @@ class TaskConfigType(StrEnum):
     circuit_simplification__config = auto()
     circuit_single_build__campaign = auto()
     circuit_single_build__config = auto()
+    memodel_build__campaign = auto()
+    memodel_build__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -241,6 +243,8 @@ class TaskActivityType(StrEnum):
     circuit_simplification__execution = auto()
     circuit_single_build__config_generation = auto()
     circuit_single_build__execution = auto()
+    memodel_build__config_generation = auto()
+    memodel_build__execution = auto()
 
 
 class AgentType(StrEnum):

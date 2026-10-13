@@ -9,7 +9,7 @@ import botocore.exceptions
 import pytest
 
 from app.config import settings
-from app.db.types import EntityType
+from app.db.types import EntityType, StorageType
 from app.utils import s3 as test_module
 
 from tests.utils import PROJECT_ID, VIRTUAL_LAB_ID
@@ -496,3 +496,162 @@ def test_multipart_upload_create_part_presigned_url_no_netloc(s3, s3_internal_bu
     )
     # unchanged: netloc remains whatever the moto client produced (not 127.0.0.1:9000)
     assert urlparse(url).netloc != "127.0.0.1:9000"
+
+
+def test_delete_objects_batch_all_succeed(s3, s3_internal_bucket):
+    """All keys are deleted; no failures are reported."""
+    keys = [f"batch/file_{i}.txt" for i in range(5)]
+    for key in keys:
+        _upload(s3, s3_internal_bucket, key, b"x")
+
+    failed = test_module.delete_objects_batch(s3, bucket_name=s3_internal_bucket, keys=keys)
+
+    assert failed == []
+    for key in keys:
+        assert not _exists(s3, s3_internal_bucket, key)
+
+
+def test_delete_objects_batch_chunks_over_1000(s3, s3_internal_bucket, monkeypatch):
+    """More than one chunk is issued when keys exceed the per-request limit."""
+    # shrink the limit so the test stays fast while still exercising chunking
+    monkeypatch.setattr(test_module, "S3_DELETE_OBJECTS_MAX_KEYS", 2)
+    keys = [f"chunk/file_{i}.txt" for i in range(5)]
+    for key in keys:
+        _upload(s3, s3_internal_bucket, key, b"x")
+
+    delete_objects_spy = Mock(wraps=s3.delete_objects)
+    monkeypatch.setattr(s3, "delete_objects", delete_objects_spy)
+
+    failed = test_module.delete_objects_batch(s3, bucket_name=s3_internal_bucket, keys=keys)
+
+    assert failed == []
+    # ceil(5 / 2) == 3 calls
+    assert delete_objects_spy.call_count == 3
+    for key in keys:
+        assert not _exists(s3, s3_internal_bucket, key)
+
+
+def test_delete_objects_batch_reports_errors_without_raising():
+    """Per-key errors from S3 are returned as failed keys, not raised."""
+    s3_client = Mock()
+    s3_client.delete_objects.return_value = {
+        "Deleted": [{"Key": "a.txt"}],
+        "Errors": [{"Key": "b.txt", "Code": "AccessDenied", "Message": "denied"}],
+    }
+
+    failed = test_module.delete_objects_batch(
+        s3_client, bucket_name="bucket", keys=["a.txt", "b.txt"]
+    )
+
+    assert failed == ["b.txt"]
+
+
+def test_delete_objects_batch_client_error_returns_chunk():
+    """If delete_objects itself raises, the whole chunk is reported as failed, not raised."""
+    s3_client = Mock()
+    s3_client.delete_objects.side_effect = RuntimeError("boom")
+
+    failed = test_module.delete_objects_batch(
+        s3_client, bucket_name="bucket", keys=["a.txt", "b.txt"]
+    )
+
+    assert set(failed) == {"a.txt", "b.txt"}
+
+
+def test_delete_directory_storage_objects_removes_all(s3, s3_internal_bucket):
+    """Every object under the directory prefix is removed, including nested keys."""
+    prefix = "private/vlab/proj/assets/dir/entity-123"
+    for key in ["a.txt", "b.txt", "nested/c.txt"]:
+        _upload(s3, s3_internal_bucket, f"{prefix}/{key}", b"data")
+    # a sibling prefix must NOT be touched
+    _upload(s3, s3_internal_bucket, f"{prefix}_other/x.txt", b"keep")
+
+    test_module.delete_directory_storage_objects(
+        storage_type=StorageType.aws_s3_internal,
+        s3_prefix=prefix,
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    for key in ["a.txt", "b.txt", "nested/c.txt"]:
+        assert not _exists(s3, s3_internal_bucket, f"{prefix}/{key}")
+    # the promiscuous sibling prefix survived thanks to ensure_directory_prefix
+    assert _exists(s3, s3_internal_bucket, f"{prefix}_other/x.txt")
+
+
+def test_delete_directory_storage_objects_empty_prefix_is_noop(s3, s3_internal_bucket):
+    """An empty / suspiciously short prefix is refused without deleting anything."""
+    _upload(s3, s3_internal_bucket, "something/keep.txt", b"keep")
+
+    delete_objects_spy = Mock(wraps=s3.delete_objects)
+    s3.delete_objects = delete_objects_spy
+
+    test_module.delete_directory_storage_objects(
+        storage_type=StorageType.aws_s3_internal,
+        s3_prefix="",
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    delete_objects_spy.assert_not_called()
+    assert _exists(s3, s3_internal_bucket, "something/keep.txt")
+
+
+def test_delete_directory_storage_objects_open_storage_is_noop(s3, s3_open_bucket):
+    """Deletion never touches an open (public) storage."""
+    prefix = "public/vlab/proj/assets/dir/entity-456"
+    _upload(s3, s3_open_bucket, f"{prefix}/a.txt", b"keep")
+
+    test_module.delete_directory_storage_objects(
+        storage_type=StorageType.aws_s3_open,
+        s3_prefix=prefix,
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    assert _exists(s3, s3_open_bucket, f"{prefix}/a.txt")
+
+
+def test_delete_directory_storage_objects_no_version_id_leaves_previous_version(
+    s3, s3_internal_bucket
+):
+    """Delete leaves a delete marker; the previous version remains recoverable in S3."""
+    prefix = "private/vlab/proj/assets/dir/entity-789"
+    key = f"{prefix}/versioned.txt"
+    _upload(s3, s3_internal_bucket, key, b"v1")
+
+    test_module.delete_directory_storage_objects(
+        storage_type=StorageType.aws_s3_internal,
+        s3_prefix=prefix,
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    # current version is gone (head_object returns 404 on a delete marker)
+    assert not _exists(s3, s3_internal_bucket, key)
+    # but a non-current version still exists because no VersionId was passed on delete
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=key)
+    assert any(v["Key"] == key for v in versions.get("Versions", []))
+
+
+def test_delete_storage_objects(s3, s3_internal_bucket):
+    keys = ["files/a.txt", "files/b.txt"]
+    for key in keys:
+        _upload(s3, s3_internal_bucket, key, b"x")
+
+    test_module.delete_storage_objects(
+        storage_type=StorageType.aws_s3_internal,
+        s3_keys=keys,
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    for key in keys:
+        assert not _exists(s3, s3_internal_bucket, key)
+
+
+def test_delete_storage_objects_open_storage_is_noop(s3, s3_open_bucket):
+    _upload(s3, s3_open_bucket, "files/open.txt", b"keep")
+
+    test_module.delete_storage_objects(
+        storage_type=StorageType.aws_s3_open,
+        s3_keys=["files/open.txt"],
+        storage_client_factory=lambda _storage: s3,
+    )
+
+    assert _exists(s3, s3_open_bucket, "files/open.txt")

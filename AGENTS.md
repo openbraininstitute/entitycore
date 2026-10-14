@@ -59,21 +59,19 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 
 ## Adding a New Entity
 
-For non-trivial designs, write a design record first (`docs/design/README.md`).
-
 1. SQLAlchemy model → `app/db/model.py` (docstring with an "Assets:" section)
 2. Enum value → `app/db/types.py` (`EntityType`)
-3. Route → `app/types.py` (`EntityRoute` member with the same name as the `EntityType` member, e.g. `research_log = auto()`; the value, used in URLs, is hyphenated automatically: `research-log`)
+3. Route → `app/types.py` (`EntityRoute` member named like the `EntityType`; URL value is auto-hyphenated)
 4. Asset labels → `app/db/types.py` (`AssetLabel`, `ALLOWED_ASSET_LABELS_PER_ENTITY`; new `ContentType` also needs `CONTENT_TYPE_TO_SUFFIX`), then `make update-asset-labels`
 5. Schema → `app/schemas/<entity>.py`
 6. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
-7. Service → `app/service/<entity>.py` (functions used by the generic router registration)
+7. Service → `app/service/<entity>.py`
 8. Router → `app/routers/<entity>.py` (`create_user_router` + `register_default_admin_routes`)
 9. Register router → `app/routers/__init__.py` (import + `authenticated_routers`)
-10. Migration → `make migration MESSAGE="Add <entity>"` (creates a schema revision and an "Update triggers" revision, e.g. for `description_vector`; review both)
+10. Migration → `make migration MESSAGE="Add <entity>"` (review both the schema and "Update triggers" revisions)
 11. Tests → `tests/test_<entity>.py`
 
-Simple project-scoped entity to copy: `AnalysisNotebookResult` (model, schema, filter, service, router, tests).
+Simple project-scoped entity to copy: `AnalysisNotebookResult`.
 
 ## Testing Rules
 

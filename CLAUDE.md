@@ -16,7 +16,8 @@ Package manager: uv | Linter: ruff | Type checker: pyright | Line length: 100
 - `app/routers/common.py` — shared router utilities
 - `app/schemas/<entity>.py` — Pydantic request/response schemas
 - `app/service/<entity>.py` — business logic
-- `app/repository/<entity>.py` — DB queries
+- `app/queries/common.py` — generic CRUD queries used by the services (`router_create_one`, `router_read_many`, ...)
+- `app/repository/` — repositories for assets (no per-entity repositories)
 - `app/filters/<entity>.py` — fastapi-filter definitions (query params, ordering, nested filters)
 - `app/filters/base.py` — `CustomFilter` base class (extends fastapi-filter with aliases, nested sort, ilike search)
 - `app/dependencies/` — FastAPI dependency injection
@@ -60,14 +61,21 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 
 ## Adding a New Entity
 
-1. SQLAlchemy model → `app/db/model.py`
-2. Enum value → `app/db/types.py` (EntityType)
-3. Schema → `app/schemas/<entity>.py`
-4. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
-5. Router → `app/routers/<entity>.py`
-6. Register router → `app/application.py`
-7. Migration → `make migration MESSAGE="Add <entity>"`
-8. Tests → `tests/test_<entity>.py`
+For non-trivial designs, write a design record first (`docs/design/README.md`).
+
+1. SQLAlchemy model → `app/db/model.py` (docstring with an "Assets:" section)
+2. Enum value → `app/db/types.py` (`EntityType`)
+3. Route → `app/types.py` (`EntityRoute`; member name must equal the `EntityType` name)
+4. Asset labels → `app/db/types.py` (`AssetLabel`, `ALLOWED_ASSET_LABELS_PER_ENTITY`; new `ContentType` also needs `CONTENT_TYPE_TO_SUFFIX`), then `make update-asset-labels`
+5. Schema → `app/schemas/<entity>.py`
+6. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
+7. Service → `app/service/<entity>.py` (functions used by the generic router registration)
+8. Router → `app/routers/<entity>.py` (`create_user_router` + `register_default_admin_routes`)
+9. Register router → `app/routers/__init__.py` (import + `authenticated_routers`)
+10. Migration → `make migration MESSAGE="Add <entity>"` (creates a schema revision and an "Update triggers" revision, e.g. for `description_vector`; review both)
+11. Tests → `tests/test_<entity>.py`
+
+Simple project-scoped entity to copy: `AnalysisNotebookResult` (model, schema, filter, service, router, tests).
 
 ## Testing Rules
 

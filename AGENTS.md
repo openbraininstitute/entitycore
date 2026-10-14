@@ -63,7 +63,7 @@ For non-trivial designs, write a design record first (`docs/design/README.md`).
 
 1. SQLAlchemy model → `app/db/model.py` (docstring with an "Assets:" section)
 2. Enum value → `app/db/types.py` (`EntityType`)
-3. Route → `app/types.py` (`EntityRoute`; member name must equal the `EntityType` name)
+3. Route → `app/types.py` (`EntityRoute` member with the same name as the `EntityType` member, e.g. `research_log = auto()`; the value, used in URLs, is hyphenated automatically: `research-log`)
 4. Asset labels → `app/db/types.py` (`AssetLabel`, `ALLOWED_ASSET_LABELS_PER_ENTITY`; new `ContentType` also needs `CONTENT_TYPE_TO_SUFFIX`), then `make update-asset-labels`
 5. Schema → `app/schemas/<entity>.py`
 6. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)

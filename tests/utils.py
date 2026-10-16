@@ -786,6 +786,28 @@ def check_authorization(
     assert len(data) == 2
     assert {row["id"] for row in data} == {private_u1_0["id"], private_u1_1["id"]}
 
+    # client_user_1 wants only public entities from other projects
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": True, "authorized_project_id__neq": PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 1
+    assert {row["id"] for row in data} == {public_u2_0["id"]}
+
+    # client_user_1 excludes the other project: only their own entities remain
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_project_id__neq": UNRELATED_PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 3
+    assert {row["id"] for row in data} == {
+        public_u1_0["id"],
+        private_u1_0["id"],
+        private_u1_1["id"],
+    }
+
 
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
     db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)

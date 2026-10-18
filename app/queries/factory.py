@@ -174,6 +174,14 @@ class _SpecRegistry:
             join=JoinSpec(join=lambda q: q.join(a, self._m.morphology_id == a.id)),
         )
 
+    def spec_morphology__generated_derivation(self) -> _Spec:
+        morphology = self._a(CellMorphology, "morphology")
+        a = self._a(Derivation, "morphology.generated_derivation")
+        return _Spec(
+            facet=None,
+            join=JoinSpec(join=lambda q: q.join(a, morphology.id == a.generated_id)),
+        )
+
     def spec_exemplar_morphology(self) -> _Spec:
         a = self._a(CellMorphology, "exemplar_morphology")
         return _Spec(

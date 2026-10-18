@@ -179,7 +179,7 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[MEModelRead]:
 
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "species",
         "morphology",
@@ -191,6 +191,7 @@ def _read_many(
         "etype",
         "strain",
     ]
+    filter_keys = [*facet_keys, "morphology.generated_derivation"]
     name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MEModel,
         facet_keys=facet_keys,

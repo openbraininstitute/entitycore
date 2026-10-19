@@ -27,7 +27,7 @@ class ResearchLog(Entity, NameDescriptionVectorMixin):
         category (str | None): Free-text category used to group research logs.
 
     Assets:
-        - a markdown file with label `research_log`.
+        - a markdown file with label `research_log_document`.
         - an optional directory with label `research_log_files`.
     """
 
@@ -43,10 +43,10 @@ class ResearchLog(Entity, NameDescriptionVectorMixin):
 
 | Label | Kind | Content type | Purpose |
 |---|---|---|---|
-| `research_log` | file | `text/markdown` (new `ContentType.markdown`, suffixes `.md`, `.markdown`) | The logbook |
+| `research_log_document` | file | `text/markdown` (new `ContentType.markdown`, suffixes `.md`, `.markdown`) | The logbook |
 | `research_log_files` | directory | — | Files embedded or referenced by the logbook (figures, small data files) |
 
-Links in the markdown are relative paths inside the `research_log_files` directory (e.g. `![](figures/fig1.png)`), so the frontend can resolve them through the directory listing and download endpoints.
+The label names the role of the file, not its format, so other formats can be accepted later by adding content types to the label. Links in the markdown are relative paths inside the `research_log_files` directory (e.g. `![](figures/fig1.png)`), so the frontend can resolve them through the directory listing and download endpoints.
 
 ### Links to other entities
 

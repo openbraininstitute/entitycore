@@ -31,12 +31,8 @@ class _ResponseInfo:
 class RequestContextMiddleware:
     """Pure ASGI middleware to initialize request context and log access.
 
-    Logged timings:
-
-    - process_time_ms: time until the response headers are sent (or until the failure, if the
-      headers were never sent). It's the same value returned in the X-Process-Time header.
-    - total_time_ms: time until the response body has been fully sent. It includes the time spent
-      waiting for slow clients to receive the body.
+    The logged process_time_ms is the time until the response headers are sent (or until the
+    failure, if the headers were never sent), and it's the same value of the X-Process-Time header.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -70,8 +66,9 @@ class RequestContextMiddleware:
             await send(message)
 
         def log_fields() -> dict[str, Any]:
-            total_time = time.perf_counter() - start_time
-            process_time = info.process_time if info.process_time is not None else total_time
+            process_time = info.process_time
+            if process_time is None:
+                process_time = time.perf_counter() - start_time
             route = scope.get("route")
             return {
                 "method": request.method,
@@ -80,7 +77,6 @@ class RequestContextMiddleware:
                 "status_code": info.status_code,
                 "status_class": info.status_code // 100,
                 "process_time_ms": _to_ms(process_time),
-                "total_time_ms": _to_ms(total_time),
                 "client": request.client.host if request.client else "",
                 "forwarded_for": request.headers.get(HeaderKey.forwarded_for, ""),
                 "user_agent": request.headers.get(HeaderKey.user_agent, ""),

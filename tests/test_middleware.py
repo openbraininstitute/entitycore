@@ -134,7 +134,6 @@ def test_authenticated_request_context(logs, client_admin):
                 "status_code": 200,
                 "status_class": 2,
                 "process_time_ms": ANY,
-                "total_time_ms": ANY,
                 "response_size": ANY,
                 "client": "testclient",
                 "forwarded_for": "127.1.2.3",
@@ -171,7 +170,6 @@ def test_public_request_context(logs, client_no_auth):
                 "status_code": 200,
                 "status_class": 2,
                 "process_time_ms": ANY,
-                "total_time_ms": ANY,
                 "response_size": ANY,
                 "client": "testclient",
                 "forwarded_for": "127.1.2.3",
@@ -208,7 +206,6 @@ def test_error_request_context(logs, client_no_auth):
                 "status_code": 500,
                 "status_class": 5,
                 "process_time_ms": ANY,
-                "total_time_ms": ANY,
                 "client": "testclient",
                 "forwarded_for": "127.1.2.3",
                 "user_agent": "testclient",
@@ -244,8 +241,8 @@ def test_timings(logs, client_no_auth):
     assert result.content == b"firstsecond"
     [extra] = _completed_logs(logs)
     assert extra["process_time_ms"] == round(float(result.headers[HeaderKey.process_time]) * 1000)
+    # measured when the headers are sent, before streaming the body
     assert extra["process_time_ms"] < SLOW_STREAM_DELAY * 1000
-    assert extra["total_time_ms"] >= SLOW_STREAM_DELAY * 1000
     assert extra["response_size"] is None  # streaming response without content-length
 
 
@@ -268,7 +265,6 @@ def test_stream_error_request_context(logs, client_no_auth):
                 "status_code": 200,
                 "status_class": 2,
                 "process_time_ms": ANY,
-                "total_time_ms": ANY,
                 "client": "testclient",
                 "forwarded_for": "",
                 "user_agent": "testclient",

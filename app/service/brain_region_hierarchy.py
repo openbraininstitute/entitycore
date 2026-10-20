@@ -139,17 +139,22 @@ class _JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-HIERARCHY_CACHE = {}
+HIERARCHY_CACHE: dict[uuid.UUID, bytes] = {}
 
 
 def read_hierarchy(
     *,
     db: SessionDep,
     id_: uuid.UUID,
-):
-    if id_ in HIERARCHY_CACHE:
-        return HIERARCHY_CACHE[id_]
+) -> Response:
+    # Cache the body, not the Response: middlewares mutate the headers of the returned Response.
+    if (content := HIERARCHY_CACHE.get(id_)) is None:
+        content = _build_hierarchy_json(db=db, id_=id_)
+        HIERARCHY_CACHE[id_] = content
+    return Response(content=content, media_type="application/json")
 
+
+def _build_hierarchy_json(*, db: SessionDep, id_: uuid.UUID) -> bytes:
     query = sa.select(BrainRegion).filter(BrainRegion.hierarchy_id == id_)
 
     data = db.execute(query).scalars().fetchall()
@@ -178,7 +183,4 @@ def read_hierarchy(
         ]
 
     tree = build_tree(None)[0]
-    js = json.dumps(tree, cls=_JSONEncoder)
-    response = Response(content=js, media_type="application/json")
-    HIERARCHY_CACHE[id_] = response
-    return response
+    return json.dumps(tree, cls=_JSONEncoder).encode()

@@ -102,6 +102,7 @@ class Settings(BaseSettings):
     GC_CONTROL_ENABLED: bool = True
     GC_GEN1_INTERVAL_SECONDS: float = 5.0
     GC_GEN2_INTERVAL_SECONDS: float = 600.0
+    COMPRESSION_ENABLED: bool = True
 
     OPENAI_API_KEY: SecretStr | None = None
 

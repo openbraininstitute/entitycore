@@ -26,6 +26,7 @@ class _ResponseInfo:
     status_code: int = 500
     process_time: float | None = None
     response_size: int | None = None
+    content_encoding: str | None = None
 
 
 class RequestContextMiddleware:
@@ -62,6 +63,7 @@ class RequestContextMiddleware:
                 headers[HeaderKey.request_id] = request_id
                 content_length = headers.get(HeaderKey.content_length)
                 info.response_size = int(content_length) if content_length else None
+                info.content_encoding = headers.get(HeaderKey.content_encoding)
                 message = {**message, "headers": headers.raw}
             await send(message)
 
@@ -88,4 +90,9 @@ class RequestContextMiddleware:
             L.error("request_failed", **log_fields())
             raise
 
-        L.info("request_completed", **log_fields(), response_size=info.response_size)
+        L.info(
+            "request_completed",
+            **log_fields(),
+            response_size=info.response_size,
+            content_encoding=info.content_encoding,
+        )

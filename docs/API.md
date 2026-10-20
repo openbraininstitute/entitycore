@@ -370,6 +370,15 @@ A resource without an authorized_project_id is called a global resource.
 
 Global resources and public entities can be updated only by service admins.
 
+# Response compression:
+Responses are compressed according to the `Accept-Encoding` request header, preferring `zstd`, then `gzip`, regardless of the q-values (except `q=0`, which disables an encoding).
+Only responses of at least 500 bytes with a text-like content type (for example `application/json` or `text/html`) are compressed.
+Compressed responses have the `Content-Encoding` header, and all the responses that could be compressed have `Vary: Accept-Encoding`.
+
+Browsers and most HTTP clients decode the responses automatically. Python clients based on `httpx` advertise `zstd` only if the optional zstd package is installed, otherwise they receive `gzip`.
+
+Compression can be disabled in the service with `COMPRESSION_ENABLED=false`.
+
 
 
 ### To be looked at more:

@@ -16,6 +16,7 @@ from sqlalchemy.orm import configure_mappers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette_compress import CompressMiddleware
 
 from app.config import settings
 from app.db.session import configure_database_session_manager
@@ -29,7 +30,7 @@ from app.schemas.api import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     """Execute actions on server startup and shutdown."""
     L.info(
         "Starting application [PID={}, CPU_COUNT={}, ENVIRONMENT={}]",
@@ -137,36 +138,44 @@ async def http_exception_handler(request: Request, exception: StarletteHTTPExcep
     )
 
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION or "0.0.0",
-    debug=settings.APP_DEBUG,
-    lifespan=lifespan,
-    exception_handlers={
-        ApiError: api_error_handler,
-        RequestValidationError: validation_exception_handler,
-        StarletteHTTPException: http_exception_handler,
-    },
-    root_path=settings.ROOT_PATH,
-    redirect_slashes=False,
-    strict_content_type=False,
-)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-app.add_middleware(RequestContextMiddleware)
+def create_app() -> FastAPI:
+    """Create the FastAPI application, configured from the current settings."""
+    app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.APP_VERSION or "0.0.0",
+        debug=settings.APP_DEBUG,
+        lifespan=lifespan,
+        exception_handlers={
+            ApiError: api_error_handler,
+            RequestValidationError: validation_exception_handler,
+            StarletteHTTPException: http_exception_handler,
+        },
+        root_path=settings.ROOT_PATH,
+        redirect_slashes=False,
+        strict_content_type=False,
+    )
+    # Inside RequestContextMiddleware (added later), so that the compressed response_size is logged.
+    # Brotli is disabled because it uses much more memory than zstd.
+    if settings.COMPRESSION_ENABLED:
+        app.add_middleware(CompressMiddleware, brotli=False)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(RequestContextMiddleware)
+    app.include_router(
+        router,
+        responses={
+            404: {"description": "Not found", "model": ErrorResponse},
+            422: {"description": "Validation Error", "model": ErrorResponse},
+        },
+        dependencies=[Depends(forbid_extra_query_params)],
+    )
+    return app
 
 
-app.include_router(
-    router,
-    responses={
-        404: {"description": "Not found", "model": ErrorResponse},
-        422: {"description": "Validation Error", "model": ErrorResponse},
-    },
-    dependencies=[Depends(forbid_extra_query_params)],
-)
+app = create_app()

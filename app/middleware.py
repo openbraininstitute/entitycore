@@ -66,8 +66,8 @@ class RequestContextMiddleware:
             await send(message)
 
         def log_fields() -> dict[str, Any]:
-            process_time = info.process_time
-            if process_time is None:
+            # None if the app failed before sending the headers
+            if (process_time := info.process_time) is None:
                 process_time = time.perf_counter() - start_time
             route = scope.get("route")
             return {

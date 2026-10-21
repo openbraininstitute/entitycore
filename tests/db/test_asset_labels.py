@@ -49,7 +49,7 @@ def test_compartment_sets_asset_label_allowed_for_simulation():
 def test_circuit_morphology_pack_asset_label_takes_mpack_files_only():
     allowed = ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit]
 
-    def pack(path, content_type=ContentType.morphology_pack):
+    def pack(path, content_type=ContentType.mpack):
         return Mock(
             label=AssetLabel.circuit_morphology_pack,
             entity_type=EntityType.circuit,

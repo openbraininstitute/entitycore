@@ -471,6 +471,7 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
+    morphology_pack = "application/vnd.obi.morphology-pack"
     other = "application/octet-stream"
 
 
@@ -520,6 +521,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    circuit_morphology_pack = auto()
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
@@ -581,6 +583,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
+    ContentType.morphology_pack: (".mpack",),
     ContentType.other: (),
 }
 
@@ -764,6 +767,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description=(
                     "Circuit network statistics image B with pathway statistics or visualizations."
+                ),
+            )
+        ],
+        AssetLabel.circuit_morphology_pack: [
+            LabelRequirements(
+                content_type=ContentType.morphology_pack,
+                is_directory=False,
+                description=(
+                    "Morphologies of the circuit's biophysical neurons, simplified at several "
+                    "levels of detail and cut into chunks of space, for a viewer to stream."
                 ),
             )
         ],

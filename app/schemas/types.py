@@ -16,6 +16,7 @@ class HeaderKey(StrEnum):
     process_time = "X-Process-Time"
     user_agent = "User-Agent"
     content_length = "Content-Length"
+    content_encoding = "Content-Encoding"
 
 
 class PaginationRequest(Schema):

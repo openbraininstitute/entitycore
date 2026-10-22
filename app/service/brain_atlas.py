@@ -1,9 +1,16 @@
+import threading
+import time
 import uuid
 
+import cachetools
 import sqlalchemy as sa
+from cachetools.keys import hashkey
+from fastapi import Request, Response
+from pydantic import TypeAdapter
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 import app.queries.common
+from app.config import settings
 from app.db.model import BrainAtlas, BrainAtlasRegion, Contribution
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -23,6 +30,72 @@ from app.schemas.brain_atlas import (
 from app.schemas.brain_atlas_region import BrainAtlasRegionRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.utils.http_cache import CachedJson
+
+_REGIONS_ADAPTER = TypeAdapter(ListResponse[BrainAtlasRegionRead])
+
+
+def _regions_cache_key(
+    *, atlas_id: uuid.UUID, scope_project_id: uuid.UUID | None, _query_params: tuple, **_
+) -> tuple:
+    return hashkey(atlas_id, scope_project_id, _query_params)
+
+
+@cachetools.cached(
+    cache=cachetools.TTLCache(
+        maxsize=settings.BRAIN_ATLAS_REGIONS_CACHE_MAXSIZE_BYTES,
+        ttl=settings.BRAIN_ATLAS_REGIONS_CACHE_TTL_SECONDS,
+        timer=time.monotonic,
+        getsizeof=CachedJson.size,
+    ),
+    key=_regions_cache_key,
+    condition=threading.Condition(),  # concurrent requests wait for the first to fill the cache
+)
+def _read_many_region_json(
+    *,
+    atlas_id: uuid.UUID,
+    scope_project_id: uuid.UUID | None,
+    _query_params: tuple,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    brain_atlas_region_filter: BrainAtlasRegionFilterDep,
+) -> CachedJson:
+    result = app.queries.common.router_read_many(
+        db=db,
+        db_model_class=BrainAtlasRegion,
+        authorized_project_id=scope_project_id,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases=None,
+        apply_filter_query_operations=lambda q: q.filter(
+            BrainAtlasRegion.brain_atlas_id == atlas_id
+        ),
+        apply_data_query_operations=lambda s: s.options(selectinload(BrainAtlasRegion.assets)),
+        pagination_request=pagination_request,
+        response_schema_class=BrainAtlasRegionRead,
+        name_to_facet_query_params=None,
+        filter_model=brain_atlas_region_filter,
+    )
+    return CachedJson.from_content(_REGIONS_ADAPTER.dump_json(result, by_alias=True))
+
+
+def _has_private_regions(
+    *, db: SessionDep, atlas_id: uuid.UUID, project_id: uuid.UUID | None
+) -> bool:
+    if project_id is None:
+        return False
+    query = (
+        sa.select(sa.literal(1))
+        .select_from(BrainAtlasRegion)
+        .where(
+            BrainAtlasRegion.brain_atlas_id == atlas_id,
+            BrainAtlasRegion.authorized_project_id == project_id,
+            BrainAtlasRegion.authorized_public.is_(False),
+        )
+        .exists()
+    )
+    return db.execute(sa.select(query)).scalar_one()
 
 
 def _load_brain_atlas(query: sa.Select):
@@ -208,29 +281,26 @@ def delete_one(
 
 
 def read_many_region(
+    request: Request,
     user_context: UserContextDep,
     atlas_id: uuid.UUID,
     db: SessionDep,
     pagination_request: PaginationQuery,
     brain_atlas_region_filter: BrainAtlasRegionFilterDep,
-) -> ListResponse[BrainAtlasRegionRead]:
-    return app.queries.common.router_read_many(
-        db=db,
-        db_model_class=BrainAtlasRegion,
-        authorized_project_id=user_context.project_id,
-        with_search=None,
-        with_in_brain_region=None,
-        facets=None,
-        aliases=None,
-        apply_filter_query_operations=lambda q: q.filter(
-            BrainAtlasRegion.brain_atlas_id == atlas_id
-        ),
-        apply_data_query_operations=lambda s: s.options(selectinload(BrainAtlasRegion.assets)),
-        pagination_request=pagination_request,
-        response_schema_class=BrainAtlasRegionRead,
-        name_to_facet_query_params=None,
-        filter_model=brain_atlas_region_filter,
+) -> Response:
+    # Projects without private regions share the cached public regions.
+    has_private_regions = _has_private_regions(
+        db=db, atlas_id=atlas_id, project_id=user_context.project_id
     )
+    cached = _read_many_region_json(
+        atlas_id=atlas_id,
+        scope_project_id=user_context.project_id if has_private_regions else None,
+        _query_params=tuple(sorted(request.query_params.multi_items())),
+        db=db,
+        pagination_request=pagination_request,
+        brain_atlas_region_filter=brain_atlas_region_filter,
+    )
+    return cached.to_response(request)
 
 
 def read_one_region(

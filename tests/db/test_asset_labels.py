@@ -46,10 +46,10 @@ def test_compartment_sets_asset_label_allowed_for_simulation():
     assert allowed[AssetLabel.compartment_sets][0].content_type == "application/json"
 
 
-def test_circuit_morphology_pack_asset_label_takes_mpack_files_only():
+def test_circuit_morphology_pack_asset_label_takes_octet_streams_of_any_name():
     allowed = ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit]
 
-    def pack(path, content_type=ContentType.mpack):
+    def pack(path, content_type=ContentType.other):
         return Mock(
             label=AssetLabel.circuit_morphology_pack,
             entity_type=EntityType.circuit,
@@ -60,10 +60,10 @@ def test_circuit_morphology_pack_asset_label_takes_mpack_files_only():
         )
 
     validate_asset_label(pack("circuit.mpack"), allowed)
-    with pytest.raises(ValueError, match="Suffix"):
-        validate_asset_label(pack("circuit.pack"), allowed)
+    validate_asset_label(pack("circuit.pack"), allowed)
+    validate_asset_label(pack("circuit"), allowed)
     with pytest.raises(ValueError, match="content-types"):
-        validate_asset_label(pack("circuit.mpack", ContentType.other), allowed)
+        validate_asset_label(pack("circuit.mpack", ContentType.json), allowed)
 
 
 def test_validate_asset_label_rejects_label_not_allowed_for_task_result_type():

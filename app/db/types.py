@@ -471,7 +471,6 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
-    mpack = "application/vnd.obi.morphology-pack"
     other = "application/octet-stream"
 
 
@@ -583,7 +582,6 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
-    ContentType.mpack: (".mpack",),
     ContentType.other: (),
 }
 
@@ -772,7 +770,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ],
         AssetLabel.circuit_morphology_pack: [
             LabelRequirements(
-                content_type=ContentType.mpack,
+                content_type=ContentType.other,
                 is_directory=False,
                 description=(
                     "Morphologies of the circuit's biophysical neurons, simplified at several "

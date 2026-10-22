@@ -520,6 +520,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    circuit_morphology_pack = auto()
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
@@ -764,6 +765,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description=(
                     "Circuit network statistics image B with pathway statistics or visualizations."
+                ),
+            )
+        ],
+        AssetLabel.circuit_morphology_pack: [
+            LabelRequirements(
+                content_type=ContentType.other,
+                is_directory=False,
+                description=(
+                    "Morphologies of the circuit's biophysical neurons, simplified at several "
+                    "levels of detail and cut into chunks of space, for a viewer to stream."
                 ),
             )
         ],

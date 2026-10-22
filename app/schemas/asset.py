@@ -196,16 +196,13 @@ def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirem
                 "The label requirement for directory does not match `is_directory`"
             )
 
+        if not req.content_type or req.content_type != asset.content_type:
+            continue
+        # A content type with no suffix of its own, such as application/octet-stream, takes any.
+        suffixes = CONTENT_TYPE_TO_SUFFIX[req.content_type]
         suffix = Path(asset.path).suffix.lower()
-        if (
-            req.content_type
-            and req.content_type == asset.content_type
-            and suffix not in CONTENT_TYPE_TO_SUFFIX[req.content_type]
-        ):
-            suffix_errors.append(
-                f"Suffix for content-type {CONTENT_TYPE_TO_SUFFIX[req.content_type]} "
-                f"does not match {suffix}"
-            )
+        if suffixes and suffix not in suffixes:
+            suffix_errors.append(f"Suffix for content-type {suffixes} does not match {suffix}")
 
     if directory_errors:
         raise ValueError(directory_errors[0])

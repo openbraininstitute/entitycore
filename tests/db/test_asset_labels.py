@@ -7,6 +7,7 @@ from app.db.types import (
     ALLOWED_ASSET_LABELS_PER_ENTITY,
     ALLOWED_ASSET_LABELS_PER_TASK_RESULT,
     AssetLabel,
+    ContentType,
     EntityType,
     TaskResultType,
 )
@@ -43,6 +44,26 @@ def test_compartment_sets_asset_label_allowed_for_simulation():
 
     assert AssetLabel.compartment_sets in allowed
     assert allowed[AssetLabel.compartment_sets][0].content_type == "application/json"
+
+
+def test_circuit_morphology_pack_asset_label_takes_octet_streams_of_any_name():
+    allowed = ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit]
+
+    def pack(path, content_type=ContentType.other):
+        return Mock(
+            label=AssetLabel.circuit_morphology_pack,
+            entity_type=EntityType.circuit,
+            parent_id=None,
+            is_directory=False,
+            content_type=content_type,
+            path=path,
+        )
+
+    validate_asset_label(pack("circuit.mpack"), allowed)
+    validate_asset_label(pack("circuit.pack"), allowed)
+    validate_asset_label(pack("circuit"), allowed)
+    with pytest.raises(ValueError, match="content-types"):
+        validate_asset_label(pack("circuit.mpack", ContentType.json), allowed)
 
 
 def test_validate_asset_label_rejects_label_not_allowed_for_task_result_type():

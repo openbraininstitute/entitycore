@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 
 import sqlalchemy as sa
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Request, Response
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
@@ -20,6 +20,7 @@ from app.schemas.brain_region_hierarchy import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.utils.http_cache import CachedJson
 
 
 def _load(query: sa.Select):
@@ -139,19 +140,20 @@ class _JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-HIERARCHY_CACHE: dict[uuid.UUID, bytes] = {}
+# Hierarchies aren't updated, so the cache doesn't need any expiration.
+HIERARCHY_CACHE: dict[uuid.UUID, CachedJson] = {}
 
 
 def read_hierarchy(
     *,
+    request: Request,
     db: SessionDep,
     id_: uuid.UUID,
 ) -> Response:
-    # Cache the body, not the Response: middlewares mutate the headers of the returned Response.
-    if (content := HIERARCHY_CACHE.get(id_)) is None:
-        content = _build_hierarchy_json(db=db, id_=id_)
-        HIERARCHY_CACHE[id_] = content
-    return Response(content=content, media_type="application/json")
+    if (cached := HIERARCHY_CACHE.get(id_)) is None:
+        cached = CachedJson.from_content(_build_hierarchy_json(db=db, id_=id_))
+        HIERARCHY_CACHE[id_] = cached
+    return cached.to_response(request)
 
 
 def _build_hierarchy_json(*, db: SessionDep, id_: uuid.UUID) -> bytes:

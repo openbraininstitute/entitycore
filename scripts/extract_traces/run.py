@@ -135,7 +135,7 @@ def extract(source: Path, component: str | None, output: Path) -> None:
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(content)
 
-        except (json.JSONDecodeError, KeyError, TypeError):
+        except json.JSONDecodeError, KeyError, TypeError:
             L.warning(f"Malformed json or missing field, skipping {path}")
             continue
 

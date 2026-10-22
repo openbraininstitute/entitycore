@@ -1,5 +1,5 @@
 import gzip
-import sys
+from compression.zstd import decompress as zstd_decompress
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,11 +9,6 @@ from app.config import settings
 from app.logger import L
 
 from tests import test_brain_region, utils
-
-if sys.version_info >= (3, 14):
-    from compression.zstd import decompress as zstd_decompress
-else:
-    from zstandard import decompress as zstd_decompress
 
 ROUTE = "/brain-region-hierarchy"
 HEADERS = utils.AUTH_HEADER_USER_1 | utils.PROJECT_HEADERS

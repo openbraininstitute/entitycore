@@ -27,7 +27,7 @@ dependencies = [
     "starlette-compress>=1.8.0",
     "uvicorn[standard]",
 ]
-requires-python = "==3.12.*"
+requires-python = "==3.14.*"
 readme = "README.md"
 license = "Apache-2.0"
 
@@ -57,7 +57,7 @@ required-version = ">=0.9.0"
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 include = [
     "pyproject.toml",
     "app/**/*.py",
@@ -102,6 +102,12 @@ ignore = [
     "commented-out-code", # Found commented-out code
     "mixed-case-variable-in-class-scope",   # Variable in class scope should not be mixedCase
     "lambda-assignment",   # Do not assign a `lambda` expression, use a `def`
+    "quoted-annotation",  # UP037, quotes are no longer needed with py314 lazy annotations
+    # FastAPI, Pydantic and SQLAlchemy evaluate annotations at runtime: with py314 lazy
+    # annotations these rules would suggest TYPE_CHECKING-only imports that break the app
+    "typing-only-first-party-import",  # TC001
+    "typing-only-third-party-import",  # TC002
+    "typing-only-standard-library-import",  # TC003
 ]
 
 [tool.ruff.lint.isort]

@@ -379,6 +379,16 @@ Browsers and most HTTP clients decode the responses automatically. Python client
 
 Compression can be disabled in the service with `COMPRESSION_ENABLED=false`.
 
+# Response caching:
+The following endpoints return a weak `ETag` and `Cache-Control: private, no-cache`:
+
+- `GET /brain-region-hierarchy/{id}/hierarchy`
+- `GET /brain-atlas/{atlas_id}/regions`
+
+Clients can store the response, and revalidate it by sending the `ETag` in the `If-None-Match` header: if the content didn't change, the service returns `304 Not Modified` without a body. Browsers do this automatically.
+
+The service caches these responses in memory: the hierarchies indefinitely, since they aren't updated, and the atlas regions for 1 hour. The atlas regions are cached once for all the projects, unless a project has private regions in the atlas. Restarting the service refreshes both caches immediately.
+
 
 
 ### To be looked at more:

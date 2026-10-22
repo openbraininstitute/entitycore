@@ -17,6 +17,9 @@ class HeaderKey(StrEnum):
     user_agent = "User-Agent"
     content_length = "Content-Length"
     content_encoding = "Content-Encoding"
+    etag = "ETag"
+    cache_control = "Cache-Control"
+    if_none_match = "If-None-Match"
 
 
 class PaginationRequest(Schema):

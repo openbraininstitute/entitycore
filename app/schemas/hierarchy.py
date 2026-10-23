@@ -10,7 +10,7 @@ class HierarchyNode(Schema):
     id: uuid.UUID
     name: str
     parent_id: uuid.UUID | None
-    children: list["HierarchyNode"] = []  # ruff:ignore[mutable-class-default]
+    children: list[HierarchyNode] = []  # ruff:ignore[mutable-class-default]
     authorized_public: bool
     authorized_project_id: uuid.UUID
 

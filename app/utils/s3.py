@@ -204,7 +204,7 @@ def delete_objects_batch(
         The list of keys that failed to delete (empty if all succeeded).
     """
     failed_keys: list[str] = []
-    for chunk in itertools.batched(keys, S3_DELETE_OBJECTS_MAX_KEYS):
+    for chunk in itertools.batched(keys, S3_DELETE_OBJECTS_MAX_KEYS, strict=False):
         objects: list[ObjectIdentifierTypeDef] = [{"Key": key} for key in chunk]
         try:
             response = s3_client.delete_objects(

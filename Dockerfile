@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.9
 ARG UV_VERSION=latest
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 ARG PYTHON_BASE=${PYTHON_VERSION}-slim
 
 # uv stage

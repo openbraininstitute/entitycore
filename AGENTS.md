@@ -2,7 +2,7 @@
 
 ## Stack
 
-Python 3.12 | FastAPI | SQLAlchemy sync (psycopg2) | Alembic | Pydantic v2 | boto3 (S3) | JWT auth (Keycloak)
+Python 3.14 | FastAPI | SQLAlchemy sync (psycopg2) | Alembic | Pydantic v2 | boto3 (S3) | JWT auth (Keycloak)
 Package manager: uv | Linter: ruff | Type checker: pyright | Line length: 100
 
 ## Key Paths

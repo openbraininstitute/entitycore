@@ -127,7 +127,7 @@ class WithFacets(BaseModel):
 class Search[T: DeclarativeBase](BaseModel):
     search: str | None = None
 
-    def __call__(self, q: sa.Select[tuple[T]], vector_col: InstrumentedAttribute):
+    def __call__(self, q: sa.Select[T], vector_col: InstrumentedAttribute):
         if not self.search:
             return q
 

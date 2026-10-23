@@ -39,7 +39,7 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
-def _load(select: sa.Select[tuple[EModel]]):
+def _load(select: sa.Select[EModel]):
     return select.options(
         joinedload(EModel.species),
         joinedload(EModel.strain),

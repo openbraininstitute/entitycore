@@ -56,7 +56,7 @@ class ListResponse[M: Schema](Schema):
     facets: Facets | None = None
 
 
-type Select[M: DeclarativeBase] = sa.Select[tuple[M]]
+type Select[M: DeclarativeBase] = sa.Select[M]
 
 
 # The URL's encoded string, using the punycode-encoded host for serialization to the db.

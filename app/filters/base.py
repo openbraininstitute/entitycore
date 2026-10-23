@@ -98,11 +98,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     def filter[T: DeclarativeBase](  # type:ignore[override]
         self,
-        query: Select[tuple[T]],
+        query: Select[T],
         aliases: Aliases | None = None,
         *,
         _ancestors: tuple[str, ...] = (),
-    ) -> Select[tuple[T]]:
+    ) -> Select[T]:
         """Apply filtering, resolving aliases by dot-qualified path.
 
         Args:
@@ -140,8 +140,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
         return query
 
     def sort(  # type:ignore[override]
-        self, query: Select[tuple[T]], aliases: Aliases | None = None
-    ) -> Select[tuple[T]]:
+        self, query: Select[T], aliases: Aliases | None = None
+    ) -> Select[T]:
         """Sort query taking into account nested fields and aliases.
 
         Nested ordering fields (e.g. "me_model__etype__pref_label") are split into
@@ -185,7 +185,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
             query = query.order_by(getattr(order_by_field, direction)())
 
-        return cast("Select[tuple[T]]", query)
+        return cast("Select[T]", query)
 
     def _separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
         """Return list of (direction, field_name) ordering fields."""

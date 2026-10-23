@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import uuid
 from pathlib import Path
 from typing import Annotated, Literal
@@ -258,7 +258,7 @@ class DirectoryUploadRequest(Schema):
 class DetailedFile(Schema):
     name: str
     size: int
-    last_modified: datetime.datetime
+    last_modified: dt.datetime
 
 
 class DetailedFileList(Schema):

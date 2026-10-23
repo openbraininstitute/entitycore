@@ -150,7 +150,6 @@ def create_app() -> FastAPI:
             RequestValidationError: validation_exception_handler,
             StarletteHTTPException: http_exception_handler,
         },
-        root_path=settings.ROOT_PATH,
         redirect_slashes=False,
         strict_content_type=False,
     )

@@ -218,7 +218,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
         # ignore nested filters because they are not valid fields
         return not isinstance(attr, CustomFilter) and attr is not None
 
-    def get_nested_filter(self, name: str) -> "CustomFilter[T] | None":
+    def get_nested_filter(self, name: str) -> CustomFilter[T] | None:
         """Return the nested filter if it has filtering fields, or None otherwise.
 
         Args:

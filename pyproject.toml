@@ -102,7 +102,6 @@ ignore = [
     "commented-out-code", # Found commented-out code
     "mixed-case-variable-in-class-scope",   # Variable in class scope should not be mixedCase
     "lambda-assignment",   # Do not assign a `lambda` expression, use a `def`
-    "quoted-annotation",  # UP037, quotes are no longer needed with py314 lazy annotations
     # FastAPI, Pydantic and SQLAlchemy evaluate annotations at runtime: with py314 lazy
     # annotations these rules would suggest TYPE_CHECKING-only imports that break the app
     "typing-only-first-party-import",  # TC001

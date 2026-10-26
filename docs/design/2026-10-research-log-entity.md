@@ -74,9 +74,9 @@ flowchart LR
 
 The existing endpoints are enough to read the links:
 
-- a ResearchLog with all its inputs and outputs: `GET /research-log/{id}?expand=generated_from_derivations` (the `derivation_type` of each item tells inputs from outputs). `GET /research-log/{id}/derived-from?derivation_type=research_log_input` is the paginated alternative, one type at a time.
-- the ResearchLogs that used an entity: `GET /research-log?generated_derivation__used_id=<id>&generated_derivation__derivation_type=research_log_input`
-- the entities produced by a ResearchLog, filtered by type: e.g. `GET /circuit?used_derivation__generated_id=<research_log_id>&used_derivation__derivation_type=research_log_output`
+- inputs or outputs of a ResearchLog: `GET /research-log/{id}?expand=generated_from_derivations:research_log_input` (or `:research_log_output`; repeat `expand` for both)
+- the ResearchLogs that used an entity: `GET /circuit/{id}?expand=used_by_derivations:research_log_input`, or `GET /research-log?generated_derivation__used_id=<id>&generated_derivation__derivation_type=research_log_input` to search the ResearchLogs
+- the ResearchLog that produced an entity: `GET /circuit/{id}?expand=used_by_derivations:research_log_output`
 
 ## Alternatives considered
 
@@ -90,8 +90,19 @@ The existing endpoints are enough to read the links:
 
 ## Consequences
 
+Derivations follow the permissions of the ResearchLog (the generated entity), whatever the visibility of the linked entity:
+
+| Action | ResearchLog private | ResearchLog public |
+|---|---|---|
+| Create a derivation | members of the ResearchLog's project | service maintainers of the project only |
+| Delete a derivation | the ResearchLog's creator or a project admin | service maintainers of the project only |
+| Delete the ResearchLog, with its derivations | the ResearchLog's creator or a project admin | service maintainers of the project only |
+
+- The linked entity only needs to be readable by the user creating the derivation: public, or in one of the user's projects. A ResearchLog can therefore link public entities and private entities of other projects the user belongs to.
 - Deleting a ResearchLog deletes its derivations (`ON DELETE CASCADE` on `generated_id`), not the linked inputs and outputs.
-- An input or output cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today; the derivation has to be deleted first. Since public entities of other projects can be linked, a ResearchLog can prevent their owners from deleting them until the derivation is removed.
+- A linked entity, public or private, cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today. Removing the derivation requires the rights on the ResearchLog in the table above, so the owner of a linked entity in another project cannot do it alone.
+- Once a ResearchLog is public its links are fixed for regular users, so the agent should add them before publishing.
+- `GET /derivation` returns a derivation only if both entities are readable, but `expand` on a ResearchLog does not filter the linked entities: readers see the basic fields (id, type, project, visibility, lifecycle status) of linked entities they cannot read, e.g. a private entity of another project. This is the current behaviour for all derivations.
 - `category` values are not curated: consistency is left to the users and agents writing the ResearchLogs.
 - As for other entities, assets cannot be required at creation: a ResearchLog may exist without its markdown file until it is uploaded.
 

@@ -63,6 +63,20 @@ The return payload is the same as above, except the `data` only includes matches
 Its pagination data reflects the result of the filters.
 The facets cover the results of the full query, not just the pagination.
 
+## Expanding derivations
+
+Entity read endpoints return `generated_from_derivations` and `used_by_derivations` as `null` unless requested with `expand`:
+
+- `expand=generated_from_derivations` / `expand=used_by_derivations` load all the derivations in that direction.
+- `expand=<direction>:<derivation_type>` loads only that type. Repeat `expand` to combine types; a bare direction wins over typed values.
+- The qualifier after `:` is always the derivation type; `.` and `=` are reserved for future nested paths and keyed qualifiers.
+- The `generated_derivation__*` / `used_derivation__*` filters only select the entities, and never narrow the expanded lists.
+
+Ex: circuits extracted from another circuit, with only their extraction derivations:
+```
+GET /circuit?generated_derivation__derivation_type=circuit_extraction&expand=generated_from_derivations:circuit_extraction
+```
+
 ## Faceting
 
 Additional facet statistics are included on entity endpoints:

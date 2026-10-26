@@ -79,6 +79,15 @@ def test_read_one(client, model, json_data):
     assert "measurement_annotation" in data
     assert data["measurement_annotation"] is None
 
+    params = {"expand": ["measurement_annotation", "used_by_derivations:unspecified"]}
+    for data in (
+        assert_request(client.get, url=f"{ROUTE}/{model.id}", params=params).json(),
+        assert_request(client.get, url=ROUTE, params=params).json()["data"][0],
+    ):
+        assert data["measurement_annotation"] is None
+        assert data["used_by_derivations"] == []
+        assert data["generated_from_derivations"] is None
+
 
 def test_admin_read_one(clients, model, json_data):
     data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()

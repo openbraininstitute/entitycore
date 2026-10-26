@@ -12,7 +12,7 @@ from starlette.requests import Request
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
-from app.queries.expand import EntityExpand
+from app.queries.expand import EXPAND_DESCRIPTION, EntityExpand, MeasurableEntityExpand
 from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
 
@@ -220,6 +220,7 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
-# `?expand=generated_from_derivations&expand=used_by_derivations` — available on every entity
-# read endpoint.
-ExpandDep = Annotated[set[EntityExpand] | None, Query()]
+# `expand` params of the entity read endpoints; the measurable ones add `measurement_annotation`.
+ExpandQuery = Query(description=EXPAND_DESCRIPTION)
+ExpandDep = Annotated[set[EntityExpand] | None, ExpandQuery]
+MeasurableEntityExpandDep = Annotated[set[MeasurableEntityExpand] | None, ExpandQuery]

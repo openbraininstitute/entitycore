@@ -1,10 +1,7 @@
 import uuid
-from enum import StrEnum, auto
 from functools import partial
-from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi import Query
 from sqlalchemy.orm import (
     joinedload,
     raiseload,
@@ -22,6 +19,7 @@ from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWi
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
+    MeasurableEntityExpandDep,
     PaginationQuery,
     SearchDep,
 )
@@ -34,6 +32,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import MEASUREMENT_ANNOTATION_EXPAND, MeasurableEntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
     CellMorphologyAdminUpdate,
@@ -46,14 +45,9 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
-class ExpandableAttribute(StrEnum):
-    measurement_annotation = auto()
-    # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
-    generated_from_derivations = auto()
-    used_by_derivations = auto()
-
-
-def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None) -> sa.Select:
+def _load_from_db(
+    query: sa.Select, *, expand: set[MeasurableEntityExpand] | None = None
+) -> sa.Select:
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region, innerjoin=True),
@@ -73,7 +67,7 @@ def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None =
         joinedload(CellMorphology.updated_by, innerjoin=True),
         raiseload("*"),
     )
-    if expand and ExpandableAttribute.measurement_annotation in expand:
+    if expand and MEASUREMENT_ANNOTATION_EXPAND in expand:
         query = query.options(
             joinedload(CellMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
@@ -92,11 +86,11 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
     response_schema_class = (
         CellMorphologyAnnotationExpandedRead
-        if expand and ExpandableAttribute.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else CellMorphologyRead
     )
     apply_operations = partial(_load_from_db, expand=expand)
@@ -114,11 +108,11 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
     response_schema_class = (
         CellMorphologyAnnotationExpandedRead
-        if expand and ExpandableAttribute.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else CellMorphologyRead
     )
     apply_operations = partial(_load_from_db, expand=expand)
@@ -193,7 +187,7 @@ def _read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: set[ExpandableAttribute] | None,
+    expand: set[MeasurableEntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     facet_keys = [
@@ -218,7 +212,7 @@ def _read_many(
     )
     response_schema_class = (
         CellMorphologyAnnotationExpandedRead
-        if expand and ExpandableAttribute.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else CellMorphologyRead
     )
     return router_read_many(
@@ -249,7 +243,7 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
@@ -272,7 +266,7 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,

@@ -17,7 +17,6 @@ jobs:
   publish-to-aws-ecr:
     name: Build and publish (linux/arm64)
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 30
     env:
       ENVIRONMENT: prod
     steps:

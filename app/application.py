@@ -150,9 +150,6 @@ def create_app() -> FastAPI:
             RequestValidationError: validation_exception_handler,
             StarletteHTTPException: http_exception_handler,
         },
-        # TEMPORARY: deprecated since FastAPI 0.146.0, but the ALB forwards the full prefixed
-        # path, so setting root_path on uvicorn would double the prefix. See the durable fix.
-        root_path=settings.ROOT_PATH,
         redirect_slashes=False,
         strict_content_type=False,
     )

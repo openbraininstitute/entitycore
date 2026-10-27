@@ -48,7 +48,8 @@ def upgrade() -> None:
         new_value="research_log",
     )
     # Use explicit SQL for the values inserted before an existing value, because add_enum_value
-    # with before_value in alembic-postgresql-enum 1.11 renders ADD VALUE ... AFTER.
+    # with before_value in alembic-postgresql-enum 1.11 renders ADD VALUE ... AFTER, see
+    # https://github.com/Pogchamp-company/alembic-postgresql-enum/issues/142
     op.execute(
         "ALTER TYPE public.contenttype ADD VALUE 'text/markdown' BEFORE 'application/octet-stream'"
     )

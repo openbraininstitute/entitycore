@@ -94,14 +94,14 @@ Derivations follow the permissions of the ResearchLog (the generated entity), wh
 
 | Action | ResearchLog private | ResearchLog public |
 |---|---|---|
-| Create a derivation | members of the ResearchLog's project | service maintainers of the project only |
+| Create a derivation | members of the ResearchLog's project | members of the ResearchLog's project |
 | Delete a derivation | the ResearchLog's creator or a project admin | service maintainers of the project only |
 | Delete the ResearchLog, with its derivations | the ResearchLog's creator or a project admin | service maintainers of the project only |
 
 - The existing rules for derivations apply ([#427](https://github.com/openbraininstitute/entitycore/issues/427)): the linked entity must be public, or private in the same project as the ResearchLog, and a public ResearchLog may link private entities of its project. Links to private entities are not visible to users outside the project.
 - Deleting a ResearchLog deletes its derivations (`ON DELETE CASCADE` on `generated_id`), not the linked inputs and outputs.
 - A linked entity, public or private, cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today. Removing the derivation requires the rights on the ResearchLog in the table above, so the owner of a public linked entity in another project cannot do it alone.
-- Once a ResearchLog is public its links are fixed for regular users, so the agent should add them before publishing.
+- Once a ResearchLog is public, regular users can still add links but not remove them, so the agent should check the links before publishing.
 - `GET /derivation` returns a derivation only if both entities are readable, but `expand` currently does not filter the linked entities, for any derivation: users outside the project see the basic fields (id, type, project, visibility, lifecycle status) of the private entities linked to a public ResearchLog, and `expand=used_by_derivations` on a public entity shows the private ResearchLogs of other projects linking it. This is expected to be fixed for all derivations, independently from ResearchLog.
 - `category` values are not curated: consistency is left to the users and agents writing the ResearchLogs.
 - As for other entities, assets cannot be required at creation: a ResearchLog may exist without its markdown file until it is uploaded.

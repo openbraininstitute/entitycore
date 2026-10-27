@@ -1,6 +1,6 @@
 # ResearchLog entity
 
-- Status: Draft
+- Status: Accepted
 - Date: 2026-10-14
 - Author: @GianlucaFicarelli
 - Issues: [prod-ai#131](https://github.com/openbraininstitute/prod-ai/issues/131), [entitycore#534](https://github.com/openbraininstitute/entitycore/issues/534)

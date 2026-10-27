@@ -17,4 +17,4 @@ entitycore is a public repository: keep records self-contained and don't link in
 
 | Record | Status |
 |---|---|
-| [ResearchLog entity](2026-10-research-log-entity.md) | Draft |
+| [ResearchLog entity](2026-10-research-log-entity.md) | Accepted |

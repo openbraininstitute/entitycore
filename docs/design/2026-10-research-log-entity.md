@@ -70,7 +70,7 @@ flowchart LR
 
 - The ResearchLog is always the generated entity, so all its links are on the same side and the type tells inputs from outputs.
 - Links are created with `POST /derivation`, which already requires the linked entity to be readable and the ResearchLog to be writable. They can be added one at a time while the session runs.
-- For these two types the service must check that the generated entity is a ResearchLog; derivation types are not restricted to entity types today.
+- The entity types are not validated for now: allowed entity types per derivation type are added in [#606](https://github.com/openbraininstitute/entitycore/pull/606), which will restrict the generated entity of these two types to ResearchLog.
 
 The existing endpoints are enough to read the links:
 
@@ -98,16 +98,17 @@ Derivations follow the permissions of the ResearchLog (the generated entity), wh
 | Delete a derivation | the ResearchLog's creator or a project admin | service maintainers of the project only |
 | Delete the ResearchLog, with its derivations | the ResearchLog's creator or a project admin | service maintainers of the project only |
 
-- The linked entity only needs to be readable by the user creating the derivation: public, or in one of the user's projects. A ResearchLog can therefore link public entities and private entities of other projects the user belongs to.
+- The existing rules for derivations apply ([#427](https://github.com/openbraininstitute/entitycore/issues/427)): the linked entity must be public, or private in the same project as the ResearchLog, and a public ResearchLog may link private entities of its project. Links to private entities are not visible to users outside the project.
 - Deleting a ResearchLog deletes its derivations (`ON DELETE CASCADE` on `generated_id`), not the linked inputs and outputs.
-- A linked entity, public or private, cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today. Removing the derivation requires the rights on the ResearchLog in the table above, so the owner of a linked entity in another project cannot do it alone.
+- A linked entity, public or private, cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today. Removing the derivation requires the rights on the ResearchLog in the table above, so the owner of a public linked entity in another project cannot do it alone.
 - Once a ResearchLog is public its links are fixed for regular users, so the agent should add them before publishing.
-- `GET /derivation` returns a derivation only if both entities are readable, but `expand` on a ResearchLog does not filter the linked entities: readers see the basic fields (id, type, project, visibility, lifecycle status) of linked entities they cannot read, e.g. a private entity of another project. This is the current behaviour for all derivations.
+- `GET /derivation` returns a derivation only if both entities are readable, but `expand` currently does not filter the linked entities, for any derivation: users outside the project see the basic fields (id, type, project, visibility, lifecycle status) of the private entities linked to a public ResearchLog, and `expand=used_by_derivations` on a public entity shows the private ResearchLogs of other projects linking it. This is expected to be fixed for all derivations, independently from ResearchLog.
 - `category` values are not curated: consistency is left to the users and agents writing the ResearchLogs.
 - As for other entities, assets cannot be required at creation: a ResearchLog may exist without its markdown file until it is uploaded.
 
 ## Follow-ups
 
+- entitycore: validate the entity types per derivation type ([#606](https://github.com/openbraininstitute/entitycore/pull/606)), including `research_log_input` / `research_log_output`.
 - entitysdk: `ResearchLog` model, upload helpers and derivation helpers.
 - Platform: display ResearchLogs under `Reports`, rendering the markdown and resolving relative links against `research_log_files`.
 - Figures and data tables (entitycore#534).

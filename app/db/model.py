@@ -2250,6 +2250,28 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
+class ResearchLog(Entity, NameDescriptionVectorMixin):
+    """Represents the logbook of a research session, e.g. produced by an agent in a sandbox.
+
+    The entities used and produced during the session are linked with derivations of type
+    `research_log_input` and `research_log_output`, where the ResearchLog is the generated entity.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the entity ID.
+
+    Assets:
+        - a markdown file with label `research_log_document`.
+        - an optional directory with label `research_log_files`, containing the files embedded
+          or referenced by the logbook.
+    """
+
+    __tablename__ = EntityType.research_log.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
 class EmCellMeshToSkeletonizationCampaign(Base):
     __tablename__ = "em_cell_mesh__skeletonization_campaign"
 

@@ -55,15 +55,13 @@ A ResearchLog is linked to the inputs of the session (e.g. the circuit analysed)
 | Input | ResearchLog | input entity | `research_log_input` |
 | Output | ResearchLog | output entity | `research_log_output` |
 
+Each derivation links a used entity to the generated ResearchLog:
+
 ```mermaid
 flowchart LR
-    rl["ResearchLog"]
-    inA["Circuit A (input)"]
-    inB["SimulationResult (input)"]
-    out["Circuit B (output)"]
-    rl -- research_log_input --> inA
-    rl -- research_log_input --> inB
-    rl -- research_log_output --> out
+    inA["Circuit A"] ---|used| d1{{"Derivation<br/>research_log_input"}} ---|generated| rl["ResearchLog"]
+    inB["SimulationResult"] ---|used| d2{{"Derivation<br/>research_log_input"}} ---|generated| rl
+    out["Circuit B"] ---|used| d3{{"Derivation<br/>research_log_output"}} ---|generated| rl
 ```
 
 - The ResearchLog is always the generated entity, so all its links are on the same side and the type tells inputs from outputs.

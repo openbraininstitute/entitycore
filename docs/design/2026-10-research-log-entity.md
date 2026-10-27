@@ -107,7 +107,7 @@ Derivations follow the permissions of the ResearchLog (the generated entity), wh
 ## Follow-ups
 
 - entitycore: validate the entity types per derivation type ([#606](https://github.com/openbraininstitute/entitycore/pull/606)), including `research_log_input` / `research_log_output`.
-- entitycore: per-project tags for ResearchLogs, with facets (separate design).
+- entitycore: per-project tags with facets, for ResearchLogs and possibly any entity type (separate design).
 - entitysdk: `ResearchLog` model, upload helpers and derivation helpers.
 - Platform: display ResearchLogs under `Reports`, rendering the markdown and resolving relative links against `research_log_files`.
 - Figures and data tables (entitycore#534).

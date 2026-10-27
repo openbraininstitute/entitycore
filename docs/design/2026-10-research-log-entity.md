@@ -24,7 +24,6 @@ class ResearchLog(Entity, NameDescriptionVectorMixin):
 
     Attributes:
         id (uuid.UUID): Primary key, referencing the entity ID.
-        category (str | None): Free-text category used to group research logs.
 
     Assets:
         - a markdown file with label `research_log_document`.
@@ -33,11 +32,10 @@ class ResearchLog(Entity, NameDescriptionVectorMixin):
 
     __tablename__ = EntityType.research_log.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    category: Mapped[str | None] = mapped_column(index=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}
 ```
 
-`category` is an optional free-text string to group ResearchLogs (e.g. by topic or workflow), available as a filter. The API is otherwise the standard one for entities, including the generic asset endpoints.
+The API is the standard one for entities, including name filters, full-text search on name and description, and the generic asset endpoints. Tags to group ResearchLogs are planned as a follow-up (see Alternatives considered).
 
 ### Assets
 
@@ -83,7 +81,7 @@ The existing endpoints are enough to read the links:
 - **Three entities (ResearchLog, Figure, DataTable).** Proposed in prod-ai#131. Figures and tables need their own metadata (caption, columns) whose shape is still unclear; they may become specialized entities later or reuse the generic dataset entity of entitycore#534. Until then, the files of a ResearchLog are stored in its `research_log_files` directory.
 - **A single generic entity with several assets.** It would group the files, but mixes concepts that the platform displays differently (reports vs. data).
 - **Child of `ScientificArtifact`.** A ResearchLog has no brain region, species, subject, or license.
-- **`category` as an enum.** The useful values are not known yet. It can become an enum once conventions emerge.
+- **Grouping ResearchLogs with a free-text `category`, an enum, or an array of tags.** Multiple tags per ResearchLog, managed per project and usable as facets, were preferred. A single category is too limiting, and an enum needs values that are not known yet. Tags stored as an array in each ResearchLog can be filtered efficiently, but don't fit the existing facets (which need an id per value) and make tags hard to list, rename or merge per project. Per-project tags with an association table fit the facets, but raise their own questions (who manages the tags of a project, visibility when a ResearchLog is public, reuse by other entity types), so they are deferred to a separate design. Adding them later does not break the API.
 - **A single derivation type, ResearchLog always generated.** Inputs and outputs could not be told apart.
 - **Direction gives the meaning (input: ResearchLog generated; output: ResearchLog used), with one or two types.** A ResearchLog could not be deleted while any output is linked to it (`used_id` has no cascade), and an output link could be removed only with deletion rights on the output. "The circuit was derived from the ResearchLog" also does not describe what happened. With two types, the type would only repeat the direction and the service would have to keep them consistent.
 - **A "research session" activity**, using the inputs and generating the ResearchLog and the outputs, like `AnalysisNotebookExecution` for `AnalysisNotebookResult`. It is closer to PROV, but needs a new activity type for a session that has no start time, end time or status of its own (`status` is required on activities). With the current code an activity also gets its used entities only at creation and its generated entities only once, so the whole session would have to be registered at the end. Derivations can be migrated to an activity if sessions get metadata of their own.
@@ -101,14 +99,15 @@ Derivations follow the permissions of the ResearchLog (the generated entity), wh
 - The existing rules for derivations apply ([#427](https://github.com/openbraininstitute/entitycore/issues/427)): the linked entity must be public, or private in the same project as the ResearchLog, and a public ResearchLog may link private entities of its project. Links to private entities are not visible to users outside the project.
 - Deleting a ResearchLog deletes its derivations (`ON DELETE CASCADE` on `generated_id`), not the linked inputs and outputs.
 - A linked entity, public or private, cannot be deleted while a derivation links it to a ResearchLog (`used_id` has no cascade), as for any derivation today. Removing the derivation requires the rights on the ResearchLog in the table above, so the owner of a public linked entity in another project cannot do it alone.
-- Once a ResearchLog is public, regular users can still add links but not remove them, so the agent should check the links before publishing.
+- A public ResearchLog (created as public, or published with its project) can still get new links from project members, but only service maintainers can remove them.
 - `GET /derivation` returns a derivation only if both entities are readable, but `expand` currently does not filter the linked entities, for any derivation: users outside the project see the basic fields (id, type, project, visibility, lifecycle status) of the private entities linked to a public ResearchLog, and `expand=used_by_derivations` on a public entity shows the private ResearchLogs of other projects linking it. This is expected to be fixed for all derivations, independently from ResearchLog.
-- `category` values are not curated: consistency is left to the users and agents writing the ResearchLogs.
+- Until tags are added, ResearchLogs can be grouped only by name, description and the standard entity filters (e.g. creator, creation date).
 - As for other entities, assets cannot be required at creation: a ResearchLog may exist without its markdown file until it is uploaded.
 
 ## Follow-ups
 
 - entitycore: validate the entity types per derivation type ([#606](https://github.com/openbraininstitute/entitycore/pull/606)), including `research_log_input` / `research_log_output`.
+- entitycore: per-project tags for ResearchLogs, with facets (separate design).
 - entitysdk: `ResearchLog` model, upload helpers and derivation helpers.
 - Platform: display ResearchLogs under `Reports`, rendering the markdown and resolving relative links against `research_log_files`.
 - Figures and data tables (entitycore#534).

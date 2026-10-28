@@ -59,10 +59,14 @@ Each derivation links a used entity to the generated ResearchLog:
 
 ```mermaid
 flowchart LR
-    inA["Circuit A"] ---|used| d1{{"Derivation<br/>research_log_input"}} ---|generated| rl["ResearchLog"]
-    inB["SimulationResult"] ---|used| d2{{"Derivation<br/>research_log_input"}} ---|generated| rl
-    out["Circuit B"] ---|used| d3{{"Derivation<br/>research_log_output"}} ---|generated| rl
+    inA["Circuit A"] ---|used| d1(["research_log_input"]) ---|generated| rl["ResearchLog"]
+    inB["SimulationResult"] ---|used| d2(["research_log_input"]) ---|generated| rl
+    out["Circuit B"] ---|used| d3(["research_log_output"]) ---|generated| rl
+    classDef derivation stroke-dasharray:4 3,font-size:12px
+    class d1,d2,d3 derivation
 ```
+
+The rounded boxes are derivations, labelled with their `derivation_type`.
 
 - The ResearchLog is always the generated entity, so all its links are on the same side and the type tells inputs from outputs.
 - Links are created with `POST /derivation`, which already requires the linked entity to be readable and the ResearchLog to be writable. They can be added one at a time while the session runs.

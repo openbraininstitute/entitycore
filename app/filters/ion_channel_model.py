@@ -25,20 +25,20 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
 
     is_ljp_corrected: bool | None = None
     is_temperature_dependent: bool | None = None
-    temperature_celsius: int | None = None
-    temperature_celsius__lte: int | None = None
-    temperature_celsius__gte: int | None = None
+    temperature_celsius: float | None = None
+    temperature_celsius__lte: float | None = None
+    temperature_celsius__gte: float | None = None
     is_stochastic: bool | None = None
     conductance_name: str | None = None
     conductance_name__isnull: bool | None = None
     max_permeability_name: str | None = None
     max_permeability_name__isnull: bool | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelModel
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "id",
             "creation_date",
             "update_date",

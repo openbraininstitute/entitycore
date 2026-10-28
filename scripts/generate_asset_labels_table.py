@@ -54,7 +54,7 @@ def generate_markdown_table() -> str:
                 else:
                     content_type_str = content_type.value
                     suffixes = CONTENT_TYPE_TO_SUFFIX.get(content_type, ())
-                    suffix = ", ".join(suffixes)
+                    suffix = ", ".join(suffixes) or "any"
 
                 # Entity type column (only for first row of each asset label)
                 entity_col = entity_type.value if first_row else ""

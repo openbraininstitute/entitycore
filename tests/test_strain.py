@@ -115,7 +115,7 @@ def test_create_strain(client, client_admin, species_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": ADMIN_SUB_ID, "updated_by__sub_id": ADMIN_SUB_ID},
+        params={"created_by__id": ADMIN_SUB_ID, "updated_by__id": ADMIN_SUB_ID},
     ).json()["data"]
     assert len(data) == count
 

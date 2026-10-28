@@ -1,16 +1,14 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
-    Agent,
-    Person,
     TaskConfig,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     FacetsDep,
     PaginationQuery,
     SearchDep,
@@ -24,6 +22,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.task_config import (
@@ -33,9 +32,6 @@ from app.schemas.task_config import (
     TaskConfigUserUpdate,
 )
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 DBModel = TaskConfig
 ReadSchema = TaskConfigRead
@@ -60,6 +56,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> ReadSchema:
     return router_read_one(
         db=db,
@@ -68,12 +65,14 @@ def read_one(
         user_context=user_context,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> ReadSchema:
     return router_read_one(
         db=db,
@@ -82,6 +81,7 @@ def admin_read_one(
         user_context=None,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -144,31 +144,23 @@ def _read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
 
-    aliases: Aliases = {
-        Agent: {
-            "contribution": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "created_by",
         "updated_by",
         "contribution",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    filter_keys = [
+        *facet_keys,
+        "task_config_generator",
+    ]
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=DBModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -184,8 +176,9 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ReadSchema,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -196,6 +189,7 @@ def read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[ReadSchema]:
     return _read_many(
         user_context=user_context,
@@ -204,6 +198,7 @@ def read_many(
         filter_model=filter_model,
         with_search=with_search,
         facets=facets,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -215,6 +210,7 @@ def admin_read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[ReadSchema]:
     return _read_many(
         user_context=user_context,
@@ -223,6 +219,7 @@ def admin_read_many(
         filter_model=filter_model,
         with_search=with_search,
         facets=facets,
+        expand=expand,
         check_authorized_project=False,
     )
 

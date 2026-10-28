@@ -136,14 +136,14 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     objs = [
         SimulationResult(
             **json_data
             | {
                 "name": f"s-{i}",
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             }
         )
@@ -156,11 +156,11 @@ def test_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
-    data = req({"ilike_search": "s-1"})
-    assert len(data) == 1
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

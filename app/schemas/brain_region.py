@@ -1,14 +1,12 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.base import CreationMixin, IdentifiableMixin, make_update_schema
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 from app.schemas.species import SpeciesStrainReadMixin
+from app.schemas.utils import make_update_schema
 
 
-class BrainRegionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class BrainRegionBase(Schema):
     annotation_value: int
     name: str
     acronym: str
@@ -17,15 +15,15 @@ class BrainRegionBase(BaseModel):
     hierarchy_id: uuid.UUID
 
 
-class NestedBrainRegionRead(BrainRegionBase, IdentifiableMixin):
+class NestedBrainRegionRead(BrainRegionBase, NestedIdentifiableRead):
     pass
 
 
-class BrainRegionRead(NestedBrainRegionRead, CreationMixin, SpeciesStrainReadMixin):
+class BrainRegionRead(BrainRegionBase, SpeciesStrainReadMixin, NestedIdentifiableRead):
     pass
 
 
-class BrainRegionCreate(BrainRegionBase):
+class BrainRegionCreate(BrainRegionBase, IdentifiableCreate):
     pass
 
 
@@ -36,11 +34,9 @@ BrainRegionAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class BrainRegionCreateMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class BrainRegionCreateMixin(Schema):
     brain_region_id: uuid.UUID
 
 
-class BrainRegionReadMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class BrainRegionReadMixin(Schema):
     brain_region: NestedBrainRegionRead

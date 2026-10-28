@@ -9,7 +9,6 @@ from tests.utils import (
     add_db,
     assert_request,
     check_global_delete_one,
-    check_global_read_many,
 )
 
 ROUTE = "/organization"
@@ -30,8 +29,8 @@ def _assert_read_response(data, json_data):
     assert "id" in data
 
 
-def test_create_organization(client, client_admin, json_data):
-    response = client_admin.post(
+def test_create_organization(client, json_data):
+    response = client.post(
         ROUTE,
         json=json_data,
     )
@@ -53,15 +52,87 @@ def test_create_organization(client, client_admin, json_data):
     assert data[0]["id"] == id_
     assert len(data) == 1
 
+    valid_ror_ids = [
+        "https://ror.org/02rx3b187",
+        "https://ror.org/02mhbdp94",
+        "https://ror.org/01an7q238",
+    ]
+
+    for ror_id in valid_ror_ids:
+        data = assert_request(
+            client.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id[-4:]}"},
+        ).json()
+        assert data["ror_id"] == ror_id
+
+    invalid_ror_ids = [
+        "https://ror.org/1abc12345",
+        "https://ror.org/02abc",
+        "https://ror.org/invalid",
+        "ror.org/02mhbdp94",
+        "https://ror.org/04wx1j267",
+        "https://ror.org/02rx3b180",
+    ]
+
+    for ror_id in invalid_ror_ids:
+        data = assert_request(
+            client.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id}"},
+            expected_status_code=422,
+        ).json()
+        assert data["message"] == "Validation error"
+
+    ror_id = "https://ror.org/03nawhv43"
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-1"},
+    ).json()
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-2"},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
+
 
 def test_read_many(clients, json_data):
-    check_global_read_many(
-        route=ROUTE,
-        admin_route=ADMIN_ROUTE,
-        clients=clients,
-        json_data=json_data,
-        validator=_assert_read_response,
-    )
+    model_id = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=client_route).json()["data"]
+        assert len(data) == 1
+        assert data[0]["id"] == str(model_id)
+        _assert_read_response(data[0], json_data)
+
+    # user that created the resource can read it
+    _req(clients.user_1, ROUTE)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=ADMIN_ROUTE,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, ROUTE)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=ADMIN_ROUTE,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, ROUTE)
+    _req(clients.admin, ADMIN_ROUTE)
 
 
 def test_delete_one(db, clients, json_data):
@@ -73,6 +144,7 @@ def test_delete_one(db, clients, json_data):
         json_data=json_data,
         expected_counts_before={
             Organization: 1,
+            # Agent count includes the auto-created Person from get_or_create_user
             Agent: 2,
         },
         expected_counts_after={
@@ -97,7 +169,7 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     res = []
     for i in range(3):
         row = add_db(
@@ -105,8 +177,9 @@ def models(db, person_id):
             Organization(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                ror_id=["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94", None][i],
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         )
         res.append(row)
@@ -129,5 +202,17 @@ def test_filtering_sorting(client, models):
     data = req({"alternative_name": "alt-1", "order_by": "creation_date"})
     assert [d["alternative_name"] for d in data] == ["alt-1"]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"ror_id": "https://ror.org/02rx3b187"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-0"
+
+    data = req({"ror_id": "https://ror.org/02mhbdp94"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-1"
+
+    data = req({"ror_id__in": ["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94"]})
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"org-0", "org-1"}
+
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)

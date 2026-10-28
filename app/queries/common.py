@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Iterable, Set as AbstractSet
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -7,13 +8,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
 
 from app.db.auth import (
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
 from app.db.model import Activity, Identifiable
-from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
+from app.db.utils import (
+    get_authorized_project_id_declaring_class,
+    load_db_model_from_pydantic,
+    update_model,
+)
 from app.dependencies.common import (
-    FacetQueryParams,
     InBrainRegionQuery,
     PaginationQuery,
     Search,
@@ -27,23 +31,31 @@ from app.errors import (
     ensure_result,
     ensure_uniqueness,
 )
-from app.filters.base import Aliases, CustomFilter
+from app.filters.base import CustomFilter
 from app.queries import crud
+from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
+from app.queries.expand import apply_derivation_expand
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations, SupportsModelValidate
+from app.queries.types import (
+    ApplyOperations,
+    FacetQueryParamsMap,
+    JoinSpecMap,
+    SupportsModelValidate,
+)
 from app.queries.utils import (
     create_associations_to_entities,
-    get_or_create_user_agent,
+    get_or_create_user,
     is_user_authorized_for_deletion,
 )
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.base import Schema
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 
 
-def router_read_one[T: BaseModel, I: Identifiable](
+def router_read_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -51,6 +63,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     user_context: UserContext | None,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
+    expand: AbstractSet[str] | None = None,
 ) -> T:
     """Read a model from the database.
 
@@ -61,27 +74,29 @@ def router_read_one[T: BaseModel, I: Identifiable](
         user_context: the user context with project id and user information.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
+        expand: optional set of derivation directions to eager-load (entity models only).
 
     Returns:
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if user_context and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class := get_authorized_project_id_declaring_class(db_model_class)
     ):
-        query = constrain_to_readable_entities(
+        query = constrain_to_readable_entities_by_project(
             query=query,
             project_id=user_context.project_id,
             db_model_class=id_model_class,
         )
     if apply_operations:
         query = apply_operations(query)
+    query = apply_derivation_expand(query, db_model_class, expand)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
     return response_schema_class.model_validate(row)
 
 
-def router_create_activity_one[T: BaseModel, I: Activity](
+def router_create_activity_one[T: Schema, I: Activity](
     *,
     db: Session,
     db_model_class: type[I],
@@ -93,8 +108,8 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user_agent(db, user_context.profile)
-    created_by_id = updated_by_id = db_agent.id
+    db_user = get_or_create_user(db, user_context.profile)
+    created_by_id = updated_by_id = db_user.id
     project_id = user_context.project_id
 
     # do not inlcude used_ids/generated_ids because they are relationships and need to be added in
@@ -137,7 +152,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     return response_schema_class.model_validate(db_model_instance)
 
 
-def router_create_one[T: BaseModel, I: Identifiable](
+def router_create_one[T: Schema, I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
@@ -164,12 +179,12 @@ def router_create_one[T: BaseModel, I: Identifiable](
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     created_by_id = updated_by_id = project_id = None
 
-    db_agent = get_or_create_user_agent(db, user_context.profile)
-    created_by_id = updated_by_id = db_agent.id
+    db_user = get_or_create_user(db, user_context.profile)
+    created_by_id = updated_by_id = db_user.id
 
     project_id = (
         user_context.project_id
-        if get_declaring_class(db_model_class, "authorized_project_id")
+        if get_authorized_project_id_declaring_class(db_model_class)
         else None
     )
 
@@ -217,9 +232,9 @@ def router_create_one[T: BaseModel, I: Identifiable](
 
 
 def _with_subquery[I: Identifiable](
-    data_query: sa.Select[tuple[I]],
+    data_query: sa.Select[I],
     db_model_class: type[I],
-) -> sa.Select[tuple[I]]:
+) -> sa.Select[I]:
     """Build and return a new data_query using a subquery.
 
     This is more performant when:
@@ -227,7 +242,7 @@ def _with_subquery[I: Identifiable](
     - using pagination and requesting a large offset, and
     - needing many columns for building the results, but not all of them are needed for filtering.
     """
-    order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
+    order_by_clauses = data_query._order_by_clauses  # ruff:ignore[private-member-access]
     # dict of modifiers as found in UnaryExpression.
     modifiers = {
         operators.desc_op: lambda x: x.desc(),
@@ -248,7 +263,12 @@ def _with_subquery[I: Identifiable](
     select_cols = [db_model_class.id] + [
         element.label(label_name) for (label_name, element, _) in labeled_sort_columns
     ]
-    subq = data_query.with_only_columns(*select_cols).subquery()
+    # DISTINCT collapses the duplicate id rows that a one-to-many filter join produces
+    # (e.g. the derivation-type filters, where a circuit can match several Derivation rows).
+    # Without it, OFFSET/LIMIT would page over the duplicated rows while total_items uses
+    # count(distinct id), so a circuit could repeat across pages or be skipped. Every ORDER BY
+    # element is included in the select list above, so SELECT DISTINCT is always valid here.
+    subq = data_query.with_only_columns(*select_cols).distinct().subquery()
 
     outer_order_bys = []
     for label_name, _, modifier in labeled_sort_columns:
@@ -265,74 +285,21 @@ def _with_subquery[I: Identifiable](
     )
 
 
-def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
+def _retrieve_rows[I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
-    with_search: Search[I] | None,
-    with_in_brain_region: InBrainRegionQuery | None,
-    facets: WithFacets | None,
     aliases: Aliases | None,
-    apply_filter_query_operations: ApplyOperations[I] | None,
     apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
-    response_schema_class: SupportsModelValidate[T],
-    name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter[I],
-    filter_joins: dict[str, ApplyOperations] | None = None,
     embedding: list[float] | None = None,
-    check_authorized_project: bool = True,
-) -> ListResponse[T]:
-    """Read multiple models from the database.
-
-    Args:
-        db: database session.
-        db_model_class: database model class.
-        authorized_project_id: project id for filtering the resources.
-        with_search: search query (str).
-        with_in_brain_region: enable family queries based on BrainRegion
-        facets: facet query (bool).
-        aliases: dict of table aliases for the filter query.
-        apply_filter_query_operations: optional callable to transform the filter query.
-        apply_data_query_operations: optional callable to transform the data query.
-        pagination_request: pagination.
-        response_schema_class: Pydantic schema class for the returned data.
-        name_to_facet_query_params: dict of FacetQueryParams for building the facets.
-        filter_model: instance of CustomFilter for filtering and sorting data.
-        filter_joins: mapping of filter names to join functions. The keys should match both:
-            - the nested filters attributes, to choose which joins should be applied for filtering.
-            - the keys in `name_to_facet_query_params`, for retrieving the facets.
-        embedding: optional list of floats representing an embedding vector for semantic search.
-        check_authorized_project: Whether to constrain or not to authorized entities
-
-    Returns:
-        the list of model data, pagination, and facets as a Pydantic model.
-    """
-    filter_query = sa.select(db_model_class)
-
-    if check_authorized_project and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
-        filter_query = constrain_to_readable_entities(
-            filter_query,
-            project_id=authorized_project_id,
-            db_model_class=id_model_class,
-        )
-
-    if apply_filter_query_operations:
-        filter_query = apply_filter_query_operations(filter_query)
-
-    if filter_joins:
-        filter_query = filter_from_db(filter_query, filter_model, filter_joins)
-
-    filter_query = filter_model.filter(filter_query, aliases=aliases)
-
-    if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
-        filter_query = with_search(filter_query, description_vector)
-
-    if with_in_brain_region:
-        filter_query = with_in_brain_region(filter_query, db_model_class)
+    expand: AbstractSet[str] | None = None,
+    filter_query: sa.Select[I],
+) -> Iterable[I]:
+    """Execute the data query and return matching rows, or an empty list if page_size is 0."""
+    if pagination_request.page_size <= 0:
+        return []
 
     ensure_stable_sorting = [db_model_class.creation_date.desc(), db_model_class.id]
 
@@ -347,7 +314,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):
         # Remove existing ordering clauses
-        data_query._order_by_clauses = ()  # noqa: SLF001
+        data_query._order_by_clauses = ()  # ruff:ignore[private-member-access]
 
         # Order by L2 distance first, then by ID to guarantee uniqueness
         data_query = data_query.order_by(
@@ -359,8 +326,99 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
 
+    data_query = apply_derivation_expand(data_query, db_model_class, expand)
+
     # unique is needed b/c it contains results that include joined eager loads against collections
-    data = db.execute(data_query).scalars().unique()
+    return db.execute(data_query).scalars().unique()
+
+
+def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-arguments]
+    *,
+    db: Session,
+    db_model_class: type[I],
+    authorized_project_id: uuid.UUID | None,
+    with_search: Search[I] | None,
+    with_in_brain_region: InBrainRegionQuery | None,
+    facets: WithFacets | None,
+    aliases: Aliases | None,
+    apply_filter_query_operations: ApplyOperations[I] | None,
+    apply_data_query_operations: ApplyOperations[I] | None,
+    pagination_request: PaginationQuery,
+    response_schema_class: SupportsModelValidate[T],
+    name_to_facet_query_params: FacetQueryParamsMap | None,
+    filter_model: CustomFilter[I],
+    join_specs: JoinSpecMap | None = None,
+    embedding: list[float] | None = None,
+    check_authorized_project: bool = True,
+    expand: AbstractSet[str] | None = None,
+) -> ListResponse[T]:
+    """Read multiple models from the database.
+
+    Args:
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: project id for filtering the resources.
+        with_search: search query (str).
+        with_in_brain_region: enable family queries based on BrainRegion
+        facets: facet query (bool).
+        aliases: Aliases mapping for the filter query, or None.
+        apply_filter_query_operations: optional callable to transform the filter query.
+        apply_data_query_operations: optional callable to transform the data query.
+        pagination_request: pagination.
+        response_schema_class: Pydantic schema class for the returned data.
+        name_to_facet_query_params: dict of FacetQueryParams for building the facets.
+        filter_model: instance of CustomFilter for filtering and sorting data.
+        join_specs: mapping of filter/facet names to JoinSpec. The keys should match both:
+            - the nested filters attributes, to choose which joins should be applied for filtering.
+            - the keys in `name_to_facet_query_params`, for retrieving the facets.
+        embedding: optional list of floats representing an embedding vector for semantic search.
+        check_authorized_project: Whether to constrain or not to authorized entities
+        expand: optional set of derivation directions to eager-load (entity models only).
+
+    Returns:
+        the list of model data, pagination, and facets as a Pydantic model.
+    """
+    filter_query = sa.select(db_model_class)
+
+    if check_authorized_project and (
+        id_model_class := get_authorized_project_id_declaring_class(db_model_class)
+    ):
+        filter_query = constrain_to_readable_entities_by_project(
+            query=filter_query,
+            project_id=authorized_project_id,
+            db_model_class=id_model_class,
+        )
+
+    if apply_filter_query_operations:
+        filter_query = apply_filter_query_operations(filter_query)
+
+    # Save the base query before joins, to rebuild per-facet queries independently.
+    base_query = filter_query
+    description_vector = getattr(db_model_class, "description_vector", None)
+
+    def _apply_filters(q: sa.Select, *, facet_key: str | None = None) -> sa.Select:
+        if join_specs:
+            q = filter_from_db(q, filter_model, join_specs, facet_key=facet_key)
+        q = filter_model.filter(q, aliases=aliases)
+        if with_search and description_vector:
+            q = with_search(q, description_vector)
+        if with_in_brain_region:
+            q = with_in_brain_region(q, db_model_class)
+        return q
+
+    filter_query = _apply_filters(base_query)
+
+    data = _retrieve_rows(
+        db=db,
+        db_model_class=db_model_class,
+        aliases=aliases,
+        apply_data_query_operations=apply_data_query_operations,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        embedding=embedding,
+        expand=expand,
+        filter_query=filter_query,
+    )
 
     total_items = db.execute(
         filter_query.with_only_columns(
@@ -368,18 +426,14 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         )
     ).scalar_one()
 
-    facets_result = (
-        facets(
+    facets_result = None
+    if facets and name_to_facet_query_params:
+        facets_result = facets(
             db,
-            filter_query,
-            name_to_facet_query_params,
+            build_facet_query=lambda facet_key: _apply_filters(base_query, facet_key=facet_key),
+            name_to_facet_query_params=name_to_facet_query_params,
             count_distinct_field=db_model_class.id,
-            filter_model=filter_model,
-            filter_joins=filter_joins,
         )
-        if facets and name_to_facet_query_params
-        else None
-    )
     return ListResponse[T](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(
@@ -391,7 +445,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     )
 
 
-def router_update_one[T: BaseModel, I: Identifiable](
+def router_update_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -402,48 +456,62 @@ def router_update_one[T: BaseModel, I: Identifiable](
     apply_operations: ApplyOperations | None = None,
     check_authorized_project: bool,
 ):
-    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
+    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class, {})
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
     if check_authorized_project:
-        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
-        query = constrain_to_writable_entities(query, user_context, db_model_class=id_model_class)
+        id_model_class = get_authorized_project_id_declaring_class(db_model_class)
+
+        if id_model_class is None:
+            raise ApiError(
+                message=f"No authorized_project_id found for {db_model_class} or upstream.",
+                error_code=ApiErrorCode.GENERIC_ERROR,
+                http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+        query = constrain_to_writable_entities(
+            query=query,
+            user_context=user_context,
+            db_model_class=id_model_class,
+        )
     if apply_operations:
         query = apply_operations(query)
 
-    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+    with (
+        ensure_result(error_message=f"{db_model_class.__name__} not found"),
+    ):
         db_model_instance = db.execute(query).unique().scalar_one()
 
     db_model_instance = update_model(
         model=db_model_instance,
-        data=json_model.model_dump(
-            exclude_unset=True, exclude=set(nested_relationships) if nested_relationships else None
-        ),
+        data=json_model.model_dump(exclude_unset=True, exclude=set(nested_relationships)),
     )
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user_agent(db, user_context.profile)
-        db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_user = get_or_create_user(db, user_context.profile)
+        db_model_instance.updated_by_id = db_user.id
+        db_model_instance.update_date = sa.func.statement_timestamp()
 
-    db.flush()
-    db.refresh(db_model_instance)
+    create_associations_to_entities(
+        db=db,
+        parent=db_model_instance,
+        json_model=json_model,
+        nested_relationships=nested_relationships,
+        project_id=getattr(db_model_instance, "authorized_project_id", None),
+        action="update",
+    )
 
-    if nested_relationships:
-        create_associations_to_entities(
-            db=db,
-            parent=db_model_instance,
-            json_model=json_model,
-            nested_relationships=nested_relationships,
-            project_id=getattr(db_model_instance, "authorized_project_id", None),
-            action="update",
-        )
+    with ensure_uniqueness(f"{db_model_class.__name__} breaks unique constraints"):
+        db.flush()
+
+    relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+    db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
 
     return response_schema_class.model_validate(db_model_instance)
 
 
-def router_user_delete_one[T: BaseModel, I: Identifiable](
+def router_user_delete_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -472,7 +540,7 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     return DeleteResponse(id=id_)
 
 
-def router_admin_delete_one[T: BaseModel, I: Identifiable](
+def router_admin_delete_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -504,9 +572,19 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if check_authorized_project:
-        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class = get_authorized_project_id_declaring_class(db_model_class)
+
+        if id_model_class is None:
+            raise ApiError(
+                message=f"No authorized_project_id found for {db_model_class} or upstream.",
+                error_code=ApiErrorCode.GENERIC_ERROR,
+                http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
         query = constrain_to_writable_entities(
-            query, user_context=user_context, db_model_class=id_model_class
+            query=query,
+            user_context=user_context,
+            db_model_class=id_model_class,
         )
     if apply_operations:
         query = apply_operations(query)
@@ -525,9 +603,9 @@ def router_update_activity_one[T: BaseModel, I: Activity](
         setattr(db_model_instance, key, value)
 
     if db.is_modified(db_model_instance):
-        db_agent = get_or_create_user_agent(db, user_context.profile)
-        db_model_instance.updated_by_id = db_agent.id
-        db_model_instance.update_date = sa.func.now()
+        db_user = get_or_create_user(db, user_context.profile)
+        db_model_instance.updated_by_id = db_user.id
+        db_model_instance.update_date = sa.func.statement_timestamp()
 
     create_associations_to_entities(
         db=db,
@@ -539,6 +617,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     )
 
     db.flush()
-    db.refresh(db_model_instance)
+    relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
+    db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
 
     return response_schema_class.model_validate(db_model_instance)

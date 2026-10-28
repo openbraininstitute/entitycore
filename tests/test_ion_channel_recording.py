@@ -56,6 +56,9 @@ def _assert_read_response(actual, expected):
         "type": EntityType.ion_channel_recording,
         "update_date": ANY,
         "updated_by": ANY,
+        "lifecycle_status": "active",
+        "generated_from_derivations": None,
+        "used_by_derivations": None,
     } | {
         k: v
         for k, v in expected.items()
@@ -72,7 +75,7 @@ def test_create_one(
     brain_region_id,
     ion_channel,
     ion_channel_recording_json_data,
-    person_id,
+    user_id,
 ):
     data = assert_request(
         client.post,
@@ -83,8 +86,8 @@ def test_create_one(
     assert data["subject"]["id"] == str(subject_id)
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["license"]["id"] == str(license_id)
-    assert data["created_by"]["id"] == str(person_id)
-    assert data["updated_by"]["id"] == str(person_id)
+    assert data["created_by"]["id"] == str(user_id)
+    assert data["updated_by"]["id"] == str(user_id)
     assert data["ion_channel"]["id"] == str(ion_channel.id)
 
     _assert_read_response(data, data)
@@ -110,7 +113,7 @@ def test_read_one(
     client,
     subject_id,
     license_id,
-    person_id,
+    user_id,
     brain_region_id,
     ion_channel,
     ion_channel_recording_id_with_assets,
@@ -124,8 +127,8 @@ def test_read_one(
     assert data["subject"]["id"] == str(subject_id)
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["license"]["id"] == str(license_id)
-    assert data["created_by"]["id"] == str(person_id)
-    assert data["updated_by"]["id"] == str(person_id)
+    assert data["created_by"]["id"] == str(user_id)
+    assert data["updated_by"]["id"] == str(user_id)
     assert data["ion_channel"]["id"] == str(ion_channel.id)
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
@@ -189,14 +192,14 @@ def test_pagination(client, ion_channel_recording_json_data):
 
 
 @pytest.fixture
-def faceted_ids(db, client, brain_region_hierarchy_id, ion_channel_recording_json_data, person_id):
+def faceted_ids(db, client, brain_region_hierarchy_id, ion_channel_recording_json_data, user_id):
     brain_region_ids = [
         create_brain_region(
             db,
             brain_region_hierarchy_id,
             annotation_value=i,
             name=f"region-{i}",
-            created_by_id=person_id,
+            created_by_id=user_id,
         ).id
         for i in range(2)
     ]
@@ -280,7 +283,7 @@ def test_brain_region_filter(
 
 @pytest.fixture
 def models(
-    db, ion_channel_recording_json_data, ion_channel_json_data, person_id, brain_region_hierarchy_id
+    db, ion_channel_recording_json_data, ion_channel_json_data, user_id, brain_region_hierarchy_id
 ):
     species = add_all_db(
         db,
@@ -288,8 +291,8 @@ def models(
             Species(
                 name=f"species-{i}",
                 taxonomy_id=f"taxonomy-{i}",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(3)
@@ -309,8 +312,8 @@ def models(
                 weight=1.5,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             )
             for i, sp in enumerate(species + species)
         ],
@@ -326,8 +329,8 @@ def models(
                 color_hex_triplet="FF0000",
                 parent_structure_id=None,
                 hierarchy_id=brain_region_hierarchy_id,
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
                 embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(len(subjects))
@@ -342,8 +345,8 @@ def models(
                 | {
                     "name": f"name-{i}",
                     "label": f"label-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             )
             for i in range(len(subjects))
@@ -397,8 +400,8 @@ def models(
                 | {
                     "subject_id": str(subject.id),
                     "name": f"e-{recordings_id}",
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "authorized_project_id": PROJECT_ID,
                     "brain_region_id": brain_regions[i].id,
                     "recording_type": recording_type,
@@ -519,7 +522,7 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(recordings)
 
@@ -530,6 +533,45 @@ def test_filtering(client, models):
 
     data = assert_request(client.get, url=ROUTE, params={"ilike_search": "e-1"}).json()["data"]
     assert len(data) == 3
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(recordings)
+
+    # validation result-based filtering
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-passed",
+            "passed": True,
+            "validated_entity_id": str(recordings[0].id),
+            "authorized_public": False,
+        },
+    )
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-failed",
+            "passed": False,
+            "validated_entity_id": str(recordings[1].id),
+            "authorized_public": False,
+        },
+    )
+
+    data = assert_request(client.get, url=ROUTE, params={"validation_result__passed": True}).json()[
+        "data"
+    ]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recordings[0].id)
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"validation_result__passed": False}
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recordings[1].id)
 
 
 def test_sorting(client, models):
@@ -625,7 +667,7 @@ def test_sorting(client, models):
     assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
 
 
-def test_sorting_and_filtering(client, models):  # noqa: ARG001
+def test_sorting_and_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -670,3 +712,6 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
         "acronym-2",
         "acronym-1",
     ]
+
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models[-1])

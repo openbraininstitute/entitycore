@@ -1,8 +1,6 @@
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import (
-    aliased,
     joinedload,
     raiseload,
     selectinload,
@@ -10,17 +8,16 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
-    Agent,
     CellMorphology,
     Contribution,
     EModel,
     MEModel,
     MEModelCalibrationResult,
-    Person,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -35,13 +32,11 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(select: Select):
@@ -83,13 +78,20 @@ def _load(select: Select):
         joinedload(MEModel.etypes),
         joinedload(MEModel.created_by),
         joinedload(MEModel.updated_by),
-        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.created_by),
-        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.updated_by),
+        joinedload(MEModel.calibration_result).options(
+            joinedload(MEModelCalibrationResult.created_by),
+            joinedload(MEModelCalibrationResult.updated_by),
+        ),
         raiseload("*"),
     )
 
 
-def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
+def read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: UserContextDep,
+    expand: ExpandDep = None,
+) -> MEModelRead:
     return router_read_one(
         id_=id_,
         db=db,
@@ -97,10 +99,11 @@ def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> ME
         user_context=user_context,
         response_schema_class=MEModelRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
+def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = None) -> MEModelRead:
     return router_read_one(
         id_=id_,
         db=db,
@@ -108,6 +111,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
         user_context=None,
         response_schema_class=MEModelRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -171,26 +175,11 @@ def _read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[MEModelRead]:
-    morphology_alias = aliased(CellMorphology, flat=True)
-    emodel_alias = aliased(EModel, flat=True)
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
 
-    aliases: Aliases = {
-        CellMorphology: morphology_alias,
-        EModel: emodel_alias,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "species",
         "morphology",
@@ -202,11 +191,11 @@ def _read_many(
         "etype",
         "strain",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    filter_keys = [*facet_keys, "morphology.generated_derivation"]
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MEModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -222,8 +211,9 @@ def _read_many(
         response_schema_class=MEModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -235,6 +225,7 @@ def read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[MEModelRead]:
     return _read_many(
         user_context=user_context,
@@ -244,6 +235,7 @@ def read_many(
         search=search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -256,6 +248,7 @@ def admin_read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[MEModelRead]:
     return _read_many(
         user_context=user_context,
@@ -265,6 +258,7 @@ def admin_read_many(
         search=search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 

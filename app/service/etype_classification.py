@@ -1,15 +1,13 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from fastapi import HTTPException
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.auth import constrain_to_readable_entities
+from app.db.auth import constrain_to_readable_entities_by_project
 from app.db.model import (
     Entity,
     ETypeClassification,
-    Person,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -22,7 +20,6 @@ from app.filters.classification import ETypeClassificationFilterDep
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.routers.types import AssociationRoute
 from app.schemas.classification import (
     ETypeClassificationCreate,
     ETypeClassificationRead,
@@ -30,9 +27,7 @@ from app.schemas.classification import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import admin as admin_service
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
+from app.types import AssociationRoute
 
 
 def _load(query: sa.Select):
@@ -48,9 +43,9 @@ def create_one(
     json_model: ETypeClassificationCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> ETypeClassificationRead:
-    stmt = constrain_to_readable_entities(
-        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
-        user_context.project_id,
+    stmt = constrain_to_readable_entities_by_project(
+        query=sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
+        project_id=user_context.project_id,
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
@@ -111,27 +106,14 @@ def _read_many(
     facets: FacetsDep,
     check_authorized_project: bool,
 ) -> ListResponse[ETypeClassificationRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    aliases: Aliases = {
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    facet_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
-    filter_keys = [
-        "created_by",
-        "updated_by",
-    ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=ETypeClassification,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -146,7 +128,7 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=ETypeClassificationRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         with_in_brain_region=None,
         check_authorized_project=check_authorized_project,
     )

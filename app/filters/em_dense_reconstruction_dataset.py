@@ -3,21 +3,27 @@ from typing import Annotated
 from app.db.model import EMDenseReconstructionDataset
 from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
-from app.filters.scientific_artifact import ScientificArtifactFilter
+from app.filters.scientific_artifact import NestedScientificArtifactFilter, ScientificArtifactFilter
 
 
-class NestedEMDenseReconstructionDatasetFilter(ScientificArtifactFilter, NameFilterMixin):
-    class Constants(ScientificArtifactFilter.Constants):
+class NestedEMDenseReconstructionDatasetFilter(
+    NestedScientificArtifactFilter,
+    NameFilterMixin,
+):
+    class Constants(NestedScientificArtifactFilter.Constants):
         model = EMDenseReconstructionDataset
 
 
 class EMDenseReconstructionDatasetFilter(
-    NestedEMDenseReconstructionDatasetFilter, ILikeSearchFilterMixin
+    ScientificArtifactFilter,
+    NameFilterMixin,
+    ILikeSearchFilterMixin,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
-    class Constants(NestedEMDenseReconstructionDatasetFilter.Constants):
-        ordering_model_fields = [  # noqa: RUF012
+    class Constants(ScientificArtifactFilter.Constants):
+        model = EMDenseReconstructionDataset
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",

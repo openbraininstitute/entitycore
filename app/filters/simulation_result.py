@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import with_prefix
@@ -21,11 +22,13 @@ class NestedSimulationResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter)
 class SimulationResultFilter(
     EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    simulation_id: uuid.UUID | None = None
+    simulation_id__in: list[uuid.UUID] | None = None
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = SimulationResult
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 SimulationResultFilterDep = Annotated[SimulationResultFilter, FilterDepends(SimulationResultFilter)]

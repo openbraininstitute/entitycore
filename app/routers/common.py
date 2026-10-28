@@ -5,10 +5,10 @@ from typing import Any
 from fastapi import APIRouter
 
 from app.dependencies.db import SessionDep
-from app.routers.types import ResourceRoute
 from app.schemas.routers import DeleteResponse
 from app.schemas.service import AdminCrudService, UserCrudService
 from app.service import admin as admin_service
+from app.types import ResourceRoute
 
 
 def register_default_user_routes(router: APIRouter, service: UserCrudService) -> None:

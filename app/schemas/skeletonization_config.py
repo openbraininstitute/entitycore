@@ -1,30 +1,20 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import JSON_DICT
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class SkeletonizationConfigBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class SkeletonizationConfigBaseMixin(NameDescriptionMixin):
     skeletonization_campaign_id: uuid.UUID
     em_cell_mesh_id: uuid.UUID
     scan_parameters: JSON_DICT
 
 
-class SkeletonizationConfigCreate(SkeletonizationConfigBase, AuthorizationOptionalPublicMixin):
+class SkeletonizationConfigCreate(SkeletonizationConfigBaseMixin, EntityCreate):
     pass
 
 
@@ -39,18 +29,12 @@ SkeletonizationConfigAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSkeletonizationConfigRead(
-    SkeletonizationConfigBase, EntityTypeMixin, IdentifiableMixin
-):
+class NestedSkeletonizationConfigRead(SkeletonizationConfigBaseMixin, NestedEntityRead):
     pass
 
 
 class SkeletonizationConfigRead(
-    NestedSkeletonizationConfigRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
-    ContributionReadWithoutEntityMixin,
+    SkeletonizationConfigBaseMixin,
+    EntityRead,
 ):
     pass

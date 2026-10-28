@@ -1,24 +1,27 @@
 import io
 from http import HTTPStatus
 from unittest.mock import ANY, patch
+from urllib.parse import parse_qs, urlparse
+from uuid import UUID
 
 import pytest
-from fastapi import HTTPException
 from moto import mock_aws
 
 from app.config import settings, storages
 from app.db.model import Asset, Entity
-from app.db.types import AssetLabel, EntityType, StorageType
+from app.db.types import AssetLabel, ContentType, EntityType, StorageType
+from app.dependencies import auth
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
-from app.schemas.asset import AssetRead
-from app.service import asset as asset_service
+from app.schemas.asset import AssetRead, MultipartDirectoryUploadResponse
+from app.schemas.auth import UserContext, UserProfile
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
     MISSING_ID,
     PROJECT_ID,
     TEST_DATA_DIR,
+    USER_SUB_ID_1,
     VIRTUAL_LAB_ID,
     add_db,
     assert_request,
@@ -38,6 +41,30 @@ FILE_EXAMPLE_SIZE = 31
 EMPTY_FILE_PATH = TEST_DATA_DIR / "empty.txt"
 EMPTY_FILE_DIGEST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 EMPTY_FILE_SIZE = 0
+
+DUMMY_DIGEST = "a" * 64
+
+VIRTUAL_LAB_API_TEST_URL = "https://virtual-lab-api.test"
+
+
+@pytest.fixture
+def virtual_lab_api_url(monkeypatch):
+    monkeypatch.setattr(settings, "VIRTUAL_LAB_API_URL", VIRTUAL_LAB_API_TEST_URL)
+    return VIRTUAL_LAB_API_TEST_URL
+
+
+@pytest.fixture
+def mock_virtual_lab_project_mapping(httpx2_mock, virtual_lab_api_url):
+    httpx2_mock.get(
+        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
+    ).respond(
+        json={
+            "data": {
+                "project_id": PROJECT_ID,
+                "virtual_lab_id": VIRTUAL_LAB_ID,
+            },
+        },
+    )
 
 
 def _get_expected_full_path(entity, path):
@@ -120,6 +147,28 @@ def _upload_entity_asset(
         )
 
 
+def _upload_entity_asset_admin(
+    client,
+    entity_type,
+    entity_id,
+    label,
+    file_upload_name,
+    content_type,
+    expected_status=201,
+    filepath=FILE_EXAMPLE_PATH,
+):
+    with filepath.open("rb") as f:
+        files = {"file": (file_upload_name, f, content_type)}
+        response = client.post(
+            f"/admin{route(entity_type)}/{entity_id}/assets",
+            files=files,
+            data={"label": label},
+        )
+    if expected_status:
+        assert response.status_code == expected_status
+    return response
+
+
 @pytest.fixture
 def asset(client, entity) -> AssetRead:
     response = _upload_entity_asset(
@@ -144,7 +193,7 @@ def uploading_asset(client, entity) -> AssetRead:
         json={
             "filename": "foo.swc",
             "filesize": 3 * 5 * 1024**2,
-            "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+            "sha256_digest": DUMMY_DIGEST,
             "preferred_part_count": 3,
             "label": "morphology",
             "content_type": "application/swc",
@@ -154,7 +203,7 @@ def uploading_asset(client, entity) -> AssetRead:
 
 
 @pytest.fixture
-def asset_directory(db, root_circuit, person_id) -> Asset:
+def asset_directory(db, root_circuit, user_id) -> Asset:
     s3_path = _get_expected_full_path(entity=root_circuit, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -166,8 +215,8 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
         sha256_digest=None,
         meta={},
         entity_id=root_circuit.id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="sonata_circuit",
         storage_type=StorageType.aws_s3_internal,
     )
@@ -176,7 +225,7 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
 
 
 @pytest.fixture
-def private_asset_directory(db, circuit, person_id) -> Asset:
+def private_asset_directory(db, circuit, user_id) -> Asset:
     s3_path = _get_expected_full_path(entity=circuit, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -188,8 +237,8 @@ def private_asset_directory(db, circuit, person_id) -> Asset:
         sha256_digest=None,
         meta={},
         entity_id=circuit.id,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
         label="sonata_circuit",
         storage_type=StorageType.aws_s3_internal,
     )
@@ -287,7 +336,8 @@ def test_upload_entity_asset(client, entity, monkeypatch):
     )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_SCHEMA
+    assert "Value error, morphology implies one of the following content-types" in error.details[0]
 
     # upload an empty file
     response = _upload_entity_asset(
@@ -335,6 +385,38 @@ def test_upload_entity_asset(client, entity, monkeypatch):
         assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
 
 
+def test_upload_entity_asset_auth_disabled_resolves_vlab(client, entity, monkeypatch):
+    """With APP_DISABLE_AUTH the vlab is resolved from headers even without Keycloak groups."""
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+
+    def groupless_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        # Mimic the APP_DISABLE_AUTH branch of user_verified: headers set, no groups.
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="Admin User"),
+            expiration=None,
+            is_authorized=True,
+            is_service_admin=True,
+            virtual_lab_id=project_context.virtual_lab_id,
+            project_id=project_context.project_id,
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", groupless_check_user_info)
+
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
+    assert response.status_code == 201, f"Failed to create asset: {response.text}"
+    data = response.json()
+    # the vlab from the headers (VIRTUAL_LAB_ID) is used to build the S3 path
+    assert data["full_path"] == _get_expected_full_path(entity, path="morph.asc")
+
+
 @pytest.mark.parametrize(
     ("client_fixture", "expected_status", "expected_error"),
     [
@@ -373,7 +455,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     )
     assert response.status_code == 422, "Assel label was not rejected as not present in AssetLabel."
 
-    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
+    monkeypatch.setattr("app.db.utils.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
 
     response = _upload_entity_asset(
         client,
@@ -392,7 +474,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
 
     required = {EntityType.cell_morphology: {AssetLabel.cell_composition_summary: None}}
 
-    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
+    monkeypatch.setattr("app.db.utils.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
 
     response = _upload_entity_asset(
         client,
@@ -414,6 +496,154 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
             )
         ],
     }
+
+
+def test_upload_entity_asset_invalid_content_type(client, entity):
+    """Test upload with a file whose extension maps to an unsupported content type."""
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="data.xyz",
+        content_type="chemical/x-xyz",
+    )
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+    assert "Invalid content type" in error.message
+
+
+def test_upload_entity_asset_s3_failure(client, entity):
+    """Test upload when S3 upload fails."""
+    with patch("app.service.asset.upload_to_s3_single_part", return_value=None):
+        response = _upload_entity_asset(
+            client,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            label="morphology",
+            file_upload_name="morph.asc",
+            content_type="application/asc",
+        )
+    assert response.status_code == 500
+    assert response.json()["details"] == "Failed to upload object"
+
+
+def test_upload_entity_asset_virtual_lab_id_not_found(client, entity, monkeypatch):
+    """User has project context but no virtual-lab mapping in Keycloak groups."""
+
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=True,
+            project_id=UUID(PROJECT_ID),
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+        expected_status=None,
+    )
+    assert response.status_code == 422, f"Unexpected response: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
+
+
+def test_upload_entity_asset_directory_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=True,
+            project_id=UUID(PROJECT_ID),
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/upload",
+        json={
+            "files": ["morphology/cell1.swc"],
+            "meta": None,
+            "label": "sonata_circuit",
+            "directory_name": "missing-vlab-directory-upload",
+        },
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_upload_entity_asset_admin(client_admin, entity):
+    response = _upload_entity_asset_admin(
+        client_admin,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
+    assert response.status_code == 201, f"Failed to create asset: {response.text}"
+    data = response.json()
+    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
+    assert data["full_path"] == expected_full_path
+    assert data["label"] == "morphology"
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_upload_entity_asset_admin_non_authorized(clients, entity):
+    response = _upload_entity_asset_admin(
+        clients.user_1,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+        expected_status=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_upload_entity_asset_admin_s3_failure(client_admin, entity):
+    with patch("app.service.asset.upload_to_s3_single_part", return_value=None):
+        response = _upload_entity_asset_admin(
+            client_admin,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            label="morphology",
+            file_upload_name="morph.asc",
+            content_type="application/asc",
+            expected_status=500,
+        )
+    assert response.json()["details"] == "Failed to upload object"
+
+
+def test_upload_entity_asset_admin_virtual_lab_api_failure(
+    client_admin, entity, httpx2_mock, virtual_lab_api_url
+):
+    httpx2_mock.get(
+        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
+    ).respond(HTTPStatus.NOT_FOUND)
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        response = client_admin.post(
+            f"/admin{route(entity.type)}/{entity.id}/assets",
+            files={"file": ("morph.asc", f, "application/asc")},
+            data={"label": "morphology"},
+        )
+    assert response.status_code == 500
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.GENERIC_ERROR
 
 
 @pytest.fixture
@@ -513,17 +743,14 @@ def test_register_entity_asset_not_found(client, entity):
 
 
 @pytest.mark.parametrize(
-    "full_path",
+    ("full_path", "expected_error"),
     [
-        "/path/to/test.swc",
-        "path/to/test.swc/",
-        "/path/to/test.swc/",
-        "/path/to//test.swc",
-        "/path/to/./test.swc",
-        "/path/to/../test.swc",
+        ("/test.swc", "Absolute paths are forbidden"),
+        ("", "Empty paths are forbidden"),
+        ("path/to/../test.swc", "Parent traversal is forbidden"),
     ],
 )
-def test_register_entity_asset_with_invalid_full_path(client, entity, full_path):
+def test_register_entity_asset_with_invalid_full_path(client, entity, full_path, expected_error):
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/register",
@@ -542,10 +769,7 @@ def test_register_entity_asset_with_invalid_full_path(client, entity, full_path)
         "error_code": "INVALID_REQUEST",
         "message": "Validation error",
     }
-    assert response.json()["details"][0]["msg"] == (
-        "Value error, Invalid full path: cannot be empty, start or end with '/', "
-        "and the path components cannot be empty, '.' or '..'"
-    )
+    assert response.json()["details"][0]["msg"] == f"Value error, {expected_error}"
 
 
 @pytest.mark.parametrize(
@@ -650,57 +874,6 @@ def test_get_entity_assets(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
-
-
-def test_get_deleted_entity_assets__admin(db, client_admin, entity, asset):
-    """Test that a service admin can fetch marked as deleted assets."""
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-
-    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
-
-    expected_asset_payload = {
-        "id": str(asset.id),
-        "path": "morph.asc",
-        "full_path": expected_full_path,
-        "is_directory": False,
-        "content_type": "application/asc",
-        "size": FILE_EXAMPLE_SIZE,
-        "sha256_digest": FILE_EXAMPLE_DIGEST,
-        "meta": {},
-        "status": "created",
-        "label": "morphology",
-        "storage_type": StorageType.aws_s3_internal,
-    }
-
-    assert data == [expected_asset_payload]
-
-    # mark as deleted
-    asset = db.get(Asset, asset.id)
-    asset.status = "deleted"
-    db.commit()
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
-    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
-    assert response.json() == expected_asset_payload | {"status": "deleted"}
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-
-    assert data == [expected_asset_payload | {"status": "deleted"}]
-
-    # delete completely as admin
-    response = client_admin.delete(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
-    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-    assert data == []
 
 
 def test_download_entity_asset(clients, entity, asset):
@@ -916,7 +1089,7 @@ def test_delete_entity_asset__authorization__admin(
 def test_delete_entity_asset__authorization__user_own(
     clients, create_entity_asset, is_public, expected_status_code, expected_error
 ):
-    """Test project member may deleted their own private assets."""
+    """Test project member may delete their own private assets."""
     entity_id, entity_type, asset_id = create_entity_asset(
         clients.user_3, authorized_public=is_public
     )
@@ -999,7 +1172,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
     data = response.json()
     asset1 = AssetRead.model_validate(data)
 
-    # test that the deleted assets are filtered out
+    # test that the deleted assets are not returned
     response = client.get(f"{route(entity.type)}/{entity.id}/assets")
 
     assert response.status_code == 200, f"Failed to get assest: {response.text}"
@@ -1119,8 +1292,10 @@ def test_upload_entity_asset_directory(client, root_circuit):
             json={"files": [], "meta": None, "label": label, "directory_name": "test2"},
         )
         assert response.status_code == 422
+        error = ErrorResponse.model_validate(response.json())
+        assert error.details[0]["type"] == "too_short"
 
-    duplicate_path = ["../../../etc/passwd", "valid/path/../../../etc/passwd"]
+    duplicate_path = ["path/to/file", "path/to/file"]
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
@@ -1128,23 +1303,30 @@ def test_upload_entity_asset_directory(client, root_circuit):
         )
     assert response.status_code == 422
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.details[0]["msg"] == "Value error, Filenames must be unique within the directory."
 
     invalid_files = [
         "/absolute/path/file.txt",
         "../../../etc/passwd",
         "valid/path/../../../etc/groups",
+        ".",
+        "",
     ]
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
             json={"files": invalid_files, "meta": None, "label": label, "directory_name": "test4"},
         )
-    assert response.status_code == 200
-    assert list(response.json()["files"]) == [
-        "absolute/path/file.txt",
-        "etc/passwd",
-        "etc/groups",
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert [d["msg"] for d in error.details] == [
+        "Value error, Absolute paths are forbidden",
+        "Value error, Parent traversal is forbidden",
+        "Value error, Parent traversal is forbidden",
+        "Value error, Empty paths are forbidden",
+        "Value error, Empty paths are forbidden",
     ]
 
 
@@ -1259,7 +1441,7 @@ def _multipart_json_data(
     return {
         "filename": filename,
         "filesize": filesize,
-        "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+        "sha256_digest": DUMMY_DIGEST,
         "preferred_part_count": 3,
         "label": "morphology",
         "content_type": content_type,
@@ -1402,8 +1584,8 @@ def test_multipart_asset_upload_abort(db, client, entity, s3, s3_internal_bucket
     assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
 
 
-def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
-    """Test initiate_entity_asset_upload with invalid filesize."""
+def test_entity_asset_multipart_upload_initiate__invalid_filesize(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid filesize."""
     # Test with filesize exceeding max
     max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
     response = assert_request(
@@ -1413,12 +1595,12 @@ def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
-    assert f"bigger than {max_size}" in error.message
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.details[0]["msg"] == f"Input should be less than {max_size}"
 
 
-def test_initiate_entity_asset_upload_invalid_filename(client, entity):
-    """Test initiate_entity_asset_upload with invalid filename."""
+def test_entity_asset_multipart_upload_initiate__invalid_filename(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid filename."""
     # Test with invalid filename (path traversal)
 
     response = assert_request(
@@ -1428,8 +1610,9 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
-    assert "Invalid file name" in error.message
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.message == "Validation error"
+    assert error.details[0]["msg"] == "Value error, Expected a valid file or directory name"
 
     # Test with invalid filename (absolute path)
     response = assert_request(
@@ -1439,11 +1622,13 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.message == "Validation error"
+    assert error.details[0]["msg"] == "Value error, Expected a valid file or directory name"
 
 
-def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
-    """Test initiate_entity_asset_upload with invalid content type."""
+def test_entity_asset_multipart_upload_initiate__invalid_content_type(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid content type."""
     # Test with invalid content type
     response = assert_request(
         client.post,
@@ -1452,12 +1637,49 @@ def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_SCHEMA
+    assert "Value error, morphology implies one of the following content-types" in error.details[0]
+
+
+def test_entity_asset_multipart_upload_initiate__filesize_router_validation(client, entity):
+    with patch("app.service.asset.validate_multipart_filesize", return_value=False):
+        response = assert_request(
+            client.post,
+            url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+            json=_multipart_json_data(),
+            expected_status_code=422,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
+
+
+def test_entity_asset_multipart_upload_initiate__filename_router_validation(client, entity):
+    with patch("app.service.asset.validate_filename", return_value=False):
+        response = assert_request(
+            client.post,
+            url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+            json=_multipart_json_data(),
+            expected_status_code=422,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+
+
+def test_entity_asset_multipart_upload_initiate__content_type_router_validation(client, entity):
+    with patch("app.service.asset.get_content_type", side_effect=ValueError("invalid")):
+        response = assert_request(
+            client.post,
+            url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+            json=_multipart_json_data(),
+            expected_status_code=422,
+        )
+    error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
-    assert "Invalid content type" in error.message
+    assert "Invalid content type for file" in error.message
 
 
-def test_initiate_entity_asset_upload_duplicate(client, entity):
-    """Test initiate_entity_asset_upload with duplicate asset."""
+def test_entity_asset_multipart_upload_initiate__duplicate(client, entity):
+    """Test entity_asset_multipart_upload_initiate with duplicate asset."""
     # Create first upload
     assert_request(
         client.post,
@@ -1476,8 +1698,8 @@ def test_initiate_entity_asset_upload_duplicate(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
 
 
-def test_initiate_entity_asset_upload_entity_not_found(client, entity):
-    """Test initiate_entity_asset_upload with non-existent entity."""
+def test_entity_asset_multipart_upload_initiate__entity_not_found(client, entity):
+    """Test entity_asset_multipart_upload_initiate with non-existent entity."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{MISSING_ID}/assets/multipart-upload/initiate",
@@ -1495,10 +1717,10 @@ def test_initiate_entity_asset_upload_entity_not_found(client, entity):
         ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
     ],
 )
-def test_initiate_entity_asset_upload_non_authorized(
+def test_entity_asset_multipart_upload_initiate__non_authorized(
     request, client_fixture, expected_status, expected_error, entity
 ):
-    """Test initiate_entity_asset_upload with unauthorized user."""
+    """Test entity_asset_multipart_upload_initiate with unauthorized user."""
     client = request.getfixturevalue(client_fixture)
     response = assert_request(
         client.post,
@@ -1510,8 +1732,8 @@ def test_initiate_entity_asset_upload_non_authorized(
     assert error.error_code == expected_error
 
 
-def test_complete_entity_asset_upload_asset_not_found(client, entity):
-    """Test complete_entity_asset_upload with non-existent asset."""
+def test_entity_asset_multipart_upload_complete__asset_not_found(client, entity):
+    """Test entity_asset_multipart_upload_complete with non-existent asset."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/multipart-upload/complete",
@@ -1521,8 +1743,8 @@ def test_complete_entity_asset_upload_asset_not_found(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
 
-def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading_asset):
-    """Test complete_entity_asset_upload with non-existent entity."""
+def test_entity_asset_multipart_upload_complete__entity_not_found(client, entity, uploading_asset):
+    """Test entity_asset_multipart_upload_complete with non-existent entity."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{MISSING_ID}/assets/{uploading_asset.id}/multipart-upload/complete",
@@ -1532,8 +1754,8 @@ def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
-def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
-    """Test complete_entity_asset_upload when asset is not in uploading status."""
+def test_entity_asset_multipart_upload_complete__not_uploading(client, entity, asset):
+    """Test entity_asset_multipart_upload_complete when asset is not in uploading status."""
     data = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/multipart-upload/complete",
@@ -1551,10 +1773,10 @@ def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
         ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
     ],
 )
-def test_complete_entity_asset_upload_non_authorized(
+def test_entity_asset_multipart_upload_complete__non_authorized(
     request, client_fixture, expected_status, expected_error, entity, uploading_asset
 ):
-    """Test complete_entity_asset_upload with unauthorized user."""
+    """Test entity_asset_multipart_upload_complete with unauthorized user."""
     client = request.getfixturevalue(client_fixture)
     data = assert_request(
         client.post,
@@ -1565,8 +1787,10 @@ def test_complete_entity_asset_upload_non_authorized(
     assert error.error_code == expected_error
 
 
-def test_complete_entity_asset_upload_incomplete(db, client, entity, s3, s3_internal_bucket):
-    """Test complete_entity_asset_upload when upload is incomplete."""
+def test_entity_asset_multipart_upload_complete__incomplete(
+    db, client, entity, s3, s3_internal_bucket
+):
+    """Test entity_asset_multipart_upload_complete when upload is incomplete."""
     filesize = 3 * 5 * 1024**2
 
     # Initiate upload
@@ -1618,8 +1842,10 @@ def test_complete_entity_asset_upload_incomplete(db, client, entity, s3, s3_inte
     assert data["status"] == "created"
 
 
-def test_complete_entity_asset_upload_inconsistent_size(db, client, entity, s3, s3_internal_bucket):
-    """Test complete_entity_asset_upload when total uploaded size does not match expected size."""
+def test_entity_asset_multipart_upload_complete__inconsistent_size(
+    db, client, entity, s3, s3_internal_bucket
+):
+    """Test entity_asset_multipart_upload_complete when uploaded size doesn't match expected."""
     # Expected filesize declared during initiation
     declared_filesize = 3 * 5 * 1024**2  # ~75MB
 
@@ -1696,14 +1922,892 @@ def test_upload_entity_asset_directory_presigned_url_generation_failure(client, 
     assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
 
 
-def test_delete_asset_storage_object_s3_failure(asset):
-    with (
-        patch("app.service.asset.delete_from_s3", return_value=False),
-        pytest.raises(HTTPException) as exc,
-    ):
-        asset_service.delete_asset_storage_object(
-            asset=asset,
-            storage_client_factory=lambda _storage: object(),
+def _multipart_directory_json_data(
+    directory_name="my-dir",
+    label="sonata_circuit",
+    files=None,
+):
+    if files is None:
+        files = [
+            {
+                "filename": "morphology/cell1.swc",
+                "filesize": 3 * 5 * 1024**2,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "morphology/cell2.swc",
+                "filesize": 3 * 5 * 1024**2,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+        ]
+    return {
+        "directory_name": directory_name,
+        "label": label,
+        "meta": {"key": "value"},
+        "files": files,
+    }
+
+
+def _extract_upload_id(url):
+    """Extract and return uploadId from a presigned url, only for tests."""
+    return parse_qs(urlparse(url).query)["uploadId"][0]
+
+
+def test_multipart_directory_upload(client, root_circuit, s3, s3_internal_bucket):
+    """Test initiating, uploading parts, and completing a multipart directory upload."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        files=[
+            {
+                "filename": "data/file1.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "data/file2.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+        ]
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    assert "asset" in data
+    assert "files" in data
+
+    parent_asset = data["asset"]
+    assert parent_asset["is_directory"] is True
+    assert parent_asset["status"] == "uploading"
+    assert parent_asset["label"] == "sonata_circuit"
+    assert parent_asset["meta"] == {"key": "value"}
+
+    file_assets = data["files"]
+    assert len(file_assets) == 2
+
+    for file_asset in file_assets:
+        assert file_asset["status"] == "uploading"
+        assert file_asset["upload_meta"] is not None
+        assert len(file_asset["upload_meta"]["parts"]) == 3
+
+    initiated = MultipartDirectoryUploadResponse.model_validate(data)
+
+    # Upload parts for each file
+    for file_asset in initiated.files:
+        assert file_asset.upload_meta
+        part_size = file_asset.upload_meta.part_size
+        for part in file_asset.upload_meta.parts:
+            upload_id = _extract_upload_id(part.url)
+            s3.upload_part(
+                Bucket=s3_internal_bucket,
+                Key=file_asset.full_path,
+                UploadId=upload_id,
+                PartNumber=part.part_number,
+                Body=b"x" * part_size,
+            )
+
+    # Complete the directory upload
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_asset['id']}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+    # Verify parent asset is listed (children are not)
+    assets_response = assert_request(
+        client.get,
+        url=f"{entity_type}/{entity_id}/assets",
+    ).json()
+    asset_ids = [a["id"] for a in assets_response["data"]]
+    assert parent_asset["id"] in asset_ids
+    for file_asset in file_assets:
+        assert file_asset["id"] not in asset_ids
+
+
+def test_multipart_directory_upload_entity_not_found(client, root_circuit):
+    """Test initiate multipart directory upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{MISSING_ID}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(),
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_multipart_directory_upload_duplicate(client, root_circuit):
+    """Test initiate multipart directory upload with duplicate directory name."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="dup-dir"),
+    )
+
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="dup-dir"),
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
+
+
+def test_multipart_directory_upload_invalid_directory_name(client, root_circuit):
+    """Test initiate multipart directory upload with invalid directory names."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    # nested directory name
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="nested/dir"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+
+
+def test_multipart_directory_upload_empty_files(client, root_circuit):
+    """Test initiate multipart directory upload with empty files list."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=[]),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.details[0]["type"] == "too_short"
+
+
+def test_multipart_directory_upload_duplicate_filenames(client, root_circuit):
+    """Test initiate multipart directory upload with duplicate filenames."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    dup_files = [
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
+    ]
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=dup_files),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert "Filenames must be unique" in error.details[0]["msg"]
+
+
+def test_multipart_directory_upload_invalid_file_paths(client, root_circuit):
+    """Test initiate multipart directory upload with invalid file paths."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    invalid_files = [
+        {"filename": "/absolute/path.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
+    ]
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=invalid_files),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert "Absolute paths are forbidden" in error.details[0]["msg"]
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_multipart_directory_upload_non_authorized(
+    request, client_fixture, expected_status, expected_error, root_circuit
+):
+    """Test initiate multipart directory upload with unauthorized user."""
+    client = request.getfixturevalue(client_fixture)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(),
+        expected_status_code=expected_status,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error
+
+
+def test_multipart_directory_upload_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=True,
+            project_id=UUID(PROJECT_ID),
+            user_project_groups=[],
         )
-    assert exc.value.status_code == 500
-    assert exc.value.detail == "Failed to delete object"
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(
+            directory_name="missing-vlab-multipart-directory-upload"
+        ),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
+
+
+def test_complete_multipart_directory_upload_not_uploading(client, root_circuit, asset_directory):
+    """Test complete multipart directory upload when asset is not in uploading status."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{asset_directory.id}/directory/multipart-upload/complete",
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
+
+
+def test_complete_multipart_directory_upload_empty_child_without_upload_meta(
+    db, client, root_circuit
+):
+    parent = add_db(
+        db,
+        Asset(
+            path="missing-empty-meta-dir",
+            full_path=_get_expected_full_path(entity=root_circuit, path="missing-empty-meta-dir"),
+            status="uploading",
+            is_directory=True,
+            content_type="application/vnd.directory",
+            size=-1,
+            sha256_digest=None,
+            meta={},
+            entity_id=root_circuit.id,
+            created_by_id=root_circuit.created_by_id,
+            updated_by_id=root_circuit.updated_by_id,
+            label="sonata_circuit",
+            storage_type=StorageType.aws_s3_internal,
+        ),
+    )
+    _ = add_db(
+        db,
+        Asset(
+            path="missing-empty-meta-dir/empty.txt",
+            full_path=_get_expected_full_path(
+                entity=root_circuit, path="missing-empty-meta-dir/empty.txt"
+            ),
+            status="uploading",
+            is_directory=False,
+            content_type=ContentType.text,
+            size=0,
+            sha256_digest=None,
+            upload_meta=None,
+            meta={},
+            entity_id=root_circuit.id,
+            parent_id=parent.id,
+            created_by_id=root_circuit.created_by_id,
+            updated_by_id=root_circuit.updated_by_id,
+            label="directory_child",
+            storage_type=StorageType.aws_s3_internal,
+        ),
+    )
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{parent.id}/directory/multipart-upload/complete",
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
+
+
+def test_complete_multipart_directory_upload_asset_not_found(client, root_circuit):
+    """Test complete multipart directory upload with non-existent asset."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{MISSING_ID}/directory/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_complete_multipart_directory_upload_entity_not_found(client, root_circuit):
+    """Test complete multipart directory upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{MISSING_ID}/assets/{MISSING_ID}/directory/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_complete_multipart_directory_upload_partial_already_completed(
+    db, client, root_circuit, s3, s3_internal_bucket
+):
+    """Test completing a directory upload when one child is already completed."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="partial-dir",
+        files=[
+            {
+                "filename": "file1.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "file2.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    file_assets = data["files"]
+
+    # Upload parts for both files
+    part_size = file_assets[0]["upload_meta"]["part_size"]
+    for file_asset in file_assets:
+        upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
+        for part in file_asset["upload_meta"]["parts"]:
+            s3.upload_part(
+                Bucket=s3_internal_bucket,
+                Key=file_asset["full_path"],
+                UploadId=upload_id,
+                PartNumber=part["part_number"],
+                Body=b"x" * part_size,
+            )
+
+    # Manually complete the first child via the single-file complete endpoint
+    assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{file_assets[0]['id']}/multipart-upload/complete",
+    )
+
+    # Now complete the directory — first child should be skipped
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
+
+
+def test_multipart_directory_upload_with_empty_files(client, root_circuit, s3, s3_internal_bucket):
+    """Test directory upload with a mix of regular and empty (zero-size) files."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-with-empty",
+        files=[
+            {
+                "filename": "data/regular.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": DUMMY_DIGEST,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_asset = data["asset"]
+    file_assets = data["files"]
+    assert len(file_assets) == 2
+
+    # Regular file should have multipart upload metadata
+    regular_asset = file_assets[0]
+    assert regular_asset["upload_meta"]["part_size"] == 5 * 1024**2
+    assert len(regular_asset["upload_meta"]["parts"]) == 3
+
+    # Empty file should have put_object presigned URL with part_size=0 and part_number=0
+    empty_asset = file_assets[1]
+    assert empty_asset["upload_meta"]["part_size"] == 0
+    assert len(empty_asset["upload_meta"]["parts"]) == 1
+    assert empty_asset["upload_meta"]["parts"][0]["part_number"] == 0
+
+    initiated = MultipartDirectoryUploadResponse.model_validate(data)
+
+    # Upload parts for the regular file
+    regular = initiated.files[0]
+    assert regular.upload_meta
+    part_size = regular.upload_meta.part_size
+    for part in regular.upload_meta.parts:
+        upload_id = _extract_upload_id(part.url)
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=regular.full_path,
+            UploadId=upload_id,
+            PartNumber=part.part_number,
+            Body=b"x" * part_size,
+        )
+
+    # Upload the empty file using put_object
+    empty = initiated.files[1]
+    s3.put_object(Bucket=s3_internal_bucket, Key=empty.full_path, Body=b"")
+
+    # Complete the directory upload
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_asset['id']}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+    # Verify the empty file exists in S3 with size 0
+    head = s3.head_object(Bucket=s3_internal_bucket, Key=empty.full_path)
+    assert head["ContentLength"] == 0
+
+
+def test_multipart_directory_upload_empty_file_presigned_url_failure(client, root_circuit):
+    """Test that initiate fails when presigned URL generation fails for empty file."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-presign-fail",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": DUMMY_DIGEST,
+            },
+        ],
+    )
+
+    with patch("app.service.asset_helpers.generate_presigned_url", return_value=None):
+        response = assert_request(
+            client.post,
+            url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+            json=json_data,
+            expected_status_code=422,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
+
+
+def test_multipart_directory_upload_empty_file_check_object_error(client, root_circuit):
+    """Test that complete fails when check_object raises an exception for empty file."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-check-err",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": DUMMY_DIGEST,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+
+    with patch("app.service.asset_helpers.check_object", side_effect=RuntimeError("S3 error")):
+        response = assert_request(
+            client.post,
+            url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+            expected_status_code=500,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.GENERIC_ERROR
+
+
+def test_multipart_directory_upload_empty_file_not_uploaded(client, root_circuit):
+    """Test completing directory upload fails when empty file was not uploaded to S3."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-missing",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": DUMMY_DIGEST,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+
+    # Do NOT upload the empty file — complete should fail
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
+
+
+def test_multipart_directory_upload_empty_file_wrong_size(
+    client, root_circuit, s3, s3_internal_bucket
+):
+    """Test completing directory upload fails when file declared as empty has non-zero size."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-wrong-size",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": DUMMY_DIGEST,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    empty_asset = data["files"][0]
+
+    # Upload a non-empty file instead
+    s3.put_object(Bucket=s3_internal_bucket, Key=empty_asset["full_path"], Body=b"not empty")
+
+    # Complete should fail due to size mismatch
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE
+
+
+def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_bucket):
+    """Test that deleting a directory asset aborts multipart uploads for children."""
+    entity_type = route(circuit.type)
+    entity_id = circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="abort-dir",
+        files=[
+            {
+                "filename": "file.bin",
+                "filesize": filesize,
+                "sha256_digest": DUMMY_DIGEST,
+                "preferred_part_count": 3,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    child_asset = data["files"][0]
+    upload_id = db.get(Asset, child_asset["id"]).upload_meta["upload_id"]
+
+    # Verify multipart upload exists
+    assert s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+    # Delete the parent directory asset
+    assert_request(
+        client.delete,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}",
+    )
+
+    # Verify parent and child are deleted
+    assert_request(
+        client.get,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}",
+        expected_status_code=404,
+    )
+
+    # Verify multipart upload was aborted
+    assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+
+@pytest.mark.usefixtures("s3_file", "mock_virtual_lab_project_mapping")
+def test_register_entity_asset_admin(client_admin, entity):
+    response = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "admin-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=201,
+    )
+    data = response.json()
+    assert data["path"] == "admin-test.swc"
+    assert data["storage_type"] == "aws_s3_open"
+    assert data["status"] == "created"
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_register_entity_asset_admin_non_authorized(clients, entity):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "admin-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+def test_list_directory_admin(
+    clients, root_circuit, circuit, private_asset_directory, asset_directory
+):
+    entity_type = route(root_circuit.type)
+    fake_files = {
+        "file1.txt": {"name": "file1.txt", "size": 100, "last_modified": "2024-01-01T00:00:00Z"},
+    }
+
+    with patch("app.service.asset.list_directory_with_details", return_value=fake_files):
+        # admin can list any directory regardless of visibility
+        data = assert_request(
+            clients.admin.get,
+            url=f"/admin{entity_type}/{circuit.id}/assets/{private_asset_directory.id}/list",
+        ).json()
+        assert data["files"] == fake_files
+
+    with patch("app.service.asset.list_directory_with_details", return_value=fake_files):
+        data = assert_request(
+            clients.admin.get,
+            url=f"/admin{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        ).json()
+        assert data["files"] == fake_files
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_list_directory_admin_non_authorized(clients, root_circuit, asset_directory):
+    entity_type = route(root_circuit.type)
+    response = assert_request(
+        clients.user_1.get,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_multipart_upload_initiate_admin(client_admin, entity):
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+    ).json()
+    assert data["status"] == "uploading"
+    assert data["upload_meta"] is not None
+    assert len(data["upload_meta"]["parts"]) == 3
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_multipart_upload_initiate_admin_non_authorized(clients, entity):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_multipart_upload_complete_admin(db, client_admin, entity, s3, s3_internal_bucket):
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize=3 * 5 * 1024**2),
+    ).json()
+
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+    part_size = data["upload_meta"]["part_size"]
+    for part in data["upload_meta"]["parts"]:
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=data["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=b"x" * part_size,
+        )
+
+    completed = assert_request(
+        client_admin.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+    ).json()
+    assert completed["status"] == "created"
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_multipart_upload_complete_admin_non_authorized(clients, entity, uploading_asset):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/multipart-upload/complete",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_directory_multipart_upload_initiate_admin(client_admin, root_circuit):
+    entity_type = route(root_circuit.type)
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="admin-dir"),
+    ).json()
+    assert data["asset"]["is_directory"] is True
+    assert data["asset"]["status"] == "uploading"
+    assert len(data["files"]) == 2
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_directory_multipart_upload_initiate_admin_non_authorized(clients, root_circuit):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="admin-dir-unauth"),
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+
+@pytest.mark.usefixtures("mock_virtual_lab_project_mapping")
+def test_directory_multipart_upload_complete_admin(
+    client_admin, root_circuit, db, s3, s3_internal_bucket
+):
+    entity_type = route(root_circuit.type)
+    filesize = 3 * 5 * 1024**2
+
+    data = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(
+            directory_name="admin-complete-dir",
+            files=[
+                {
+                    "filename": "file.bin",
+                    "filesize": filesize,
+                    "sha256_digest": DUMMY_DIGEST,
+                    "preferred_part_count": 3,
+                }
+            ],
+        ),
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    file_asset = data["files"][0]
+    upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
+    part_size = file_asset["upload_meta"]["part_size"]
+    for part in file_asset["upload_meta"]["parts"]:
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=file_asset["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=b"x" * part_size,
+        )
+
+    completed = assert_request(
+        client_admin.post,
+        url=f"/admin{entity_type}/{root_circuit.id}/assets/{parent_id}/directory/multipart-upload/complete",
+    ).json()
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+
+@pytest.mark.usefixtures("virtual_lab_api_url")
+def test_directory_multipart_upload_complete_admin_non_authorized(
+    clients, root_circuit, asset_directory
+):
+    response = assert_request(
+        clients.user_1.post,
+        url=f"/admin{route(root_circuit.type)}/{root_circuit.id}/assets/{asset_directory.id}/directory/multipart-upload/complete",
+        expected_status_code=403,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED

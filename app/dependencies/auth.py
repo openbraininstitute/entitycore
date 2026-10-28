@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 import cachetools
-import httpx
+import httpx2
 from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.requests import Request
@@ -87,7 +87,7 @@ def _check_user_info(
     *,
     project_context: OptionalProjectContext,
     token: HTTPAuthorizationCredentials,
-    http_client: httpx.Client,
+    http_client: httpx2.Client,
 ) -> UserContext:
     """Retrieve the user info from KeyCloak and check the correctness of ProjectContext.
 
@@ -196,6 +196,7 @@ def user_verified(
             expiration=None,
             is_authorized=True,
             is_service_admin=True,
+            is_service_maintainer=True,
             virtual_lab_id=project_context.virtual_lab_id,
             project_id=project_context.project_id,
         )
@@ -244,7 +245,7 @@ def user_verified(
     return user_context
 
 
-def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProjectId:
+def user_with_project_id(user_context: UserContextDep) -> UserContextWithProjectId:
     """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
     if not user_context.virtual_lab_id or not user_context.project_id:
         raise ApiError(
@@ -255,7 +256,7 @@ def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProje
     return UserContextWithProjectId.model_validate(user_context, from_attributes=True)
 
 
-def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
+def user_with_service_admin_role(user_context: UserContextDep) -> UserContext:
     """Ensure that the authenticated user has a service admin role."""
     if not user_context.is_service_admin:
         raise ApiError(
@@ -267,7 +268,7 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
 
 
 def user_with_service_admin_role_and_project_id(
-    user_context: "UserContextDep",
+    user_context: UserContextDep,
 ) -> UserContextWithProjectId:
     """Ensure that the authenticated user has an admin role and valid virtual_lab_id/project_id."""
     user_with_service_admin_role(user_context)

@@ -11,9 +11,9 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
-    check_creation_fields,
     check_entity_delete_one,
     check_entity_read_many,
+    check_entity_read_response,
     check_missing,
     check_pagination,
 )
@@ -42,19 +42,22 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    assert "id" in data
-    assert "authorized_public" in data
-    assert "authorized_project_id" in data
-    assert "assets" in data
+    check_entity_read_response(
+        data=data,
+        json_data=json_data,
+        expected_entity_type=EntityType.em_cell_mesh,
+    )
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
-    assert data["type"] == EntityType.em_cell_mesh
-    assert data["em_dense_reconstruction_dataset"] == {
-        "id": json_data["em_dense_reconstruction_dataset_id"],
-        "type": EntityType.em_dense_reconstruction_dataset,
-    }
+    assert (
+        data["em_dense_reconstruction_dataset"]["id"]
+        == json_data["em_dense_reconstruction_dataset_id"]
+    )
+    assert (
+        data["em_dense_reconstruction_dataset"]["type"]
+        == EntityType.em_dense_reconstruction_dataset
+    )
     assert data["mtypes"] == []
-    check_creation_fields(data)
 
 
 def test_create_one(client, json_data):
@@ -76,6 +79,26 @@ def test_read_one(client, model, json_data):
     assert "measurement_annotation" in data
     assert data["measurement_annotation"] is None
 
+    params = {"expand": ["measurement_annotation", "used_by_derivations:unspecified"]}
+    for data in (
+        assert_request(client.get, url=f"{ROUTE}/{model.id}", params=params).json(),
+        assert_request(client.get, url=ROUTE, params=params).json()["data"][0],
+    ):
+        assert data["measurement_annotation"] is None
+        assert data["used_by_derivations"] == []
+        assert data["generated_from_derivations"] is None
+
+
+def test_admin_read_one(clients, model, json_data):
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+    params = {"expand": "measurement_annotation"}
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}", params=params).json()
+    _assert_read_response(data, json_data)
+    assert "measurement_annotation" in data
+    assert data["measurement_annotation"] is None
+
 
 def test_missing(client):
     check_missing(ROUTE, client)
@@ -90,7 +113,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     db_models = [
         MODEL(
             **(
@@ -99,10 +122,11 @@ def models(db, json_data, person_id):
                     "name": f"mesh-{i}",
                     "description": f"desc-{i}",
                     "level_of_detail": i,
+                    "release_version": i,
                     "dense_reconstruction_cell_id": i,
                     "mesh_type": ["static", "dynamic"][i % 2],
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             )
@@ -173,7 +197,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
                 "count": 1,
                 "id": ANY,
                 "label": ANY,
-                "type": "person",
+                "type": "created_by",
             },
         ],
         "updated_by": [
@@ -181,16 +205,31 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
                 "count": 1,
                 "id": ANY,
                 "label": ANY,
-                "type": "person",
+                "type": "updated_by",
             },
         ],
         "mtype": [],
+        "release_version": [
+            {
+                "count": 1,
+                "id": ANY,
+                "label": "0",
+                "type": "release_version",
+            },
+        ],
     }
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"release_version__in": [1, 2]},
+    ).json()["data"]
+    assert sorted(d["release_version"] for d in data) == [1, 2]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 
@@ -209,6 +248,11 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     assert [d["dense_reconstruction_cell_id"] for d in data] == sorted(
         (d["dense_reconstruction_cell_id"] for d in data), reverse=True
     )
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
 
 
 def test_read_many(clients, json_data):

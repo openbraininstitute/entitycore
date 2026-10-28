@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.db.model import (
     CellMorphology,
+    Derivation,
     EModel,
     ETypeClass,
     ETypeClassification,
@@ -14,12 +15,14 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
 )
+from app.db.types import DerivationType
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
 
 from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
+    add_db,
     assert_request,
     check_brain_region_filter,
     check_deletion_cascades,
@@ -159,7 +162,7 @@ def test_delete_one(db, clients, public_json_data):
     )
 
 
-def test_deletion_cascades(db, clients, memodel_id):
+def test_deletion_cascades_classifications(db, clients, memodel_id):
     check_deletion_cascades(
         db=db,
         route=ROUTE,
@@ -273,8 +276,8 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 16, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 16, "type": "updated_by"}],
     }
 
 
@@ -356,8 +359,8 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             }
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 4, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 4, "type": "updated_by"}],
     }
 
 
@@ -441,8 +444,8 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
-        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
+        "created_by": [{"id": ANY, "label": "jd courcol", "count": 8, "type": "created_by"}],
+        "updated_by": [{"id": ANY, "label": "jd courcol", "count": 8, "type": "updated_by"}],
     }
 
 
@@ -541,7 +544,7 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
     assert all(d["emodel"]["name"] == "0" for d in data)
 
 
-def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa: ARG001
+def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # ruff:ignore[unused-function-argument]
     response = client.get(
         ROUTE,
         params={"search": "foo"},
@@ -743,7 +746,7 @@ def test_authorization(
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id, person_id
+    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id, user_id
 ):
     def create_model_function(_db, name, brain_region_id):
         return MEModel(
@@ -755,15 +758,15 @@ def test_brain_region_filter(
             morphology_id=morphology_id,
             emodel_id=emodel_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             validation_status="created",
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
-def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
+def test_sorting_filtering(client, faceted_memodels, user_id):
     n_models = len(faceted_memodels.memodels)
 
     def req(query):
@@ -776,7 +779,7 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
         data = req({"name__in": ["m-2", "m-3"], "order_by": f"-{ordering_field}"})
         assert len(data) == 2
 
-        data = req({"created_by__pref_label": "test_person_1", "order_by": ordering_field})
+        data = req({"created_by__pref_label": "jd courcol", "order_by": ordering_field})
         assert len(data) == n_models
 
         data = req({"created_by__pref_label": "", "order_by": ordering_field})
@@ -794,9 +797,7 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
 
-        data = req(
-            {"created_by__sub_id": custom_user_sub_id, "updated_by__sub_id": custom_user_sub_id}
-        )
+        data = req({"created_by__id": str(user_id), "updated_by__id": str(user_id)})
         assert len(data) == n_models
 
     data = req({"brain_region__name": "region0", "order_by": "-name"})
@@ -806,5 +807,140 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
     data = req({"ilike_search": "foo"})
     assert {d["description"] for d in data} == {"foo"}
 
-    data = req({"ilike_search": "m-10"})
-    assert {d["name"] for d in data} == {"m-10"}
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == n_models
+
+
+EM_TYPE = DerivationType.em_dense_reconstruction_dataset_cell_morphology
+MORPH_DERIVATION = "morphology__generated_derivation"
+
+
+def _derive(db, user_id, used_id, generated_id, derivation_type):
+    return add_db(
+        db,
+        Derivation(
+            used_id=uuid.UUID(str(used_id)),
+            generated_id=uuid.UUID(str(generated_id)),
+            derivation_type=derivation_type,
+            label="d",
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+
+
+def _ids(client, params):
+    return {d["id"] for d in assert_request(client.get, url=ROUTE, params=params).json()["data"]}
+
+
+def _of_morphology(faceted_memodels, i):
+    return {
+        str(m.id)
+        for m in faceted_memodels.memodels
+        if str(m.morphology_id) == (faceted_memodels.morphology_ids[i])
+    }
+
+
+def test_filter_by_morphology_derivation(client, db, user_id, faceted_memodels: MEModels):
+    x, y = faceted_memodels.emodel_ids  # any entity id can be a derivation "used" entity
+    m0, m1 = faceted_memodels.morphology_ids
+    _derive(db, user_id, x, m0, EM_TYPE)
+    _derive(db, user_id, y, m1, DerivationType.unspecified)
+    of0, of1 = _of_morphology(faceted_memodels, 0), _of_morphology(faceted_memodels, 1)
+    assert len(of0) == len(of1) == 8
+
+    assert _ids(client, {f"{MORPH_DERIVATION}__used_id": x}) == of0
+    assert _ids(client, {f"{MORPH_DERIVATION}__used_id": str(uuid.uuid4())}) == set()
+    assert _ids(client, {f"{MORPH_DERIVATION}__derivation_type": EM_TYPE.value}) == of0
+    assert _ids(client, {f"{MORPH_DERIVATION}__derivation_type": "unspecified"}) == of1
+    both = {f"{MORPH_DERIVATION}__derivation_type__in": [EM_TYPE.value, "unspecified"]}
+    assert _ids(client, both) == of0 | of1
+    assert _ids(client, {f"{MORPH_DERIVATION}__used_id__in": [x, y]}) == of0 | of1
+    # used_id and derivation_type must match the SAME derivation row
+    same_row = {
+        f"{MORPH_DERIVATION}__used_id": x,
+        f"{MORPH_DERIVATION}__derivation_type": "unspecified",
+    }
+    assert _ids(client, same_row) == set()
+    exact = {
+        f"{MORPH_DERIVATION}__used_id": x,
+        f"{MORPH_DERIVATION}__derivation_type": EM_TYPE.value,
+    }
+    assert _ids(client, exact) == of0
+
+
+def test_morphology_derivation_with_filters_and_pagination(
+    client, db, user_id, faceted_memodels: MEModels
+):
+    x = faceted_memodels.emodel_ids[0]
+    _derive(db, user_id, x, faceted_memodels.morphology_ids[0], EM_TYPE)
+    params = {
+        f"{MORPH_DERIVATION}__used_id": x,
+        "species__id": faceted_memodels.species_ids[0],
+    }
+    expected = {
+        str(m.id)
+        for m in faceted_memodels.memodels
+        if str(m.morphology_id) == faceted_memodels.morphology_ids[0]
+        and str(m.species_id) == faceted_memodels.species_ids[0]
+    }
+    assert len(expected) == 4
+    page_size = 3
+    seen = []
+    for page in range(1, 3):
+        body = assert_request(
+            client.get,
+            url=ROUTE,
+            params=params | {"page": page, "page_size": page_size, "order_by": "-name"},
+        ).json()
+        assert body["pagination"]["total_items"] == len(expected)
+        seen += [d["id"] for d in body["data"]]
+        assert len(body["data"]) == min(page_size, len(expected) - (page - 1) * page_size)
+    assert len(seen) == len(set(seen))
+    assert set(seen) == expected
+
+
+def test_morphology_derivation_does_not_duplicate_memodels(
+    client, db, user_id, faceted_memodels: MEModels
+):
+    x = faceted_memodels.emodel_ids[0]
+    m0 = faceted_memodels.morphology_ids[0]
+    _derive(db, user_id, x, m0, EM_TYPE)
+    _derive(db, user_id, x, m0, DerivationType.unspecified)
+    expected = _of_morphology(faceted_memodels, 0)
+    params = {f"{MORPH_DERIVATION}__used_id": x}
+    assert _ids(client, params) == expected
+    seen = []
+    for page in (1, 2, 3):
+        body = assert_request(
+            client.get, url=ROUTE, params=params | {"page": page, "page_size": 3}
+        ).json()
+        assert body["pagination"]["total_items"] == 8
+        seen += [d["id"] for d in body["data"]]
+    assert len(seen) == 8
+    assert set(seen) == expected
+
+
+def test_morphology_derivation_with_facets(client, db, user_id, faceted_memodels: MEModels):
+    x = faceted_memodels.emodel_ids[0]
+    m0 = faceted_memodels.morphology_ids[0]
+    _derive(db, user_id, x, m0, EM_TYPE)
+    _derive(db, user_id, x, m0, DerivationType.unspecified)
+    body = assert_request(
+        client.get,
+        url=ROUTE,
+        params={f"{MORPH_DERIVATION}__used_id": x, "with_facets": True},
+    ).json()
+    assert body["pagination"]["total_items"] == 8
+    assert [(f["id"], f["count"]) for f in body["facets"]["morphology"]] == [(m0, 8)]
+    assert sum(f["count"] for f in body["facets"]["species"]) == 8
+
+
+def test_memodel_own_and_morphology_derivation_filters_are_independent(
+    client, db, user_id, faceted_memodels: MEModels
+):
+    x = faceted_memodels.emodel_ids[0]
+    memodel = faceted_memodels.memodels[0]
+    _derive(db, user_id, x, memodel.id, EM_TYPE)
+    assert _ids(client, {"generated_derivation__used_id": x}) == {str(memodel.id)}
+    assert _ids(client, {f"{MORPH_DERIVATION}__used_id": x}) == set()

@@ -50,7 +50,7 @@ MEASUREMENT_ANNOTATION = {
 }
 
 
-def test_construct_model_measurement_annotation(person_id):
+def test_construct_model_measurement_annotation(user_id):
     def _check_result(r):
         assert isinstance(r, MeasurementAnnotation)
         assert str(r.entity_id) == MEASUREMENT_ANNOTATION["entity_id"]
@@ -68,13 +68,13 @@ def test_construct_model_measurement_annotation(person_id):
         json_model,
         db_model_class=MeasurementAnnotation,
         authorized_project_id=None,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     _check_result(result)
 
 
-def test_construct_model_cell_morphology(brain_region_id, cell_morphology_protocol_id, person_id):
+def test_construct_model_cell_morphology(brain_region_id, cell_morphology_protocol_id, user_id):
     cell_morphology = {
         "name": "morph-0",
         "description": "desc-0",
@@ -97,7 +97,7 @@ def test_construct_model_cell_morphology(brain_region_id, cell_morphology_protoc
         json_model,
         db_model_class=CellMorphology,
         authorized_project_id=PROJECT_ID,
-        created_by_id=person_id,
-        updated_by_id=person_id,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
     _check_result(result)

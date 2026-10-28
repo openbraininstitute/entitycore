@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
@@ -31,6 +31,7 @@ from sqlalchemy.orm import (
     relationship,
     validates,
 )
+from sqlalchemy.types import TypeEngine
 
 from app.db.types import (
     BIGINT,
@@ -58,6 +59,7 @@ from app.db.types import (
     ElectrodeType,
     EMCellMeshGenerationMethod,
     EMCellMeshType,
+    EntityLifecycleStatus,
     EntityType,
     ExecutorType,
     ExternalSource,
@@ -76,6 +78,7 @@ from app.db.types import (
     TargetSimulator,
     TaskActivityType,
     TaskConfigType,
+    TaskResultType,
     ValidationStatus,
 )
 from app.schemas.publication import Author
@@ -84,7 +87,7 @@ from app.utils.uuid import create_uuid
 
 
 class Base(DeclarativeBase):
-    type_annotation_map: ClassVar[dict] = {
+    type_annotation_map: ClassVar[dict[Any, type[TypeEngine[Any]] | TypeEngine[Any]]] = {
         datetime: DateTime(timezone=True),
         PointLocation: PointLocationType,
     }
@@ -103,18 +106,27 @@ class Base(DeclarativeBase):
 class TimestampMixin:
     creation_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.statement_timestamp(),
         index=True,
     )
     update_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.statement_timestamp(),
     )
 
 
 class LegacyMixin:
     legacy_id: Mapped[STRING_LIST | None] = mapped_column(index=True)
     legacy_self: Mapped[STRING_LIST | None]
+
+
+class PlatformUser(TimestampMixin, Base):
+    """Platform user, identified by their Keycloak subject UUID."""
+
+    __tablename__ = "platform_user"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)  # == Keycloak sub_id
+    pref_label: Mapped[str] = mapped_column(index=True)
 
 
 class Identifiable(TimestampMixin, Base):
@@ -124,15 +136,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def created_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("agent.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def created_by(cls) -> Mapped["Agent"]:
+    def created_by(cls) -> Mapped[PlatformUser]:
         return relationship(
-            "Agent",
-            # needed to enforce the correct direction of joins in Agent-derived tables
-            primaryjoin=lambda: cls.created_by_id == foreign(Agent.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.created_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )
@@ -140,15 +151,14 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def updated_by_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(ForeignKey("agent.id"), index=True)
+        return mapped_column(ForeignKey("platform_user.id"), index=True)
 
     @declared_attr
     @classmethod
-    def updated_by(cls) -> Mapped["Agent"]:
+    def updated_by(cls) -> Mapped[PlatformUser]:
         return relationship(
-            "Agent",
-            # needed to enforce the correct direction of joins in Agent-derived tables
-            primaryjoin=lambda: cls.updated_by_id == foreign(Agent.id),
+            "PlatformUser",
+            primaryjoin=lambda: cls.updated_by_id == foreign(PlatformUser.id),
             uselist=False,
             viewonly=True,
         )
@@ -162,7 +172,7 @@ class NameDescriptionVectorMixin(Base):
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         super_table_args = getattr(super(), "__table_args__", ())
         # add the index only to the same table where the Mixin is defined, not subclasses
         attr = getattr(cls, "description_vector", None)
@@ -208,7 +218,7 @@ class Strain(EmbeddingMixin, Identifiable):
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
     species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
-    species = relationship("Species", uselist=False)
+    species: Mapped[Species] = relationship("Species", uselist=False)
 
     __table_args__ = (
         # needed for the composite foreign key in SpeciesMixin
@@ -228,7 +238,7 @@ class LicensedMixin:
 
     @declared_attr
     @classmethod
-    def license(cls):
+    def license(cls) -> Mapped[License | None]:
         return relationship("License", uselist=False)
 
 
@@ -237,7 +247,7 @@ class LocationMixin:
 
     @declared_attr
     @classmethod
-    def brain_region(cls):
+    def brain_region(cls) -> Mapped[BrainRegion]:
         return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
 
 
@@ -247,7 +257,7 @@ class SpeciesMixin(Base):
 
     @declared_attr
     @classmethod
-    def species(cls):
+    def species(cls) -> Mapped[Species]:
         return relationship("Species", uselist=False)
 
     # not defined as ForeignKey to avoid ambiguities with the composite foreign key
@@ -255,13 +265,13 @@ class SpeciesMixin(Base):
 
     @declared_attr
     @classmethod
-    def strain(cls):
+    def strain(cls) -> Mapped[Strain | None]:
         # primaryjoin is needed to ignore species_id from the ForeignKeyConstraint
         return relationship("Strain", uselist=False, primaryjoin=cls.strain_id == Strain.id)
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         # ensure that species_id and strain.species_id are have the same value
         return (
             ForeignKeyConstraint(
@@ -294,7 +304,7 @@ class BrainRegion(EmbeddingMixin, Identifiable):
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
-    species = relationship(
+    species: Mapped[Species | None] = relationship(
         "Species",
         secondary=BrainRegionHierarchy.__table__,
         primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
@@ -303,7 +313,7 @@ class BrainRegion(EmbeddingMixin, Identifiable):
         uselist=False,
     )
 
-    strain = relationship(
+    strain: Mapped[Strain | None] = relationship(
         "Strain",
         secondary=BrainRegionHierarchy.__table__,
         primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
@@ -317,7 +327,7 @@ class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -329,9 +339,12 @@ class Person(Agent):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     given_name: Mapped[str | None]
     family_name: Mapped[str | None]
-    sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
+    sub_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("platform_user.id"), unique=True, index=True
+    )
+    orcid: Mapped[str | None] = mapped_column(String(37), unique=True, index=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -344,7 +357,13 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {  # noqa: RUF012
+    ror_id: Mapped[str | None] = mapped_column(
+        String(25),
+        unique=True,
+        index=True,
+    )
+
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -357,7 +376,7 @@ class Consortium(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -377,6 +396,13 @@ class Usage(Base):
     """
 
     __tablename__ = "usage"
+    __table_args__ = (
+        Index(
+            "ix_usage_activity_entity",
+            "usage_activity_id",
+            "usage_entity_id",
+        ),
+    )
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),
         primary_key=True,
@@ -400,6 +426,13 @@ class Generation(Base):
     """
 
     __tablename__ = "generation"
+    __table_args__ = (
+        Index(
+            "ix_generation_activity_entity",
+            "generation_activity_id",
+            "generation_entity_id",
+        ),
+    )
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
@@ -434,7 +467,7 @@ class Activity(Identifiable):
     start_time: Mapped[datetime | None]
     end_time: Mapped[datetime | None]
 
-    used: Mapped[list["Entity"]] = relationship(
+    used: Mapped[list[Entity]] = relationship(
         "Entity",
         secondary="usage",
         secondaryjoin="Entity.id == usage.c.usage_entity_id",
@@ -442,7 +475,7 @@ class Activity(Identifiable):
         uselist=True,
         passive_deletes=True,  # rely on PostgreSQL ON DELETE CASCADE to remove association rows
     )
-    generated: Mapped[list["Entity"]] = relationship(
+    generated: Mapped[list[Entity]] = relationship(
         "Entity",
         secondary="generation",
         secondaryjoin="Entity.id == generation.c.generation_entity_id",
@@ -450,7 +483,7 @@ class Activity(Identifiable):
         uselist=True,
         passive_deletes=True,  # rely on PostgreSQL ON DELETE CASCADE to remove association rows
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -470,7 +503,7 @@ class ExecutionActivityMixin:
 class AnnotationBody(LegacyMixin, Identifiable):
     __tablename__ = "annotation_body"
     type: Mapped[AnnotationBodyType]
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -521,7 +554,7 @@ class ETypeClassification(Identifiable):
 class MTypesMixin:
     @declared_attr
     @classmethod
-    def mtypes(cls) -> Mapped[list["MTypeClass"]]:
+    def mtypes(cls) -> Mapped[list[MTypeClass]]:
         if not issubclass(cls, Entity):
             msg = f"{cls} should be an Entity"
             raise TypeError(msg)
@@ -538,7 +571,7 @@ class MTypesMixin:
 class ETypesMixin:
     @declared_attr
     @classmethod
-    def etypes(cls) -> Mapped[list["ETypeClass"]]:
+    def etypes(cls) -> Mapped[list[ETypeClass]]:
         if not issubclass(cls, Entity):
             msg = f"{cls} should be an Entity"
             raise TypeError(msg)
@@ -556,7 +589,7 @@ class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
     }
 
@@ -564,39 +597,98 @@ class DataMaturityAnnotationBody(AnnotationBody):
 class Annotation(LegacyMixin, Identifiable):
     __tablename__ = "annotation"
     note: Mapped[str | None]
-    entity = relationship("Entity", back_populates="annotations", passive_deletes=True)
+    entity: Mapped[Entity] = relationship(
+        "Entity", back_populates="annotations", passive_deletes=True
+    )
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
     annotation_body_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("annotation_body.id"), index=True
     )
-    annotation_body = relationship("AnnotationBody", uselist=False)
+    annotation_body: Mapped[AnnotationBody] = relationship("AnnotationBody", uselist=False)
 
 
 class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
 
     type: Mapped[EntityType]
-    annotations = relationship("Annotation", back_populates="entity", passive_deletes=True)
+    lifecycle_status: Mapped[EntityLifecycleStatus] = mapped_column(
+        nullable=False,
+        default=EntityLifecycleStatus.active,
+        server_default=EntityLifecycleStatus.active,
+    )
+    annotations: Mapped[list[Annotation]] = relationship(
+        "Annotation", back_populates="entity", passive_deletes=True
+    )
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
+        args = getattr(super(), "__table_args__", ()) or ()
+        if cls.__tablename__ == "entity":
+            return (
+                Index(
+                    "ix_entity_public_creation_date_id",
+                    sa.literal_column("creation_date DESC"),
+                    "id",
+                    postgresql_where=sa.text("authorized_public = true"),
+                ),
+                *args,
+            )
+        return args
+
+    contributions: Mapped[list[Contribution]] = relationship(
         "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
     )
-    assets: Mapped[list["Asset"]] = relationship(
+    assets: Mapped[list[Asset]] = relationship(
         "Asset",
         uselist=True,
         primaryjoin=lambda: sa.and_(
-            Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
+            Entity.id == Asset.entity_id,
+            Asset.parent_id.is_(None),  # exclude children
         ),
         cascade="all, delete-orphan",  # triggers ORM cascade for events
         passive_deletes=False,
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    # View-only relationships to the Derivation rows that reference this entity.
+    # They are loaded on demand (see the `expand` query param) and read through the
+    # load-aware properties below, so an un-expanded direction serializes as null instead of
+    # tripping `raiseload`. Defined on Entity so every entity subclass inherits them.
+    derivations_as_generated: Mapped[list[Derivation]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Entity.id == Derivation.generated_id,
+        foreign_keys=lambda: [Derivation.generated_id],
+        viewonly=True,
+        overlaps="generated",
+    )
+    derivations_as_used: Mapped[list[Derivation]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Entity.id == Derivation.used_id,
+        foreign_keys=lambda: [Derivation.used_id],
+        viewonly=True,
+        overlaps="used",
+    )
+
+    @property
+    def generated_from_derivations(self) -> list[Derivation] | None:
+        """Derivations where this entity is the generated entity, or None if not expanded."""
+        if "derivations_as_generated" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_generated
+
+    @property
+    def used_by_derivations(self) -> list[Derivation] | None:
+        """Derivations where this entity is the used entity, or None if not expanded."""
+        if "derivations_as_used" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_used
+
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -612,7 +704,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     sex: Mapped[Sex]
     weight: Mapped[float | None]  # in grams
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SubjectMixin:
@@ -620,7 +712,7 @@ class SubjectMixin:
 
     @declared_attr
     @classmethod
-    def subject(cls):
+    def subject(cls) -> Mapped[Subject | None]:
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
@@ -686,10 +778,25 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     published_in: Mapped[str | None]
     notice_text: Mapped[str | None]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
+        args = getattr(super(), "__table_args__", ()) or ()
+        if cls.__tablename__ == EntityType.scientific_artifact.value:
+            return (
+                Index(
+                    "ix_scientific_artifact_brain_region_id_id",
+                    "brain_region_id",
+                    "id",
+                ),
+                *args,
+            )
+        return args
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
@@ -711,19 +818,19 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     runtimePlatform: Mapped[str] = mapped_column(default="")
     version: Mapped[str] = mapped_column(default="")
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Contribution(Identifiable):
     __tablename__ = AssociationType.contribution.value
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
-    agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
+    agent: Mapped[Agent] = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
-    role = relationship("Role", uselist=False)
+    role: Mapped[Role] = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
-    entity = relationship(
+    entity: Mapped[Entity] = relationship(
         "Entity", uselist=False, back_populates="contributions", passive_deletes=True
     )
 
@@ -750,11 +857,11 @@ class EModel(
         ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
-    exemplar_morphology = relationship(
+    exemplar_morphology: Mapped[CellMorphology] = relationship(
         "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
-    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
+    ion_channel_models: Mapped[list[IonChannelModel]] = relationship(
         primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
         secondary="ion_channel_model__emodel",
         uselist=True,
@@ -762,7 +869,7 @@ class EModel(
         order_by="IonChannelModel.creation_date",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MEModel(
@@ -778,20 +885,26 @@ class MEModel(
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.cell_morphology}.id"))
 
-    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
+    morphology: Mapped[CellMorphology] = relationship(
+        "CellMorphology", foreign_keys=[morphology_id], uselist=False
+    )
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
-    emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+    emodel: Mapped[EModel] = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
 
-    calibration_result = relationship(
+    calibration_result: Mapped[MEModelCalibrationResult | None] = relationship(
         "MEModelCalibrationResult",
         uselist=False,
         foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
         lazy="joined",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        passive_deletes=False,
+        back_populates="calibrated_entity",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MeasurableEntityMixin:
@@ -799,7 +912,7 @@ class MeasurableEntityMixin:
 
     @declared_attr
     @classmethod
-    def measurement_annotation(cls):
+    def measurement_annotation(cls) -> Mapped[MeasurementAnnotation | None]:
         return relationship(
             "MeasurementAnnotation",
             foreign_keys="MeasurementAnnotation.entity_id",
@@ -815,7 +928,7 @@ class CellMorphologyProtocol(Entity, UniqueNameDescriptionVectorMixin):
     protocol_design: Mapped[CellMorphologyProtocolDesign | None]
     generation_type: Mapped[CellMorphologyGenerationType]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "generation_type",
         "with_polymorphic": "*",  # pull in automatically all the attributes of the subclasses
@@ -830,7 +943,7 @@ class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     tissue_shrinkage: Mapped[float | None]
     corrected_for_shrinkage: Mapped[bool | None]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.digital_reconstruction.value,
     }
 
@@ -838,7 +951,7 @@ class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
 class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.modified_reconstruction.value,
     }
 
@@ -846,13 +959,13 @@ class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
 class ComputationallySynthesizedCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.computationally_synthesized.value,
     }
 
 
 class PlaceholderCellMorphologyProtocol(CellMorphologyProtocol):
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.placeholder.value,
     }
 
@@ -873,7 +986,7 @@ class CellMorphology(
         ForeignKey("cell_morphology_protocol.id"), index=True
     )
 
-    cell_morphology_protocol: Mapped["CellMorphologyProtocol"] = relationship(
+    cell_morphology_protocol: Mapped[CellMorphologyProtocol] = relationship(
         "CellMorphologyProtocol",
         foreign_keys=[cell_morphology_protocol_id],
         uselist=False,
@@ -881,7 +994,7 @@ class CellMorphology(
 
     has_segmented_spines: Mapped[bool] = mapped_column(default=False, server_default="false")
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
@@ -889,14 +1002,17 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True, unique=True
     )
-    entity: Mapped["Entity"] = relationship(
+    entity: Mapped[Entity] = relationship(
         foreign_keys=[entity_id],
         primaryjoin=entity_id == Entity.id,
         lazy="raise",
         passive_deletes=True,
     )
-    measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
-        back_populates="measurement_annotation", passive_deletes=True
+    measurement_kinds: Mapped[list[MeasurementKind]] = relationship(
+        back_populates="measurement_annotation",
+        passive_deletes=True,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
     @hybrid_property
@@ -952,16 +1068,19 @@ class MeasurementKind(Base):
         ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
         index=True,
     )
-    measurement_label: Mapped["MeasurementLabel"] = relationship(
+    measurement_label: Mapped[MeasurementLabel] = relationship(
         foreign_keys=[measurement_label_id],
         viewonly=True,
     )
-    measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
+    measurement_annotation: Mapped[MeasurementAnnotation] = relationship(
         back_populates="measurement_kinds",
         passive_deletes=True,
     )
-    measurement_items: Mapped[list["MeasurementItem"]] = relationship(
-        back_populates="measurement_kind", passive_deletes=True
+    measurement_items: Mapped[list[MeasurementItem]] = relationship(
+        back_populates="measurement_kind",
+        passive_deletes=True,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
     @hybrid_property
@@ -984,6 +1103,11 @@ class MeasurementKind(Base):
             "structural_domain",
             name=f"uq_{__tablename__}_measurement_annotation_id",
         ),
+        Index(
+            f"ix_{__tablename__}_annotation_id_structural_domain",
+            "measurement_annotation_id",
+            "structural_domain",
+        ),
     )
 
 
@@ -996,7 +1120,7 @@ class MeasurementItem(Base):
     measurement_kind_id: Mapped[int] = mapped_column(
         ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
     )
-    measurement_kind: Mapped["MeasurementKind"] = relationship(
+    measurement_kind: Mapped[MeasurementKind] = relationship(
         back_populates="measurement_items",
         passive_deletes=True,
     )
@@ -1005,6 +1129,12 @@ class MeasurementItem(Base):
             "measurement_kind_id",
             "name",
             name=f"uq_{__tablename__}_measurement_kind_id",
+        ),
+        Index(
+            f"ix_{__tablename__}_kind_id_name_value",
+            "measurement_kind_id",
+            "name",
+            "value",
         ),
     )
 
@@ -1030,7 +1160,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
         index=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ElectricalRecording(
@@ -1055,7 +1185,7 @@ class ElectricalRecording(
         passive_deletes=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ElectricalCellRecording(
@@ -1066,7 +1196,7 @@ class ElectricalCellRecording(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannel(NameDescriptionVectorMixin, Identifiable):
@@ -1094,7 +1224,7 @@ class IonChannelRecording(
         foreign_keys=[ion_channel_id],
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1104,8 +1234,8 @@ class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
     me_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
-    me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    me_model: Mapped[MEModel] = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1118,8 +1248,8 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     me_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
-    me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    me_model: Mapped[MEModel] = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1131,8 +1261,10 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
-    synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    synaptome: Mapped[SingleNeuronSynaptome] = relationship(
+        "SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id]
+    )
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Measurement(Base):
@@ -1185,7 +1317,7 @@ class ExperimentalNeuronDensity(
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ExperimentalBoutonDensity(
@@ -1201,7 +1333,7 @@ class ExperimentalBoutonDensity(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ExperimentalSynapsesPerConnection(
@@ -1228,7 +1360,7 @@ class ExperimentalSynapsesPerConnection(
     post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
     post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Ion(Identifiable):
@@ -1238,7 +1370,7 @@ class Ion(Identifiable):
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
 
     @validates("name")
-    def _normalize_name(self, key, value):  # noqa: PLR6301, ARG002
+    def _normalize_name(self, key: str, value: str | None) -> str | None:  # ruff:ignore[no-self-use, unused-method-argument]
         return value.lower() if value else value
 
 
@@ -1249,14 +1381,14 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
 
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    temperature_celsius: Mapped[int | None]
+    temperature_celsius: Mapped[float | None]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
     conductance_name: Mapped[str | None]
     max_permeability_name: Mapped[str | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannelModelToEModel(Base):
@@ -1302,7 +1434,7 @@ class IonChannelModelingCampaign(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     # input_recording_ids: Mapped[list[uuid.UUID]]
-    input_recordings: Mapped[list["IonChannelRecording"]] = relationship(
+    input_recordings: Mapped[list[IonChannelRecording]] = relationship(
         "IonChannelRecording",
         primaryjoin=(
             "IonChannelModelingCampaign.id == "
@@ -1311,7 +1443,7 @@ class IonChannelModelingCampaign(
         secondary="ion_channel_recording__ion_channel_modeling_campaign",
     )
 
-    ion_channel_modeling_configs = relationship(
+    ion_channel_modeling_configs: Mapped[list[IonChannelModelingConfig]] = relationship(
         "IonChannelModelingConfig",
         uselist=True,
         foreign_keys="IonChannelModelingConfig.ion_channel_modeling_campaign_id",
@@ -1321,7 +1453,7 @@ class IonChannelModelingCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1351,7 +1483,7 @@ class IonChannelModelingConfig(Entity, NameDescriptionVectorMixin):
         server_default="{}",
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1370,7 +1502,7 @@ class IonChannelModelingExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.ion_channel_modeling_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannelModelingConfigGeneration(Activity):
@@ -1387,7 +1519,7 @@ class IonChannelModelingConfigGeneration(Activity):
     __tablename__ = ActivityType.ion_channel_modeling_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ValidationResult(Entity):
@@ -1397,14 +1529,16 @@ class ValidationResult(Entity):
 
     name: Mapped[str] = mapped_column(index=True)
 
-    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
     validated_entity: Mapped[Entity] = relationship(
         "Entity",
         uselist=False,
         foreign_keys=[validated_entity_id],
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1416,14 +1550,17 @@ class MEModelCalibrationResult(Entity):
     holding_current: Mapped[float]
     threshold_current: Mapped[float]
     rin: Mapped[float | None]
-    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
-    calibrated_entity: Mapped[Entity] = relationship(
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("memodel.id", ondelete="CASCADE"), index=True
+    )
+    calibrated_entity: Mapped[MEModel] = relationship(
         "MEModel",
         uselist=False,
         foreign_keys=[calibrated_entity_id],
+        back_populates="calibration_result",
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1433,7 +1570,7 @@ class Asset(Identifiable):
     """Asset table."""
 
     __tablename__ = "asset"
-    status: Mapped[AssetStatus] = mapped_column()  # TODO: Remove if postgresql_where below removed
+    status: Mapped[AssetStatus]
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
     is_directory: Mapped[bool]
@@ -1442,7 +1579,7 @@ class Asset(Identifiable):
     )
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
-    meta: Mapped[JSON_DICT]  # not used yet. can be useful?
+    meta: Mapped[JSON_DICT]
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),  # Asset deletion cascades through ORM app.db.events
@@ -1450,22 +1587,19 @@ class Asset(Identifiable):
     )
     storage_type: Mapped[StorageType]
     upload_meta: Mapped[JSON_DICT | None]
+    # parent_id should be set only for files that are children of a directory asset
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("asset.id"), index=True)
 
-    # partial unique index
+    children: Mapped[list[Asset]] = relationship(
+        foreign_keys=[parent_id],
+        cascade="all, delete-orphan",  # triggers ORM cascade for events
+        passive_deletes=False,
+        lazy="selectin",
+    )
+
     __table_args__ = (
-        Index(
-            "ix_asset_full_path",
-            "full_path",
-            unique=True,
-            postgresql_where=(status != AssetStatus.DELETED.name),
-        ),
-        Index(
-            "uq_asset_entity_id_path",
-            "path",
-            "entity_id",
-            unique=True,
-            postgresql_where=(status != AssetStatus.DELETED.name),
-        ),
+        Index("ix_asset_full_path", "full_path", unique=True),
+        Index("uq_asset_entity_id_path", "path", "entity_id", unique=True),
     )
 
 
@@ -1474,7 +1608,7 @@ class METypeDensity(
 ):
     __tablename__ = EntityType.me_type_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
@@ -1486,7 +1620,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
@@ -1501,13 +1635,13 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
     brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationCampaign(
@@ -1529,7 +1663,7 @@ class SimulationCampaign(
 
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
-    simulations = relationship(
+    simulations: Mapped[list[Simulation]] = relationship(
         "Simulation",
         uselist=True,
         back_populates="simulation_campaign",
@@ -1540,10 +1674,25 @@ class SimulationCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
+
+
+class SimulatableExtracellularRecordingArrayToSimulation(Base):
+    __tablename__ = "simulatable_extracellular_recording_array__simulation"
+
+    simulatable_extracellular_recording_array_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            f"{EntityType.simulatable_extracellular_recording_array}.id", ondelete="CASCADE"
+        ),
+        primary_key=True,
+    )
+    simulation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.simulation}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
 
 
 class Simulation(Entity, NameDescriptionVectorMixin):
@@ -1561,6 +1710,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         entity (Entity): The entity this simulation is associated with.
         number_neurons (int): Number of neurons to be simulated
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
+        recording_arrays: Simulatable extracellular recording arrays used by this simulation.
     """
 
     __tablename__ = EntityType.simulation.value
@@ -1585,8 +1735,15 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         nullable=False,
         server_default="{}",
     )
+    recording_arrays: Mapped[list[SimulatableExtracellularRecordingArray]] = relationship(
+        "SimulatableExtracellularRecordingArray",
+        primaryjoin=(
+            "Simulation.id == SimulatableExtracellularRecordingArrayToSimulation.simulation_id"
+        ),
+        secondary="simulatable_extracellular_recording_array__simulation",
+    )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1604,7 +1761,17 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.simulation_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
+class TaskResult(Entity, NameDescriptionVectorMixin):
+    __tablename__ = EntityType.task_result.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    task_result_type: Mapped[TaskResultType]
+    data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
+
+    __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):
@@ -1621,7 +1788,7 @@ class SimulationResult(Entity, NameDescriptionVectorMixin):
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationGeneration(Activity):
@@ -1637,7 +1804,7 @@ class SimulationGeneration(Activity):
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Validation(Activity):
@@ -1645,7 +1812,7 @@ class Validation(Activity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -1656,22 +1823,31 @@ class Calibration(Activity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
 
 
-class Derivation(Base):
+class Derivation(Identifiable):
     __tablename__ = AssociationType.derivation.value
-    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
     generated_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
-    used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
-    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id], passive_deletes=True)
-    derivation_type: Mapped[DerivationType]
+    used: Mapped[Entity] = relationship(foreign_keys=[used_id])
+    generated: Mapped[Entity] = relationship(foreign_keys=[generated_id], passive_deletes=True)
+    derivation_type: Mapped[DerivationType] = mapped_column(index=True)
     label: Mapped[str | None]
+
+    __table_args__ = (
+        UniqueConstraint(
+            "used_id",
+            "generated_id",
+            "derivation_type",
+            name="uq_used_id_generated_id_derivation_type",
+        ),
+    )
 
 
 class ScientificArtifactPublicationLink(Identifiable):
@@ -1701,12 +1877,12 @@ class ScientificArtifactPublicationLink(Identifiable):
         ForeignKey("scientific_artifact.id", ondelete="CASCADE"), index=True
     )
 
-    publication: Mapped["Publication"] = relationship(
+    publication: Mapped[Publication] = relationship(
         "Publication",
         foreign_keys=[publication_id],
         uselist=False,
     )
-    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+    scientific_artifact: Mapped[ScientificArtifact] = relationship(
         "ScientificArtifact",
         foreign_keys=[scientific_artifact_id],
         uselist=False,
@@ -1740,12 +1916,12 @@ class ScientificArtifactExternalUrlLink(Identifiable):
         ForeignKey("scientific_artifact.id", ondelete="CASCADE"), index=True
     )
 
-    external_url: Mapped["ExternalUrl"] = relationship(
+    external_url: Mapped[ExternalUrl] = relationship(
         "ExternalUrl",
         foreign_keys=[external_url_id],
         uselist=False,
     )
-    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+    scientific_artifact: Mapped[ScientificArtifact] = relationship(
         "ScientificArtifact",
         foreign_keys=[scientific_artifact_id],
         uselist=False,
@@ -1844,109 +2020,13 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
 
     # calibration_data (multiple entities): ...
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
+        args = getattr(super(), "__table_args__", ()) or ()
+        return (Index("ix_circuit_scale_id", "scale", "id"), *args)
 
-
-class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
-    """Represents a circuit extraction campaign entity in the database.
-
-    A circuit extraction campaign represents the specification of a set of circuit
-    extractions. It has an asset which is the campaign configuration file.
-
-    Attributes:
-        id (uuid.UUID): Primary key.
-        scan_parameters (JSON_DICT): Scan parameters of the extraction campaign.
-
-    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
-          accessible though its corresponding CircuitExtractionConfigGeneration activity.
-    """
-
-    __tablename__ = EntityType.circuit_extraction_campaign.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    scan_parameters: Mapped[JSON_DICT] = mapped_column(
-        default={},
-        nullable=False,
-        server_default="{}",
-    )
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "inherit_condition": id == Entity.id,
-    }
-
-
-class CircuitExtractionConfig(Entity, NameDescriptionVectorMixin):
-    """Represents a circuit extraction entity in the database.
-
-    It represents the specification of a circuit extraction operation.
-    It has an asset which is the extraction configuration file.
-
-    Attributes:
-        id (uuid.UUID): Primary key.
-        circuit_id (uuid.UUID): Foreign key referencing the parent (source) circuit ID.
-        circuit (Circuit): Parent (source) circuit entity this extraction is associated with.
-        scan_parameters (JSON_DICT): Scan parameters of the extraction.
-
-    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
-          accessible though its corresponding CircuitExtractionConfigGeneration activity.
-    """
-
-    __tablename__ = EntityType.circuit_extraction_config.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
-    circuit: Mapped[Circuit] = relationship(
-        "Circuit",
-        uselist=False,
-        foreign_keys=[circuit_id],
-    )
-    scan_parameters: Mapped[JSON_DICT] = mapped_column(
-        default={},
-        nullable=False,
-        server_default="{}",
-    )
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "inherit_condition": id == Entity.id,
-    }
-
-
-class CircuitExtractionConfigGeneration(Activity):
-    """Represents a circuit extraction generation activity in the database.
-
-    A circuit extraction generation activity is responsible for generating the configuration
-    files for each circuit extraction operation that is part of an extraction campaign.
-
-    Attributes:
-        id (uuid.UUID): Primary key.
-
-    Note: The CircuitExtractionConfigGeneration activity associates a number of
-          CircuitExtractionConfig entities with their corresponding CircuitExtractionCampaign
-          entity.
-    """
-
-    __tablename__ = ActivityType.circuit_extraction_config_generation.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class CircuitExtractionExecution(Activity, ExecutionActivityMixin):
-    """Represents the execution of a circuit extraction.
-
-    It stores the execution status of a circuit extraction operation.
-
-    Attributes:
-        id (uuid.UUID): Primary key.
-
-    Note: The CircuitExtractionExecution activity associates a CircuitExtractionConfig entity with
-          its corresponding extracted output Circuit entity.
-    """
-
-    __tablename__ = ActivityType.circuit_extraction_execution.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
@@ -2017,7 +2097,7 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     precomputed_mesh_url: Mapped[str | None]
     cell_identifying_property: Mapped[str | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EMCellMesh(
@@ -2064,7 +2144,7 @@ class EMCellMesh(
         uselist=False,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
@@ -2075,6 +2155,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         scale: The overall scale of the analysis in the notebook. Used for filtering.
         specifications: Definitions of required python version and inputs,
             with schema AnalysisNotebookTemplateSpecifications.
+        assignment_id: Maps the notebook to an assignment in OBI Grading service.
 
     Assets:
         - a .ipynb file.
@@ -2087,8 +2168,9 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
     specifications: Mapped[JSON_DICT | None]
+    assignment_id: Mapped[str | None] = mapped_column(String(255), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookEnvironment(Entity):
@@ -2108,7 +2190,7 @@ class AnalysisNotebookEnvironment(Entity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     runtime_info: Mapped[JSON_DICT | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
@@ -2144,7 +2226,7 @@ class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
         uselist=False,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
@@ -2165,7 +2247,7 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EmCellMeshToSkeletonizationCampaign(Base):
@@ -2207,11 +2289,11 @@ class SkeletonizationCampaign(
         secondary="em_cell_mesh__skeletonization_campaign",
     )
 
-    skeletonization_configs: Mapped[list["SkeletonizationConfig"]] = relationship(
+    skeletonization_configs: Mapped[list[SkeletonizationConfig]] = relationship(
         uselist=True,
         foreign_keys="SkeletonizationConfig.skeletonization_campaign_id",
     )
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
@@ -2238,7 +2320,7 @@ class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
         ForeignKey(f"{EntityType.em_cell_mesh}.id"), index=True
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationConfigGeneration(Activity):
@@ -2256,7 +2338,7 @@ class SkeletonizationConfigGeneration(Activity):
     __tablename__ = ActivityType.skeletonization_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationExecution(Activity, ExecutionActivityMixin):
@@ -2275,7 +2357,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EntityToTaskConfig(Base):
@@ -2320,7 +2402,7 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         secondary="entity__task_config",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class TaskActivity(Activity, ExecutionActivityMixin):
@@ -2341,7 +2423,7 @@ class TaskActivity(Activity, ExecutionActivityMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulatableExtracellularRecordingArray(Entity, NameDescriptionVectorMixin):
@@ -2353,7 +2435,7 @@ class SimulatableExtracellularRecordingArray(Entity, NameDescriptionVectorMixin)
 
     circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.circuit}.id"))
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 register_model_events()

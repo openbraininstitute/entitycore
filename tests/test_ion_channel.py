@@ -107,7 +107,7 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_pagination(client, models):  # noqa: ARG001
+def test_pagination(client, models):  # ruff:ignore[unused-function-argument]
     data = assert_request(client.get, url=ROUTE, params={"page_size": 2}).json()
     assert "facets" in data
     assert "data" in data
@@ -116,7 +116,7 @@ def test_pagination(client, models):  # noqa: ARG001
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     res = []
     for i in range(5):
         row = add_db(
@@ -126,8 +126,8 @@ def models(db, json_data, person_id):
                 | {
                     "name": f"name-{i}",
                     "label": f"label-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             ),
         )

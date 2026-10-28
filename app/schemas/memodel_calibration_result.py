@@ -1,18 +1,10 @@
 import uuid
 
-from pydantic import BaseModel
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
-)
+from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class MEModelCalibrationResultBase(BaseModel):
+class MEModelCalibrationResultBaseMixin:
     """Base model for MEModel calibration results."""
 
     holding_current: float
@@ -21,18 +13,23 @@ class MEModelCalibrationResultBase(BaseModel):
     calibrated_entity_id: uuid.UUID
 
 
+class NestedMEModelCalibrationResultRead(
+    MEModelCalibrationResultBaseMixin,
+    NestedEntityRead,
+):
+    pass
+
+
 class MEModelCalibrationResultRead(
-    MEModelCalibrationResultBase,
-    CreationMixin,
-    IdentifiableMixin,
-    CreatedByUpdatedByMixin,
-    AuthorizationMixin,
+    MEModelCalibrationResultBaseMixin,
+    EntityReadWoutAssets,
 ):
     """Read model for MEModel calibration results, including entity metadata."""
 
 
 class MEModelCalibrationResultCreate(
-    MEModelCalibrationResultBase, AuthorizationOptionalPublicMixin
+    MEModelCalibrationResultBaseMixin,
+    EntityCreate,
 ):
     """Create model for MEModel calibration results."""
 

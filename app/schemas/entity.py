@@ -1,32 +1,103 @@
 """Entity schemas."""
 
-import uuid
+from uuid import UUID
 
-from pydantic import UUID4, BaseModel, ConfigDict, RootModel
+from pydantic import RootModel
 
-from app.schemas.agent import CreatedByUpdatedByMixin
+from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
+from app.schemas.asset import AssetsMixin
+from app.schemas.base import AuthorizationOptionalPublicMixin, Schema
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
-class NestedEntityCreate(BaseModel):
+class EntityBaseReadMixin:
+    authorized_project_id: UUID
+    authorized_public: bool
+    lifecycle_status: EntityLifecycleStatus
+
+
+class NestedEntityCreate(Schema):
     """Entity model to be used for bare nested entities in create endpoints."""
 
-    model_config = ConfigDict(from_attributes=True)
-    id: uuid.UUID
+    id: UUID
 
 
-class NestedEntityRead(BaseModel):
+class NestedEntityBareRead(Schema):
+    """Minimal nested entity reference with only id and type."""
+
+    id: UUID
+    type: EntityType
+
+
+class NestedEntityRead(NestedIdentifiableRead, EntityBaseReadMixin):
     """Entity model to be used for bare nested entities in read endpoints."""
 
-    model_config = ConfigDict(from_attributes=True)
-    id: uuid.UUID
-    type: str
-    authorized_project_id: UUID4
-    authorized_public: bool
+    type: EntityType
 
 
-class EntityRead(NestedEntityRead, CreatedByUpdatedByMixin):
+class GeneratedDerivationRead(Schema):
+    """A derivation where this entity is the generated (derived) entity."""
+
+    used: NestedEntityRead
+    derivation_type: DerivationType
+    label: str | None = None
+
+
+class UsedDerivationRead(Schema):
+    """A derivation where this entity is the used (source) entity."""
+
+    generated: NestedEntityRead
+    derivation_type: DerivationType
+    label: str | None = None
+
+
+class DerivationReadMixin:
+    """On-demand derivation lists, available on every entity read (see the `expand` query param).
+
+    A direction that was not expanded serializes as ``null`` (load-aware property on the Entity
+    model, so no extra query and `raiseload` is never tripped); an expanded-but-empty direction
+    serializes as ``[]``.
+    """
+
+    generated_from_derivations: list[GeneratedDerivationRead] | None = None
+    used_by_derivations: list[UsedDerivationRead] | None = None
+
+
+from app.schemas.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]
+    ContributionReadWithoutEntityMixin,
+)
+
+
+class EntityReadWoutAssets(
+    IdentifiableRead,
+    EntityBaseReadMixin,
+    ContributionReadWithoutEntityMixin,
+    DerivationReadMixin,
+):
     """Entity model that includes created_by and updated_by information."""
+
+    type: EntityType
+
+
+class EntityRead(
+    IdentifiableRead,
+    EntityBaseReadMixin,
+    AssetsMixin,
+    ContributionReadWithoutEntityMixin,
+    DerivationReadMixin,
+):
+    """Entity model that includes created_by and updated_by information."""
+
+    type: EntityType
+
+
+class EntityCreate(IdentifiableCreate, AuthorizationOptionalPublicMixin):
+    lifecycle_status: EntityLifecycleStatus = EntityLifecycleStatus.active
 
 
 class EntityCountRead(RootModel[dict[str, int]]):
     """Entity count model that contains the number of entities by type."""
+
+
+class BasicEntityRead(NestedEntityBareRead):
+    """Minimal entity reference for nested relations."""

@@ -1,7 +1,8 @@
 import pytest
 
 from app.db.model import Simulation, SimulationCampaign
-from app.db.types import EntityType
+from app.db.types import ElectrodeType, EntityType
+from app.types import EntityRoute
 
 from .utils import (
     PROJECT_ID,
@@ -50,6 +51,7 @@ def _assert_read_response(data, json_data):
     assert "authorized_public" in data
     assert "authorized_project_id" in data
     assert "assets" in data
+    assert "recording_arrays" in data
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.simulation
@@ -60,6 +62,28 @@ def _assert_read_response(data, json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+    assert data["recording_arrays"] == []
+
+
+def test_create_one_with_recording_arrays(client, json_data, root_circuit):
+    array_route = f"/{EntityRoute.simulatable_extracellular_recording_array}"
+    arrays = [
+        assert_request(
+            client.post,
+            url=array_route,
+            json={
+                "name": f"array-{i}",
+                "description": f"array-description-{i}",
+                "electrode_type": ElectrodeType.custom,
+                "circuit_id": str(root_circuit.id),
+            },
+        ).json()
+        for i in range(2)
+    ]
+    payload = json_data | {"recording_arrays": [{"id": array["id"]} for array in arrays]}
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    _assert_read_response(data, payload)
+    assert {array["id"] for array in data["recording_arrays"]} == {array["id"] for array in arrays}
 
 
 def test_update_one(clients, public_json_data):
@@ -129,7 +153,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     db_models = [
         MODEL(
             **(
@@ -137,8 +161,8 @@ def models(db, json_data, person_id):
                 | {
                     "name": f"circuit-{i}",
                     "description": f"circuit-description-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             )
@@ -184,7 +208,7 @@ def test_filtering(client, models, simulation_campaign, circuit):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 
@@ -201,3 +225,13 @@ def test_filtering(client, models, simulation_campaign, circuit):
         params={"ilike_search": "circuit-1"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "lifecycle_status": "active",
+            "simulation_campaign_id": str(simulation_campaign.id),
+        },
+    ).json()["data"]
+    assert len(data) == len(models)

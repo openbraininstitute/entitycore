@@ -45,7 +45,9 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.skeletonization_campaign)
+    check_entity_read_response(
+        data=data, json_data=json_data, expected_entity_type=EntityType.skeletonization_campaign
+    )
     assert "input_meshes" in data
     assert "skeletonization_configs" in data
     assert data["scan_parameters"] == json_data["scan_parameters"]
@@ -106,7 +108,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id, em_cell_mesh):
+def models(db, json_data, user_id, em_cell_mesh):
     db_campaigns = add_all_db(
         db,
         [
@@ -117,8 +119,8 @@ def models(db, json_data, person_id, em_cell_mesh):
                         "name": f"campaign-{i}",
                         "description": f"campaign-description-{i}",
                         "scan_parameters": {"foo": "bar"},
-                        "created_by_id": person_id,
-                        "updated_by_id": person_id,
+                        "created_by_id": user_id,
+                        "updated_by_id": user_id,
                         "authorized_project_id": PROJECT_ID,
                     }
                 )
@@ -144,8 +146,8 @@ def models(db, json_data, person_id, em_cell_mesh):
                     em_cell_mesh_id=em_cell_mesh.id,
                     skeletonization_campaign_id=campaign.id,
                     scan_parameters=campaign.scan_parameters,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
+                    created_by_id=user_id,
+                    updated_by_id=user_id,
                     authorized_project_id=PROJECT_ID,
                 ),
             )
@@ -177,11 +179,11 @@ def test_filtering_ordering(client, models):
     data = _req({"skeletonization_config__name": "config-2", "order_by": "name"})
     assert [d["name"] for d in data] == ["campaign-1", "campaign-2"]
 
-    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = _req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = _req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "campaign-1"})
-    assert len(data) == 1
+    data = _req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

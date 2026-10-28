@@ -6,7 +6,7 @@ from app.db.model import Publication
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin, IdFilterMixin
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 
 class NestedPublicationFilter(
@@ -29,10 +29,10 @@ class PublicationFilter(
     CreationFilterMixin,
     NestedPublicationFilter,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedPublicationFilter.Constants):
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "DOI",

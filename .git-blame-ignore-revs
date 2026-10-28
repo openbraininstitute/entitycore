@@ -1,0 +1,3 @@
+# .git-blame-ignore-revs
+# Bulk replacement of noqa with ruff:ignore
+074821248e3a2032464994e0691c7b71c3608405

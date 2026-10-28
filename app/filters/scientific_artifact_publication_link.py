@@ -5,7 +5,7 @@ from app.db.types import PublicationType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 from app.filters.publication import NestedPublicationFilter, NestedPublicationFilterDep
 from app.filters.scientific_artifact import (
     NestedScientificArtifactFilter,
@@ -18,7 +18,7 @@ class ScientificArtifactPublicationLinkFilter(
     CreatorFilterMixin,
     CustomFilter,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     publication_type: PublicationType | None = None
 
@@ -34,7 +34,7 @@ class ScientificArtifactPublicationLinkFilter(
 
     class Constants(CustomFilter.Constants):
         model = ScientificArtifactPublicationLink
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
         ]

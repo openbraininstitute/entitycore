@@ -18,8 +18,6 @@ class AssetRepository(BaseRepository):
         entity_type: EntityType,
         entity_id: uuid.UUID,
         asset_id: uuid.UUID,
-        *,
-        include_deleted: bool = False,
     ) -> Asset:
         """Return a single asset, or raise an error."""
         query = (
@@ -31,10 +29,6 @@ class AssetRepository(BaseRepository):
                 Entity.type == entity_type.name,
             )
         )
-        # See: https://github.com/openbraininstitute/entitycore/issues/358
-        if not include_deleted:
-            query = query.where(Asset.status != AssetStatus.DELETED)
-
         return self.db.execute(query).scalar_one()
 
     def create_entity_asset(
@@ -53,6 +47,7 @@ class AssetRepository(BaseRepository):
             sha256_digest=sha256_digest,
             meta=asset.meta,
             label=asset.label,
+            parent_id=asset.parent_id,
             storage_type=asset.storage_type,
             created_by_id=asset.created_by_id,
             updated_by_id=asset.updated_by_id,

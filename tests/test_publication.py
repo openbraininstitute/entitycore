@@ -44,8 +44,13 @@ def model_id(publication):
     return publication.id
 
 
-def test_create_one(client_admin, json_data):
-    data = assert_request(client_admin.post, url=ROUTE, json=json_data).json()
+def test_create_one_admin(clients, json_data):
+    data = assert_request(clients.admin.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+
+def test_create_one_user(clients, json_data):
+    data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
 
 
@@ -147,7 +152,7 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_pagination(client, models):  # noqa: ARG001
+def test_pagination(client, models):  # ruff:ignore[unused-function-argument]
     data = assert_request(client.get, url=ROUTE, params={"page_size": 2}).json()
     assert "facets" in data
     assert "data" in data
@@ -156,7 +161,7 @@ def test_pagination(client, models):  # noqa: ARG001
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     res = []
     for i in range(5):
         row = add_db(
@@ -167,8 +172,8 @@ def models(db, json_data, person_id):
                     "title": f"t{i}",
                     "DOI": f"doi-{i}",
                     "publication_year": 2020 + i,
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                 }
             ),
         )
@@ -199,5 +204,5 @@ def test_filtering_sorting(client, models):
     data = req({"publication_year__lte": 2022, "order_by": "-title"})
     assert [d["publication_year"] for d in data] == [2022, 2021, 2020]
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)

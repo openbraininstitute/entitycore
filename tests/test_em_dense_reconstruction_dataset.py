@@ -118,7 +118,7 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
+def models(db, json_data, user_id):
     db_models = [
         MODEL(
             **(
@@ -126,8 +126,8 @@ def models(db, json_data, person_id):
                 | {
                     "name": f"name-{i}",
                     "description": f"description-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
                 }
             )
@@ -184,7 +184,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
 
     data = assert_request(
@@ -200,6 +200,11 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
         params={"ilike_search": "name-1"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
 
 
 def test_delete_one(db, clients, json_data):

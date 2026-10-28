@@ -19,6 +19,7 @@ class CircuitFilterMixin:
     build_category__in: list[CircuitBuildCategory] | None = None
 
     target_simulator: TargetSimulator | None = None
+    target_simulator__in: list[TargetSimulator] | None = None
 
 
 class NestedCircuitFilter(
@@ -56,16 +57,17 @@ class CircuitFilter(
     number_connections__lte: int | None = None
     number_connections__gte: int | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = Circuit
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             *ScientificArtifactFilter.Constants.ordering_model_fields,
             "id",
             "name",
             "scale",
             "build_category",
+            "target_simulator",
             "has_morphologies",
             "has_point_neurons",
             "has_electrical_cell_models",

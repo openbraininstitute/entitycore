@@ -1,24 +1,17 @@
 import uuid
 
-from pydantic import BaseModel
-
 from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
 )
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class ElectricalRecordingStimulusBase(BaseModel, NameDescriptionMixin):
+class ElectricalRecordingStimulusBaseMixin(NameDescriptionMixin):
     dt: float | None = None
     injection_type: ElectricalRecordingStimulusType
     shape: ElectricalRecordingStimulusShape
@@ -28,22 +21,22 @@ class ElectricalRecordingStimulusBase(BaseModel, NameDescriptionMixin):
 
 
 class NestedElectricalRecordingStimulusRead(
-    ElectricalRecordingStimulusBase, IdentifiableMixin, EntityTypeMixin
+    ElectricalRecordingStimulusBaseMixin,
+    NestedEntityRead,
 ):
     pass
 
 
 class ElectricalRecordingStimulusRead(
-    NestedElectricalRecordingStimulusRead,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
-    AuthorizationMixin,
+    ElectricalRecordingStimulusBaseMixin,
+    EntityReadWoutAssets,
 ):
     pass
 
 
 class ElectricalRecordingStimulusCreate(
-    ElectricalRecordingStimulusBase, AuthorizationOptionalPublicMixin
+    ElectricalRecordingStimulusBaseMixin,
+    EntityCreate,
 ):
     pass
 

@@ -1,7 +1,7 @@
 """Api exceptions."""
 
 import dataclasses
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import StrEnum, auto
 from http import HTTPStatus
@@ -11,15 +11,16 @@ from psycopg2.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueVi
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 
+from app.logger import LogLevel
 from app.utils.enum import UpperStrEnum
 
 
 class AuthErrorReason(StrEnum):
     """Authentication and authorization errors."""
 
-    AUTH_TOKEN_MISSING = "The authorization token is missing"  # noqa: S105
-    AUTH_TOKEN_INVALID = "The authorization token is invalid"  # noqa: S105
-    AUTH_TOKEN_EXPIRED = "The authorization token is expired"  # noqa: S105
+    AUTH_TOKEN_MISSING = "The authorization token is missing"  # ruff:ignore[hardcoded-password-string]
+    AUTH_TOKEN_INVALID = "The authorization token is invalid"  # ruff:ignore[hardcoded-password-string]
+    AUTH_TOKEN_EXPIRED = "The authorization token is expired"  # ruff:ignore[hardcoded-password-string]
     NOT_AUTHENTICATED_USER = "User not authenticated"
     NOT_AUTHORIZED_USER = "User not authorized"
     NOT_AUTHORIZED_PROJECT = "User not authorized for the given virtual-lab-id or project-id"
@@ -49,6 +50,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_UPLOAD_INCOMPLETE = auto()
     ASSET_UPLOAD_INCONSISTENT_SIZE = auto()
     ASSET_NOT_UPLOADING = auto()
+    ASSET_VIRTUAL_LAB_ID_NOT_FOUND = auto()
     ION_NAME_NOT_FOUND = auto()
     S3_CANNOT_CREATE_PRESIGNED_URL = auto()
     OPENAI_API_KEY_MISSING = auto()
@@ -63,6 +65,7 @@ class ApiError(Exception):
     error_code: ApiErrorCode
     http_status_code: HTTPStatus | int = HTTPStatus.BAD_REQUEST
     details: Any = None
+    log_level: LogLevel = "WARNING"
 
     def __repr__(self) -> str:
         """Return the repr of the error."""
@@ -87,7 +90,7 @@ class ApiError(Exception):
 @contextmanager
 def ensure_result(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_NOT_FOUND
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when no results are found after executing a query."""
     try:
         yield
@@ -96,13 +99,14 @@ def ensure_result(
             message=error_message,
             error_code=error_code,
             http_status_code=HTTPStatus.NOT_FOUND,
+            log_level="INFO",
         ) from err
 
 
 @contextmanager
 def ensure_uniqueness(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_DUPLICATED
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a UniqueViolation is raised."""
     try:
         yield
@@ -119,7 +123,7 @@ def ensure_uniqueness(
 @contextmanager
 def ensure_foreign_keys_integrity(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
     try:
         yield
@@ -137,7 +141,7 @@ def ensure_foreign_keys_integrity(
 @contextmanager
 def ensure_authorized_references(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when an InsufficientPrivilage error is raised."""
     try:
         yield
@@ -153,14 +157,20 @@ def ensure_authorized_references(
 @contextmanager
 def ensure_valid_schema(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
-) -> Iterator[None]:
+) -> Generator[None]:
     """Context manager that raises ApiError when a schema validation error is raised."""
     try:
         yield
     except ValidationError as err:
-        raise ApiError(
-            message=error_message,
-            error_code=error_code,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            details=[e["msg"] for e in err.errors()],
-        ) from None  # do not include the original exception because the wrapper is sufficient
+        details = [e["msg"] for e in err.errors()]
+    except ValueError as err:
+        details = [f"Value error, {err}"]
+    else:
+        return
+
+    raise ApiError(
+        message=error_message,
+        error_code=error_code,
+        http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        details=details,
+    ) from None  # do not include the original exception because the wrapper is sufficient

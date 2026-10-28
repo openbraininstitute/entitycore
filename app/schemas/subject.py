@@ -2,22 +2,19 @@ import uuid
 from datetime import timedelta
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from app.db.types import AgePeriod, Sex
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class SubjectBase(BaseModel, NameDescriptionMixin):
+class SubjectBaseMixin(NameDescriptionMixin):
+    # Note: cannot be removed because of ser_json_timedelta
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="float")
 
     sex: Annotated[
@@ -74,7 +71,7 @@ class SubjectBase(BaseModel, NameDescriptionMixin):
         return self
 
 
-class SubjectCreate(AuthorizationOptionalPublicMixin, SpeciesStrainCreateMixin, SubjectBase):
+class SubjectCreate(SpeciesStrainCreateMixin, EntityCreate, SubjectBaseMixin):
     pass
 
 
@@ -86,12 +83,14 @@ SubjectAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSubjectRead(SubjectBase, IdentifiableMixin, SpeciesStrainReadMixin):
+class NestedSubjectRead(SpeciesStrainReadMixin, NestedEntityRead, SubjectBaseMixin):
     pass
 
 
 class SubjectRead(
-    NestedSubjectRead, CreationMixin, CreatedByUpdatedByMixin, AuthorizationMixin, IdentifiableMixin
+    SpeciesStrainReadMixin,
+    EntityReadWoutAssets,
+    SubjectBaseMixin,
 ):
     pass
 

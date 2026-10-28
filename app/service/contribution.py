@@ -8,10 +8,10 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 import app.queries.common
 from app.db.auth import (
     constrain_entity_query_to_project,
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
-from app.db.model import Agent, Contribution, Entity, Person
+from app.db.model import Contribution, Entity
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -50,36 +50,22 @@ def _read_many(
     pagination_request: PaginationQuery,
     check_authorized_project: bool,
 ) -> ListResponse[ContributionRead]:
-    agent_alias = aliased(Agent, flat=True)
-    entity_alias = aliased(Entity, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
 
-    aliases = {
-        Agent: {
-            "agent": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        Entity: entity_alias,
-    }
     facet_keys = []
     filter_keys = [
         "agent",
         "created_by",
         "updated_by",
-        "entity",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=Contribution,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     if check_authorized_project:
-        filter_query = lambda q: constrain_to_readable_entities(_load(q), user_context.project_id)
+        filter_query = lambda q: constrain_to_readable_entities_by_project(
+            query=_load(q), project_id=user_context.project_id
+        )
     else:
         filter_query = _load
 
@@ -97,7 +83,7 @@ def _read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
     )
 
@@ -143,8 +129,8 @@ def read_one(
         db_model_class=Contribution,
         user_context=None,
         response_schema_class=ContributionRead,
-        apply_operations=lambda q: constrain_to_readable_entities(
-            _load(q), user_context.project_id
+        apply_operations=lambda q: constrain_to_readable_entities_by_project(
+            query=_load(q), project_id=user_context.project_id
         ),
     )
 
@@ -169,8 +155,8 @@ def create_one(
     contribution: ContributionCreate,
 ) -> ContributionRead:
     stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(Entity.id)).where(Entity.id == contribution.entity_id),
-        user_context.project_id,
+        query=sa.select(sa.func.count(Entity.id)).where(Entity.id == contribution.entity_id),
+        project_id=user_context.project_id,
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
@@ -197,7 +183,9 @@ def update_one(
     def apply_operations(q):
         entity_alias = aliased(Entity)
         q = q.join(entity_alias, entity_alias.id == Contribution.entity_id)
-        q = constrain_to_writable_entities(q, user_context, db_model_class=entity_alias)
+        q = constrain_to_writable_entities(
+            query=q, user_context=user_context, db_model_class=entity_alias
+        )
         return _load(q)
 
     return app.queries.common.router_update_one(

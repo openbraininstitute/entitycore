@@ -1,15 +1,11 @@
-from pydantic import BaseModel
-
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    CreationMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelBase(BaseModel, NameDescriptionMixin):
+class IonChannelBaseMixin(NameDescriptionMixin):
     """Base model for ion channel."""
 
     label: str
@@ -18,21 +14,20 @@ class IonChannelBase(BaseModel, NameDescriptionMixin):
 
 
 class NestedIonChannelRead(
-    IonChannelBase,
-    IdentifiableMixin,
+    IonChannelBaseMixin,
+    NestedIdentifiableRead,
 ):
     """Nested read model for ion channel."""
 
 
 class IonChannelRead(
-    NestedIonChannelRead,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
+    IonChannelBaseMixin,
+    IdentifiableRead,
 ):
     """Read model for ion channel."""
 
 
-class IonChannelCreate(IonChannelBase):
+class IonChannelCreate(IonChannelBaseMixin, IdentifiableCreate):
     """Create model for ion channel."""
 
 

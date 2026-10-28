@@ -14,13 +14,16 @@ class CustomUvicornConfig(uvicorn.Config):
         configure_warnings()
 
 
-def run_server(app: str, *, host: str, port: int, reload: bool = False) -> None:
+def run_server(
+    app: str, *, host: str, port: int, reload: bool = False, root_path: str = ""
+) -> None:
     config = CustomUvicornConfig(
         app,
         host=host,
         port=port,
         reload=reload,
         proxy_headers=True,
+        root_path=root_path,
         log_config=None,
     )
     server = uvicorn.Server(config)

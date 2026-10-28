@@ -6,7 +6,7 @@ from app.db.model import MEModel
 from app.db.types import ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
@@ -18,8 +18,15 @@ from app.filters.common import (
     NestedMTypeClassFilter,
 )
 from app.filters.emodel import NestedEModelFilter
-from app.filters.entity import EntityFilterMixin
-from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin
+from app.filters.entity import EntityFilterMixin, NestedDerivationFilter
+from app.filters.species import NestedSpeciesFilter, SpeciesFilterMixin
+
+
+class NestedMEModelMorphologyFilter(NestedCellMorphologyFilter):
+    generated_derivation: Annotated[
+        NestedDerivationFilter | None,
+        FilterDepends(with_prefix("morphology__generated_derivation", NestedDerivationFilter)),
+    ] = None
 
 
 class NestedMEModelFilter(
@@ -29,25 +36,9 @@ class NestedMEModelFilter(
 ):
     validation_status: ValidationStatus | None = None
 
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("me_model__brain_region", NestedBrainRegionFilter)),
-    ] = None
     species: Annotated[
         NestedSpeciesFilter | None,
         FilterDepends(with_prefix("me_model__species", NestedSpeciesFilter)),
-    ] = None
-    strain: Annotated[
-        NestedStrainFilter | None,
-        FilterDepends(with_prefix("me_model__strain", NestedStrainFilter)),
-    ] = None
-    morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("me_model__morphology", NestedCellMorphologyFilter)),
-    ] = None
-    emodel: Annotated[
-        NestedEModelFilter | None,
-        FilterDepends(with_prefix("me_model__emodel", NestedEModelFilter)),
     ] = None
     mtype: Annotated[
         NestedMTypeClassFilter | None,
@@ -73,19 +64,19 @@ class MEModelFilter(
     CustomFilter,
 ):
     morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("morphology", NestedCellMorphologyFilter)),
+        NestedMEModelMorphologyFilter | None,
+        FilterDepends(with_prefix("morphology", NestedMEModelMorphologyFilter)),
     ] = None
     emodel: Annotated[
         NestedEModelFilter | None,
         FilterDepends(with_prefix("emodel", NestedEModelFilter)),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = MEModel
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "brain_region__name",

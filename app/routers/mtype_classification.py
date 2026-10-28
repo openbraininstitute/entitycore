@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from app.routers.admin import router as admin_router
-from app.routers.types import AssociationRoute
 from app.service import mtype_classification as service
+from app.types import AssociationRoute
 
 # TODO: Implement rest of endpoints and use common router
 ROUTE = AssociationRoute.mtype_classification

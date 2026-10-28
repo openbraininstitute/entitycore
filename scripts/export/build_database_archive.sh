@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="b8ebf9a4e3da"
+SCRIPT_DB_VERSION="eb68c3862a30"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -113,14 +113,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM cell_morphology_protocol AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/cell_morphology_protocol.csv' WITH CSV HEADER;
 \echo Dumping table circuit
 \copy (SELECT t0.* FROM circuit AS t0 JOIN entity AS t1 ON t1.id=t0.id LEFT JOIN entity AS t2 ON t2.id=t0.root_circuit_id LEFT JOIN entity AS t3 ON t3.id=t0.atlas_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false AND t3.authorized_public IS NOT false) TO '$DATA_DIR/circuit.csv' WITH CSV HEADER;
-\echo Dumping table circuit_extraction_campaign
-\copy (SELECT t0.* FROM circuit_extraction_campaign AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_campaign.csv' WITH CSV HEADER;
-\echo Dumping table circuit_extraction_config
-\copy (SELECT t0.* FROM circuit_extraction_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.circuit_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_config.csv' WITH CSV HEADER;
-\echo Dumping table circuit_extraction_config_generation
-\copy (SELECT t0.* FROM circuit_extraction_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_config_generation.csv' WITH CSV HEADER;
-\echo Dumping table circuit_extraction_execution
-\copy (SELECT t0.* FROM circuit_extraction_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_execution.csv' WITH CSV HEADER;
 \echo Dumping table consortium
 \copy (SELECT t0.* FROM consortium AS t0  WHERE TRUE) TO '$DATA_DIR/consortium.csv' WITH CSV HEADER;
 \echo Dumping table contribution
@@ -207,6 +199,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM organization AS t0  WHERE TRUE) TO '$DATA_DIR/organization.csv' WITH CSV HEADER;
 \echo Dumping table person
 \copy (SELECT t0.* FROM person AS t0  WHERE TRUE) TO '$DATA_DIR/person.csv' WITH CSV HEADER;
+\echo Dumping table platform_user
+\copy (SELECT t0.* FROM platform_user AS t0  WHERE TRUE) TO '$DATA_DIR/platform_user.csv' WITH CSV HEADER;
 \echo Dumping table publication
 \copy (SELECT t0.* FROM publication AS t0  WHERE TRUE) TO '$DATA_DIR/publication.csv' WITH CSV HEADER;
 \echo Dumping table role
@@ -219,6 +213,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM scientific_artifact_publication_link AS t0 JOIN entity AS t1 ON t1.id=t0.scientific_artifact_id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/scientific_artifact_publication_link.csv' WITH CSV HEADER;
 \echo Dumping table simulatable_extracellular_recording_array
 \copy (SELECT t0.* FROM simulatable_extracellular_recording_array AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.circuit_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/simulatable_extracellular_recording_array.csv' WITH CSV HEADER;
+\echo Dumping table simulatable_extracellular_recording_array__simulation
+\copy (SELECT t0.* FROM simulatable_extracellular_recording_array__simulation AS t0 JOIN entity AS t1 ON t1.id=t0.simulatable_extracellular_recording_array_id JOIN entity AS t2 ON t2.id=t0.simulation_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/simulatable_extracellular_recording_array__simulation.csv' WITH CSV HEADER;
 \echo Dumping table simulation
 \copy (SELECT t0.* FROM simulation AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.simulation_campaign_id JOIN entity AS t3 ON t3.id=t0.entity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false AND t3.authorized_public IS NOT false) TO '$DATA_DIR/simulation.csv' WITH CSV HEADER;
 \echo Dumping table simulation_campaign
@@ -253,6 +249,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM task_activity AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_activity.csv' WITH CSV HEADER;
 \echo Dumping table task_config
 \copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id LEFT JOIN entity AS t2 ON t2.id=t0.task_config_generator_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
+\echo Dumping table task_result
+\copy (SELECT t0.* FROM task_result AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_result.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
 \echo Dumping table validation
@@ -271,7 +269,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="b8ebf9a4e3da"
+SCRIPT_DB_VERSION="eb68c3862a30"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

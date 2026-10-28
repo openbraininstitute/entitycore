@@ -1,32 +1,45 @@
+import base64
+import itertools
 import math
 import os
+import threading
 import uuid
 from pathlib import Path
-from typing import IO, Protocol
+from typing import IO, Protocol, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
-import boto3
+import boto3.session
 import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
 from types_boto3_s3 import S3Client
 from types_boto3_s3.type_defs import (
     CopySourceTypeDef,
     DeleteObjectRequestTypeDef,
+    ObjectIdentifierTypeDef,
     PaginatorConfigTypeDef,
 )
 
 from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
 from app.logger import L
-from app.schemas.asset import validate_path
+from app.schemas.asset import validate_path_component
 from app.schemas.publish import MoveDirectoryResult, MoveFileResult
 from app.utils.common import clip
 
 PUBLIC_ASSET_PREFIX = "public/"
 PRIVATE_ASSET_PREFIX = "private/"
+
+# S3 DeleteObjects accepts at most 1000 keys per request.
+S3_DELETE_OBJECTS_MAX_KEYS = 1000
+
+_thread_local = threading.local()
+
+
+class CheckObjectResult(TypedDict):
+    exists: bool
+    size: int | None
 
 
 class StorageClientFactory(Protocol):
@@ -74,16 +87,12 @@ def convert_s3_path_visibility(s3_path: str, *, public: bool) -> str:
     return new_prefix + s3_path.removeprefix(old_prefix)
 
 
-def validate_filename(filename: str) -> bool:
+def validate_filename(filename: str | Path) -> bool:
     try:
-        validate_path(filename)
+        validate_path_component(Path(filename))
     except ValueError:
         return False
     return True
-
-
-def sanitize_directory_traversal(filename: str | Path) -> Path:
-    return Path(os.path.normpath("/" / Path(filename))).relative_to("/")
 
 
 def validate_filesize(filesize: int) -> bool:
@@ -95,7 +104,7 @@ def validate_multipart_filesize(filesize: int) -> bool:
 
 
 def get_s3_client(storage: StorageUnion) -> S3Client:
-    """Return a new S3 client (not thread-safe).
+    """Return a thread-local S3 client, creating it on first use per thread.
 
     Boto should get credentials from ~/.aws/credentials or the environment.
     In particular, the following keys are required:
@@ -106,82 +115,189 @@ def get_s3_client(storage: StorageUnion) -> S3Client:
 
     Implements StorageClientFactory.
 
+    ``boto3.client()`` uses a shared default session and must not be called concurrently
+    from multiple threads, as it may cause response ordering issues or interpreter failures
+    from underlying SSL modules.
+
+    A thread-local client avoids both that problem and the overhead of creating a new
+    session+client per request.
+
+    See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/clients.html
+
     Args:
         storage: Storage configuration.
     """
-    if storage.is_open:
-        # For open storage, we use unsigned requests
-        config = botocore.client.Config(signature_version=botocore.UNSIGNED)
-    else:
-        # For internal storage, we use signed requests
-        config = botocore.client.Config()
-    return boto3.client("s3", region_name=storage.region, config=config)
+    clients: dict = getattr(_thread_local, "s3_clients", None) or {}
+    if storage.type not in clients:
+        if storage.is_open:
+            config = botocore.client.Config(
+                signature_version=botocore.UNSIGNED,
+                max_pool_connections=settings.S3_MAX_WORKERS,
+            )
+        else:
+            config = botocore.client.Config(
+                max_pool_connections=settings.S3_MAX_WORKERS,
+            )
+        clients[storage.type] = boto3.session.Session().client(
+            "s3", region_name=storage.region, config=config
+        )
+        _thread_local.s3_clients = clients
+    return clients[storage.type]
 
 
-def upload_to_s3(
+def upload_to_s3_single_part(
     s3_client: S3Client,
     file_obj: IO,
     bucket_name: str,
     s3_key: str,
-) -> bool:
-    """Upload an object to an S3 bucket.
+) -> str | None:
+    """Upload an object via ``put_object`` and return its SHA256 digest in hex.
+
+    S3 computes the checksum server-side (``ChecksumAlgorithm=SHA256``), avoiding a
+    second read of the payload. Only use for files within ``API_ASSET_POST_MAX_SIZE``.
 
     Args:
         s3_client: S3 client instance.
-        file_obj: file-like object.
+        file_obj: file-like object positioned at the start of the content.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+
+    Returns:
+        SHA256 hex digest, or ``None`` if the upload failed.
     """
     try:
-        s3_client.upload_fileobj(
-            file_obj,
+        response = s3_client.put_object(
+            Body=file_obj,
             Bucket=bucket_name,
             Key=s3_key,
-            Config=TransferConfig(
-                multipart_threshold=settings.S3_MULTIPART_UPLOAD_THRESHOLD,
-                multipart_chunksize=settings.S3_MULTIPART_UPLOAD_CHUNKSIZE,
-                max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
-            ),
+            ChecksumAlgorithm="SHA256",
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
-        return False
+        return None
+    checksum_b64 = response.get("ChecksumSHA256")
+    if not checksum_b64:
+        L.error("S3 did not return a SHA256 checksum for s3://{}/{}", bucket_name, s3_key)
+        return None
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
-    return True
+    return base64.b64decode(checksum_b64).hex()
 
 
-def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
-    """Delete an object from an S3 bucket.
+def delete_objects_batch(
+    s3_client: S3Client,
+    *,
+    bucket_name: str,
+    keys: list[str],
+) -> list[str]:
+    """Delete objects from an S3 bucket in batches of up to 1000 keys.
+
+    Never raises: per-key and per-request failures are collected and returned so the caller can
+    log them as orphans. No ``VersionId`` is passed, so versioning-enabled buckets keep a
+    recoverable previous version behind a delete marker.
 
     Args:
         s3_client: S3 client instance.
         bucket_name: name of the S3 bucket.
-        s3_key: S3 object key (file path in the bucket).
+        keys: object keys to delete.
+
+    Returns:
+        The list of keys that failed to delete (empty if all succeeded).
     """
-    try:
-        response = s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
-    except Exception:  # noqa: BLE001
-        L.exception("Error while deleting file from s3://{}/{}", bucket_name, s3_key)
-        return False
-    # if using versioning-enabled buckets, we could store the version id for recovery
-    version_id = response.get("VersionId")
-    L.info(
-        "File deleted successfully from s3://{}/{}?versionId={}", bucket_name, s3_key, version_id
-    )
-    return True
+    failed_keys: list[str] = []
+    for chunk in itertools.batched(keys, S3_DELETE_OBJECTS_MAX_KEYS, strict=False):
+        objects: list[ObjectIdentifierTypeDef] = [{"Key": key} for key in chunk]
+        try:
+            response = s3_client.delete_objects(
+                Bucket=bucket_name,
+                Delete={"Objects": objects, "Quiet": True},
+            )
+        except Exception:  # ruff:ignore[blind-except]
+            L.exception(
+                "Error while batch-deleting {} objects from s3://{}", len(chunk), bucket_name
+            )
+            failed_keys.extend(chunk)
+            continue
+        for error in response.get("Errors", []):
+            key = error.get("Key", "")
+            L.error(
+                "Failed to delete s3://{}/{}: {} {}",
+                bucket_name,
+                key,
+                error.get("Code"),
+                error.get("Message"),
+            )
+            failed_keys.append(key)
+    return failed_keys
 
 
-def delete_asset_storage_object(
-    *, storage_type: StorageType, s3_key: str, storage_client_factory: StorageClientFactory
-):
-    """Delete asset storage object."""
-    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
+def delete_storage_objects(
+    *,
+    storage_type: StorageType,
+    s3_keys: list[str],
+    storage_client_factory: StorageClientFactory,
+) -> None:
+    """Delete the given objects from a storage.
+
+    Never raises: failed keys are logged as orphans. Open (public) storages are left untouched.
+
+    Args:
+        storage_type: Storage type of the objects.
+        s3_keys: S3 object keys to delete.
+        storage_client_factory: Factory returning an S3 client for the storage.
+    """
     storage = storages[storage_type]
-    # delete the file from S3 only if not using an open data storage
-    if not storage.is_open:
-        s3_client = storage_client_factory(storage)
-        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=s3_key):
-            raise HTTPException(status_code=500, detail="Failed to delete object")
+    if storage.is_open or not s3_keys:
+        return
+    s3_client = storage_client_factory(storage)
+    failed_keys = delete_objects_batch(s3_client, bucket_name=storage.bucket, keys=s3_keys)
+    if failed_keys:
+        L.error("Failed to delete {} object(s) from s3://{}", len(failed_keys), storage.bucket)
+
+
+def delete_directory_storage_objects(
+    *,
+    storage_type: StorageType,
+    s3_prefix: str,
+    storage_client_factory: StorageClientFactory,
+) -> None:
+    """Recursively delete all objects under an S3 prefix.
+
+    Never raises: failed keys are logged as orphans. An empty prefix is refused as a blast-radius
+    guard, and open (public) storages are left untouched.
+
+    Args:
+        storage_type: Storage type of the directory asset.
+        s3_prefix: The directory asset ``full_path`` (common prefix) on S3.
+        storage_client_factory: Factory returning an S3 client for the storage.
+    """
+    storage = storages[storage_type]
+    if storage.is_open:
+        return
+
+    prefix = ensure_directory_prefix(s3_prefix)
+    if not prefix.strip("/"):
+        L.error("Refusing to recursively delete empty S3 prefix on bucket {}", storage.bucket)
+        return
+
+    s3_client = storage_client_factory(storage)
+    objects = list_directory_with_details(s3_client, bucket_name=storage.bucket, prefix=prefix)
+    delete_storage_objects(
+        storage_type=storage_type,
+        s3_keys=[f"{prefix}{name}" for name in objects],
+        storage_client_factory=storage_client_factory,
+    )
+
+
+def _apply_presigned_url_netloc(url: str) -> str:
+    """Rewrite the presigned URL netloc with ``S3_PRESIGNED_URL_NETLOC`` when configured.
+
+    Only the authority (host:port) is replaced, keeping the signature valid; used to make URLs
+    reachable from the host when the service talks to S3 via a docker-internal hostname.
+    """
+    if settings.S3_PRESIGNED_URL_NETLOC:
+        parsed = urlparse(url)
+        return urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
+    return url
 
 
 def generate_presigned_url(
@@ -202,12 +318,9 @@ def generate_presigned_url(
             Params={"Bucket": bucket_name, "Key": s3_key},
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
-        if settings.S3_PRESIGNED_URL_NETLOC:
-            parsed = urlparse(url)
-            url = urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
-    return url
+    return _apply_presigned_url_netloc(url) if url is not None else None
 
 
 def multipart_upload_initiate(
@@ -241,8 +354,8 @@ def multipart_upload_create_part_presigned_url(
     s3_key: str,
     upload_id: str,
     part_number: int,
-):
-    return s3_client.generate_presigned_url(
+) -> str:
+    url = s3_client.generate_presigned_url(
         "upload_part",
         Params={
             "Bucket": bucket,
@@ -252,6 +365,7 @@ def multipart_upload_create_part_presigned_url(
         },
         ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
     )
+    return _apply_presigned_url_netloc(url)
 
 
 def multipart_upload_list_parts(
@@ -324,7 +438,7 @@ def list_directory_with_details(
         if "Contents" not in page:
             continue
         for obj in page["Contents"]:
-            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # noqa: PT018, S101
+            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # ruff:ignore[pytest-composite-assertion, assert]
             name = str(Path(obj["Key"]).relative_to(prefix))
             files[name] = {
                 "name": name,
@@ -340,8 +454,14 @@ def check_object(
     bucket_name: str,
     s3_key: str,
     is_directory: bool,
-) -> dict:
-    """Check if an object exists in S3 and return its type."""
+) -> CheckObjectResult:
+    """Check whether an object of the given type exists in S3.
+
+    Returns a dict with:
+        exists: True if the object of the given type exists, False otherwise.
+        size: the object size in bytes if it exists and is a file, None otherwise.
+    """
+    size = None
     try:
         if is_directory:
             list_directory_with_details(
@@ -350,16 +470,15 @@ def check_object(
                 prefix=s3_key,
                 pagination_config={"MaxItems": 1, "PageSize": 1},
             )
-            object_type = "directory"
         else:
-            s3_client.head_object(Bucket=bucket_name, Key=s3_key)
-            object_type = "file"
+            result = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+            size = result.get("ContentLength")
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") in {"404", "403"}:
             # 404 = Not Found, 403 = Access Denied
-            return {"exists": False}
+            return {"exists": False, "size": size}
         raise
-    return {"exists": True, "type": object_type}
+    return {"exists": True, "size": size}
 
 
 def copy_file(
@@ -389,7 +508,7 @@ def copy_file(
                 max_concurrency=settings.S3_MULTIPART_COPY_MAX_CONCURRENCY,
             ),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception(
             "Error while copying file from s3://{}/{} to s3://{}/{}",
             src_bucket_name,

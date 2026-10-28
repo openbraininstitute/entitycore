@@ -1,11 +1,14 @@
 """Logger configuration."""
 
-import inspect
 import json
 import logging
 import sys
+import time
 import traceback
 import warnings
+from collections.abc import Generator
+from contextlib import contextmanager
+from typing import Literal
 
 import loguru
 import sqlalchemy.exc
@@ -16,14 +19,21 @@ from app.context import request_context_provider
 
 L = logger
 
+# Supported subset of loguru levels (excludes TRACE and SUCCESS).
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
 
 class InterceptHandler(logging.Handler):
     """Intercept standard logging messages toward Loguru sinks.
 
-    See https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging.
+    Unlike the recipe at
+    https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging,
+    the caller is read from the LogRecord instead of being re-derived by walking frames,
+    so caller attribution keeps working when the handler chain is patched
+    (e.g. by Sentry's LoggingIntegration).
     """
 
-    def emit(self, record: logging.LogRecord) -> None:  # noqa: PLR6301
+    def emit(self, record: logging.LogRecord) -> None:  # ruff:ignore[no-self-use]
         """Emit a log record."""
         # Get corresponding Loguru level if it exists.
         level: str | int
@@ -32,30 +42,33 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Find caller from where originated the logged message.
-        frame, depth = inspect.currentframe(), 0
-        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
-            frame = frame.f_back
-            depth += 1
+        # Take the caller from the stdlib record, stamped via findCaller() before any
+        # handler runs. Walking frames here would instead pick up whatever patched the
+        # handler chain (e.g. Sentry's LoggingIntegration).
+        (
+            L.patch(
+                lambda r: r.update(name=record.name, function=record.funcName, line=record.lineno)
+            )
+            .opt(exception=record.exc_info)
+            .log(level, record.getMessage())
+        )
 
-        L.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
-
-def json_formatter(record: "loguru.Record") -> str:
+def json_formatter(record: loguru.Record) -> str:
     """Format a log record including only a subset of fields.
 
     Return the string to be formatted, not the actual message to be logged.
     See https://loguru.readthedocs.io/en/stable/resources/recipes.html.
     """
 
-    def _format_exception(ex: "loguru.RecordException") -> dict[str, str | None]:
+    def _format_exception(ex: loguru.RecordException) -> dict[str, str | None]:
         return {
             "type": ex.type.__name__ if ex.type else None,
             "value": str(ex.value) if ex.value else None,
             "traceback": "".join(traceback.format_exception(ex.type, ex.value, ex.traceback)),
         }
 
-    def _serialize(rec: "loguru.Record") -> str:
+    def _serialize(rec: loguru.Record) -> str:
         subset = {
             "time": rec["time"].isoformat(),
             "level": rec["level"].name,
@@ -70,7 +83,7 @@ def json_formatter(record: "loguru.Record") -> str:
     return "{extra[serialized]}\n"
 
 
-def str_formatter(record: "loguru.Record") -> str:
+def str_formatter(record: loguru.Record) -> str:
     """Format a log record including the extra parameters if present.
 
     Return the string to be formatted, not the actual message to be logged.
@@ -86,7 +99,7 @@ def str_formatter(record: "loguru.Record") -> str:
 def configure_logging() -> int:
     """Configure logging."""
 
-    def patcher(record: "loguru.Record") -> None:
+    def patcher(record: loguru.Record) -> None:
         """Add request context (request_id, user_id) to all log records.
 
         This function is automatically applied to every log message across all modules,
@@ -123,3 +136,21 @@ def configure_warnings():
     - An alias is being generated automatically
     """
     warnings.simplefilter("error", sqlalchemy.exc.SAWarning)
+
+
+@contextmanager
+def timed(msg: str, level: str = "INFO") -> Generator[None]:
+    """Context manager to log the execution of a block of code."""
+    start = time.perf_counter()
+    status = "unknown"
+    L.log(level, "{}...", msg)
+    try:
+        yield
+    except Exception:
+        status = "failed"
+        raise
+    else:
+        status = "done"
+    finally:
+        elapsed = time.perf_counter() - start
+        L.log(level, "{}... {} in {:.1f}ms", msg, status, elapsed * 1000)

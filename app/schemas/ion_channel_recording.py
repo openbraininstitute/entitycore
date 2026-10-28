@@ -4,7 +4,7 @@ from typing import Annotated
 from pydantic import Field
 
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.electrical_cell_recording import ElectricalCellRecordingBase
+from app.schemas.electrical_cell_recording import ElectricalCellRecordingBaseMixin
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.ion_channel import NestedIonChannelRead
 from app.schemas.scientific_artifact import (
@@ -15,7 +15,7 @@ from app.schemas.scientific_artifact import (
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelRecordingBase(ElectricalCellRecordingBase):
+class IonChannelRecordingBase(ElectricalCellRecordingBaseMixin):
     cell_line: Annotated[
         str,
         Field(

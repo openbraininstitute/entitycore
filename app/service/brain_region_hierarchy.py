@@ -1,10 +1,9 @@
 import json
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Request, Response
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
@@ -21,9 +20,7 @@ from app.schemas.brain_region_hierarchy import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
+from app.utils.http_cache import CachedJson
 
 
 def _load(query: sa.Select):
@@ -43,16 +40,14 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[BrainRegionHierarchyRead]:
     db_model_class = BrainRegionHierarchy
-    aliases: Aliases = {}
     facet_keys = filter_keys = [
         "species",
         "strain",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=db_model_class,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return app.queries.common.router_read_many(
         db=db,
@@ -68,7 +63,7 @@ def read_many(
         response_schema_class=BrainRegionHierarchyRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=brain_region_name_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -129,7 +124,7 @@ admin_update_one = update_one
 def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
 ) -> DeleteResponse:
     return app.queries.common.router_admin_delete_one(
         id_=id_,
@@ -145,17 +140,23 @@ class _JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-HIERARCHY_CACHE = {}
+# Hierarchies aren't updated, so the cache doesn't need any expiration.
+HIERARCHY_CACHE: dict[uuid.UUID, CachedJson] = {}
 
 
 def read_hierarchy(
     *,
+    request: Request,
     db: SessionDep,
     id_: uuid.UUID,
-):
-    if id_ in HIERARCHY_CACHE:
-        return HIERARCHY_CACHE[id_]
+) -> Response:
+    if (cached := HIERARCHY_CACHE.get(id_)) is None:
+        cached = CachedJson.from_content(_build_hierarchy_json(db=db, id_=id_))
+        HIERARCHY_CACHE[id_] = cached
+    return cached.to_response(request)
 
+
+def _build_hierarchy_json(*, db: SessionDep, id_: uuid.UUID) -> bytes:
     query = sa.select(BrainRegion).filter(BrainRegion.hierarchy_id == id_)
 
     data = db.execute(query).scalars().fetchall()
@@ -184,7 +185,4 @@ def read_hierarchy(
         ]
 
     tree = build_tree(None)[0]
-    js = json.dumps(tree, cls=_JSONEncoder)
-    response = Response(content=js, media_type="application/json")
-    HIERARCHY_CACHE[id_] = response
-    return response
+    return json.dumps(tree, cls=_JSONEncoder).encode()

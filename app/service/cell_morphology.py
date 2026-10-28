@@ -1,31 +1,25 @@
 import uuid
-from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
-from fastapi import Query
 from sqlalchemy.orm import (
-    aliased,
     joinedload,
     raiseload,
     selectinload,
 )
 
 from app.db.model import (
-    Agent,
     CellMorphology,
-    CellMorphologyProtocol,
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
-    Person,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
+    MeasurableEntityExpandDep,
     PaginationQuery,
     SearchDep,
 )
@@ -38,6 +32,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import MEASUREMENT_ANNOTATION_EXPAND, MeasurableEntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
     CellMorphologyAdminUpdate,
@@ -49,15 +44,10 @@ from app.schemas.cell_morphology import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
-
-class ExpandableAttribute(StrEnum):
-    measurement_annotation = auto()
-
-
-def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None) -> sa.Select:
+def _load_from_db(
+    query: sa.Select, *, expand: set[MeasurableEntityExpand] | None = None
+) -> sa.Select:
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region, innerjoin=True),
@@ -77,7 +67,7 @@ def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None =
         joinedload(CellMorphology.updated_by, innerjoin=True),
         raiseload("*"),
     )
-    if expand and ExpandableAttribute.measurement_annotation in expand:
+    if expand and MEASUREMENT_ANNOTATION_EXPAND in expand:
         query = query.options(
             joinedload(CellMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
@@ -96,9 +86,13 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
-    response_schema_class = CellMorphologyAnnotationExpandedRead if expand else CellMorphologyRead
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
+        else CellMorphologyRead
+    )
     apply_operations = partial(_load_from_db, expand=expand)
     return router_read_one(
         id_=id_,
@@ -107,20 +101,29 @@ def read_one(
         user_context=user_context,
         response_schema_class=response_schema_class,
         apply_operations=apply_operations,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> CellMorphologyRead:
+    expand: MeasurableEntityExpandDep = None,
+) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
+        else CellMorphologyRead
+    )
+    apply_operations = partial(_load_from_db, expand=expand)
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphology,
         user_context=None,
-        response_schema_class=CellMorphologyRead,
-        apply_operations=_load_from_db,
+        response_schema_class=response_schema_class,
+        apply_operations=apply_operations,
+        expand=expand,
     )
 
 
@@ -184,24 +187,9 @@ def _read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: set[MeasurableEntityExpand] | None,
     check_authorized_project: bool,
-) -> ListResponse[CellMorphologyRead]:
-    subject_alias = aliased(Subject, flat=True)
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    cell_morphology_protocol_alias = aliased(CellMorphologyProtocol, flat=True)
-    aliases: Aliases = {
-        Subject: subject_alias,
-        Agent: {
-            "contribution": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        CellMorphologyProtocol: cell_morphology_protocol_alias,
-    }
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     facet_keys = [
         "brain_region",
         "subject.species",
@@ -213,18 +201,19 @@ def _read_many(
         "cell_morphology_protocol",
     ]
     filter_keys = [
-        "subject",
         *facet_keys,
-        "measurement_annotation",
-        "measurement_annotation.measurement_kind",
         "measurement_annotation.measurement_kind.measurement_item",
         "measurement_annotation.measurement_kind.pref_label",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=CellMorphology,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
+    )
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
+        else CellMorphologyRead
     )
     return router_read_many(
         db=db,
@@ -235,13 +224,14 @@ def _read_many(
         facets=with_facets,
         aliases=aliases,
         apply_filter_query_operations=None,
-        apply_data_query_operations=_load_from_db,
+        apply_data_query_operations=partial(_load_from_db, expand=expand),
         pagination_request=pagination_request,
-        response_schema_class=CellMorphologyRead,
+        response_schema_class=response_schema_class,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -253,7 +243,8 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[CellMorphologyRead]:
+    expand: MeasurableEntityExpandDep = None,
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -262,6 +253,7 @@ def read_many(
         with_search=with_search,
         with_facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -274,7 +266,8 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[CellMorphologyRead]:
+    expand: MeasurableEntityExpandDep = None,
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -283,6 +276,7 @@ def admin_read_many(
         with_search=with_search,
         with_facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 

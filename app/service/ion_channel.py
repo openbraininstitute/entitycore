@@ -1,10 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.model import IonChannel, Person
+from app.db.model import IonChannel
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import (
     FacetsDep,
@@ -28,9 +27,6 @@ from app.schemas.ion_channel import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -88,28 +84,15 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    aliases: Aliases = {
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
-    facet_keys = [
-        "created_by",
-        "updated_by",
-    ]
-    filter_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=IonChannel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -125,7 +108,7 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=IonChannelRead,
         authorized_project_id=None,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -155,7 +138,7 @@ admin_update_one = update_one
 def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
 ) -> DeleteResponse:
     return router_admin_delete_one(
         id_=id_,

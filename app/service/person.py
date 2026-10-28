@@ -1,11 +1,10 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Person
-from app.dependencies.auth import AdminContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.person import PersonFilterDep
@@ -20,9 +19,6 @@ from app.queries.factory import query_params_factory
 from app.schemas.agent import PersonAdminUpdate, PersonCreate, PersonRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -39,26 +35,16 @@ def read_many(
     pagination_request: PaginationQuery,
     person_filter: PersonFilterDep,
 ) -> ListResponse[PersonRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-
-    aliases: Aliases = {
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
 
     filter_keys = [
         "created_by",
         "updated_by",
     ]
 
-    _, filter_joins = query_params_factory(
+    _, join_specs, aliases = query_params_factory(
         db_model_class=Person,
         filter_keys=filter_keys,
         facet_keys=[],
-        aliases=aliases,
     )
 
     return router_read_many(
@@ -75,7 +61,7 @@ def read_many(
         response_schema_class=PersonRead,
         name_to_facet_query_params=None,
         filter_model=person_filter,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -104,7 +90,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PersonRead:
     )
 
 
-def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextDep) -> PersonRead:
+def create_one(person: PersonCreate, db: SessionDep, user_context: UserContextDep) -> PersonRead:
     return router_create_one(
         db=db,
         db_model_class=Person,
@@ -139,7 +125,7 @@ admin_update_one = update_one
 def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
 ) -> DeleteResponse:
     return router_admin_delete_one(
         id_=id_,

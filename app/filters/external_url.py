@@ -12,7 +12,7 @@ from app.filters.common import (
     ILikeSearchFilterMixin,
     NameFilterMixin,
 )
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 
 class NestedExternalUrlFilter(
@@ -33,10 +33,10 @@ class ExternalUrlFilter(
     NestedExternalUrlFilter,
     ILikeSearchFilterMixin,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedExternalUrlFilter.Constants):
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "source",

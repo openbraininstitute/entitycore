@@ -17,11 +17,11 @@ class BrainAtlasFilter(
     CustomFilter,
 ):
     hierarchy_id: uuid.UUID | None = None
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = BrainAtlas
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
 class BrainAtlasRegionFilter(EntityFilterMixin, CustomFilter):
@@ -29,11 +29,11 @@ class BrainAtlasRegionFilter(EntityFilterMixin, CustomFilter):
     brain_atlas_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = BrainAtlasRegion
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
 
 
 BrainAtlasFilterDep = Annotated[BrainAtlasFilter, FilterDepends(BrainAtlasFilter)]

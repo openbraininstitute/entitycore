@@ -1,9 +1,7 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
+from app.schemas.base import Schema
 
 
-class DeleteResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class DeleteResponse(Schema):
     id: uuid.UUID

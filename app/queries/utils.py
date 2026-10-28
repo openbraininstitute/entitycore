@@ -9,40 +9,56 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.auth import select_unauthorized_entities
-from app.db.model import Identifiable, Person
+from app.db.model import Identifiable, Person, PlatformUser
 from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
-from app.utils.uuid import create_uuid
 
 
-def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Person:
-    if db_agent := get_user(db, user_profile.subject):
-        return db_agent
+def expand_dotted_key(key: str) -> list[str]:
+    """Expand a dot-separated key into all ancestor keys including itself.
 
-    agent_id = create_uuid()
+    Examples:
+        >>> expand_dotted_key("a.b.c")
+        ["a", "a.b", "a.b.c"]
+        >>> expand_dotted_key("subject")
+        ["subject"]
+    """
+    parts = key.split(".")
+    return [".".join(parts[: i + 1]) for i in range(len(parts))]
 
-    db_agent = Person(
-        id=agent_id,
+
+def get_or_create_user(db: Session, user_profile: UserProfile) -> PlatformUser:
+    """Get or create a PlatformUser and its associated Person from the user profile."""
+    if db_user := get_user(db, subject_id=user_profile.subject):
+        return db_user
+
+    db_user = PlatformUser(
+        id=user_profile.subject,
+        pref_label=user_profile.name,
+    )
+    db.add(db_user)
+    db.flush()
+
+    person = Person(
         pref_label=user_profile.name,
         given_name=user_profile.given_name,
         family_name=user_profile.family_name,
         sub_id=user_profile.subject,
-        created_by_id=agent_id,
-        updated_by_id=agent_id,
+        created_by_id=user_profile.subject,
+        updated_by_id=user_profile.subject,
     )
-
-    db.add(db_agent)
+    db.add(person)
     db.flush()
 
-    return db_agent
+    return db_user
 
 
-def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
-    query = sa.select(Person).where(Person.sub_id == subject_id)
-    return db.execute(query).scalars().first()
+def get_user(db: Session, subject_id: uuid.UUID) -> PlatformUser | None:
+    query = sa.select(PlatformUser).where(PlatformUser.id == subject_id)
+    return db.execute(query).scalars().one_or_none()
 
 
-def is_user_authorized_for_deletion(  # noqa: PLR0911
+def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]
     db: Session, user_context: UserContext, obj: Identifiable
 ) -> bool:
     if settings.APP_DISABLE_AUTH:
@@ -68,9 +84,18 @@ def is_user_authorized_for_deletion(  # noqa: PLR0911
     if project_id in user_context.member_project_ids and (
         db_user := get_user(db, user_context.profile.subject)
     ):
-        return db_user.created_by_id == obj.created_by_id
+        return db_user.id == obj.created_by_id
 
     return False
+
+
+def is_user_authorized_for_clone(
+    user_context: UserContext,
+    target_project_ids: list[uuid.UUID],
+) -> bool:
+    if settings.APP_DISABLE_AUTH:
+        return True
+    return set(target_project_ids).issubset(user_context.admin_project_ids)
 
 
 def create_associations_to_entities(
@@ -115,7 +140,7 @@ def create_associations_to_entities(
     # the associated entities should be public, or in the same given project
     if (
         unaccessible_entities := db.execute(
-            select_unauthorized_entities(associated_ids, project_id)
+            select_unauthorized_entities(ids=associated_ids, project_id=project_id)
         )
         .scalars()
         .all()

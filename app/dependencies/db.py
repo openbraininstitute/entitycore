@@ -8,13 +8,17 @@ from starlette.requests import Request
 from app.repository.group import RepositoryGroup
 
 
-def get_db(request: Request) -> Iterator[Session]:
-    """Yield a database session, to be used as a dependency."""
+def _get_session(request: Request) -> Iterator[Session]:
     with request.state.database_session_manager.session() as session:
         yield session
 
 
-def _get_repo_group(db: "SessionDep") -> RepositoryGroup:
+def get_db(request: Request) -> Iterator[Session]:
+    """Yield a database session, to be used as a dependency."""
+    yield from _get_session(request)
+
+
+def _get_repo_group(db: SessionDep) -> RepositoryGroup:
     """Return the repository group, to be used as a dependency."""
     return RepositoryGroup(db=db)
 

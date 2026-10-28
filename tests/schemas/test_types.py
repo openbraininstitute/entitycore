@@ -7,6 +7,7 @@ from app.config import settings
 @pytest.mark.parametrize(
     ("page", "page_size", "expected_offset"),
     [
+        (1, 0, 0),
         (1, 10, 0),
         (2, 10, 10),
         (3, 10, 20),
@@ -23,7 +24,6 @@ def test_pagination_request_success(page, page_size, expected_offset):
     ("page", "page_size", "expected_message"),
     [
         (0, 10, r"page\W+Input should be greater than or equal to 1"),
-        (1, 0, r"page_size\W+Input should be greater than or equal to 1"),
         (
             1,
             settings.PAGINATION_MAX_PAGE_SIZE + 1,

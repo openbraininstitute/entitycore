@@ -36,7 +36,7 @@ class DensityFilterBase(
     ILikeSearchFilterMixin,
     CustomFilter,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
 
 class ExperimentalNeuronDensityFilter(
@@ -46,7 +46,7 @@ class ExperimentalNeuronDensityFilter(
 ):
     class Constants(CustomFilter.Constants):
         model = ExperimentalNeuronDensity
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",
@@ -85,7 +85,7 @@ class ExperimentalBoutonDensityFilter(
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalBoutonDensity
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",
@@ -128,7 +128,7 @@ class ExperimentalSynapsesPerConnectionFilter(
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalSynapsesPerConnection
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",

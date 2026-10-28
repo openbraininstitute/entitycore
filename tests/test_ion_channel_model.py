@@ -87,6 +87,14 @@ def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
 
 
+def test_fractional_temperature(client, json_data):
+    data = assert_request(client.post, url=ROUTE, json=json_data | {"temperature_celsius": 34.5})
+    assert data.json()["temperature_celsius"] == pytest.approx(34.5)
+
+    data = assert_request(client.get, url=ROUTE, params={"temperature_celsius": 34.5}).json()
+    assert [d["temperature_celsius"] for d in data["data"]] == [pytest.approx(34.5)]
+
+
 def test_update_one(clients, json_data):
     check_entity_update_one(
         route=ROUTE,
@@ -282,7 +290,7 @@ def test_paginate(client: TestClient, subject_id: str, brain_region_id: uuid.UUI
     assert list(reversed(data_ids)) == list(range(total_items))
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, person_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, user_id):
     def create_model_function(_db, name, brain_region_id):
         return IonChannelModel(
             name=name,
@@ -293,15 +301,15 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, 
             brain_region_id=brain_region_id,
             subject_id=subject_id,
             authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
 @pytest.fixture
-def ion_channel_models(db, json_data, person_id):
+def ion_channel_models(db, json_data, user_id):
     return add_all_db(
         db,
         [
@@ -309,8 +317,8 @@ def ion_channel_models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "icm-0",
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "authorized_project_id": PROJECT_ID,
                     "conductance_name": "gbar",
                     "max_permeability_name": None,
@@ -320,8 +328,8 @@ def ion_channel_models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "icm-1",
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "authorized_project_id": PROJECT_ID,
                     "conductance_name": "gmax",
                     "max_permeability_name": None,
@@ -331,8 +339,8 @@ def ion_channel_models(db, json_data, person_id):
                 **json_data
                 | {
                     "name": "icm-2",
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
+                    "created_by_id": str(user_id),
+                    "updated_by_id": str(user_id),
                     "authorized_project_id": PROJECT_ID,
                     "temperature_celsius": None,
                     "conductance_name": None,
@@ -343,7 +351,7 @@ def ion_channel_models(db, json_data, person_id):
     )
 
 
-def test_filtering(client, ion_channel_models, person_id):
+def test_filtering(client, ion_channel_models, user_id):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -353,7 +361,7 @@ def test_filtering(client, ion_channel_models, person_id):
     data = req({"name": "icm-0", "with_facets": True})
     assert len(data) == 1
 
-    data = req({"created_by__id": str(person_id), "with_facets": True})
+    data = req({"created_by__id": str(user_id), "with_facets": True})
     assert len(data) == len(ion_channel_models)
 
     data = req({"temperature_celsius": 0, "with_facets": True})
@@ -365,7 +373,7 @@ def test_filtering(client, ion_channel_models, person_id):
     data = req({"temperature_celsius__gte": 1, "with_facets": True})
     assert len(data) == 0
 
-    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(ion_channel_models)
 
     data = req({"ilike_search": "*description*"})
@@ -389,5 +397,5 @@ def test_filtering(client, ion_channel_models, person_id):
     data = req({"max_permeability_name__isnull": True})
     assert len(data) == 2
 
-    data = req({"max_permeability_name__isnull": False})
-    assert len(data) == 1
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(ion_channel_models)

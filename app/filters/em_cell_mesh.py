@@ -19,6 +19,7 @@ class EMCellMeshFilter(
     MeasurableFilterMixin,
 ):
     release_version: int | None = None
+    release_version__in: list[int] | None = None
     dense_reconstruction_cell_id: int | None = None
     level_of_detail: int | None = None
     mesh_type: EMCellMeshType | None = None
@@ -33,11 +34,11 @@ class EMCellMeshFilter(
         ),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = EMCellMesh
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "id",
             "creation_date",
             "update_date",

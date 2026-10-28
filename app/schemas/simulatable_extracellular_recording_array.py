@@ -1,31 +1,20 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import ElectrodeType
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class SimulatableExtracellularRecordingArrayBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
-
+class SimulatableExtracellularRecordingArrayBaseMixin(NameDescriptionMixin):
     electrode_type: ElectrodeType
     circuit_id: uuid.UUID
 
 
 class SimulatableExtracellularRecordingArrayCreate(
-    SimulatableExtracellularRecordingArrayBase, AuthorizationOptionalPublicMixin
+    SimulatableExtracellularRecordingArrayBaseMixin, EntityCreate
 ):
     pass
 
@@ -41,17 +30,14 @@ SimulatableExtracellularRecordingArrayAdminUpdate = make_update_schema(
 
 
 class NestedSimulatableExtracellularRecordingArrayRead(
-    SimulatableExtracellularRecordingArrayBase, EntityTypeMixin, IdentifiableMixin
+    SimulatableExtracellularRecordingArrayBaseMixin,
+    NestedEntityRead,
 ):
     pass
 
 
 class SimulatableExtracellularRecordingArrayRead(
-    NestedSimulatableExtracellularRecordingArrayRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
-    ContributionReadWithoutEntityMixin,
+    SimulatableExtracellularRecordingArrayBaseMixin,
+    EntityRead,
 ):
     pass

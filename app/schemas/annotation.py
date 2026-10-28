@@ -1,20 +1,19 @@
-from pydantic import BaseModel
-
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 
 
-class AnnotationBase(BaseModel):
+class AnnotationBase(Schema):
     pref_label: str
     alt_label: str | None = None
     definition: str
 
 
-class AnnotationRead(AnnotationBase, CreationMixin, IdentifiableMixin):
+class AnnotationRead(AnnotationBase, NestedIdentifiableRead):
     pass
 
 
-class AnnotationCreate(AnnotationBase):
+class AnnotationCreate(AnnotationBase, IdentifiableCreate):
     pass
 
 

@@ -2,7 +2,9 @@
 
 import click
 
+from app.config import settings
 from app.logger import configure_logging, configure_warnings
+from app.sentry import init_sentry
 from app.utils.uvicorn import run_server
 
 
@@ -17,9 +19,17 @@ def cli() -> None:
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 def run(*, host: str, port: int, reload: bool) -> None:
     """Run the application."""
-    run_server("app.application:app", host=host, port=port, reload=reload)
+    run_server(
+        "app.application:app",
+        host=host,
+        port=port,
+        reload=reload,
+        # the proxy must strip the prefix from the forwarded path
+        root_path=settings.ROOT_PATH,
+    )
 
 
 configure_logging()
 configure_warnings()
+init_sentry()
 cli()

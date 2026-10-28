@@ -1,22 +1,17 @@
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import Body
-from sqlalchemy.orm import (
-    aliased,
-    joinedload,
-    raiseload,
-)
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
-    Agent,
     CellMorphologyProtocol,
-    Person,
+    Contribution,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetsDep, PaginationQuery
+from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_valid_schema
 from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
@@ -27,6 +22,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology_protocol import (
     CellMorphologyProtocolCreate,
@@ -37,15 +33,16 @@ from app.schemas.cell_morphology_protocol import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
-
 
 def _load_from_db(query: sa.Select) -> sa.Select:
     """Return the query with the required options to load the data."""
     return query.options(
         joinedload(CellMorphologyProtocol.created_by, innerjoin=True),
         joinedload(CellMorphologyProtocol.updated_by, innerjoin=True),
+        selectinload(CellMorphologyProtocol.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 
@@ -54,6 +51,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CellMorphologyProtocolRead:
     return router_read_one(
         id_=id_,
@@ -62,12 +60,14 @@ def read_one(
         user_context=user_context,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CellMorphologyProtocolRead:
     return router_read_one(
         db=db,
@@ -76,6 +76,7 @@ def admin_read_one(
         user_context=None,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
@@ -102,20 +103,9 @@ def _read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyProtocolRead]:
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    aliases: Aliases = {
-        Agent: {
-            "contribution": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-    }
     facet_keys = [
         "created_by",
         "updated_by",
@@ -124,11 +114,10 @@ def _read_many(
         "created_by",
         "updated_by",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=CellMorphologyProtocol,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -144,8 +133,9 @@ def _read_many(
         response_schema_class=CellMorphologyProtocolReadAdapter,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -155,6 +145,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[CellMorphologyProtocolRead]:
     return _read_many(
         user_context=user_context,
@@ -162,6 +153,7 @@ def read_many(
         pagination_request=pagination_request,
         filter_model=filter_model,
         with_facets=with_facets,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -172,6 +164,7 @@ def admin_read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[CellMorphologyProtocolRead]:
     return _read_many(
         user_context=user_context,
@@ -179,6 +172,7 @@ def admin_read_many(
         pagination_request=pagination_request,
         filter_model=filter_model,
         with_facets=with_facets,
+        expand=expand,
         check_authorized_project=False,
     )
 

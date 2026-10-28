@@ -8,6 +8,8 @@ from app.db.model import (
     IonChannelModelingCampaign,
     IonChannelModelToEModel,
     IonChannelRecordingToIonChannelModelingCampaign,
+    SimulatableExtracellularRecordingArrayToSimulation,
+    Simulation,
     SkeletonizationCampaign,
     TaskConfig,
     Usage,
@@ -69,6 +71,18 @@ NESTED_RELATIONSHIPS_MAP: dict[type[Identifiable], NestedRelationships] = {
             "db_model_factory": lambda *, parent_id, child_id: EmCellMeshToSkeletonizationCampaign(
                 skeletonization_campaign_id=parent_id,
                 em_cell_mesh_id=child_id,
+            ),
+            "nested_id_getter": lambda *, items: [item.id for item in items],
+        },
+    },
+    Simulation: {
+        "recording_arrays": {
+            "relationship_name": "recording_arrays",
+            "db_model_factory": lambda *, parent_id, child_id: (
+                SimulatableExtracellularRecordingArrayToSimulation(
+                    simulation_id=parent_id,
+                    simulatable_extracellular_recording_array_id=child_id,
+                )
             ),
             "nested_id_getter": lambda *, items: [item.id for item in items],
         },

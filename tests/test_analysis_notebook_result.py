@@ -86,6 +86,11 @@ def test_read_many_1(client, model, json_data):
     assert data[0]["id"] == str(model.id)
     _assert_read_response(data[0], json_data)
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == 1
+
 
 def test_read_many_2(clients, json_data):
     check_entity_read_many(

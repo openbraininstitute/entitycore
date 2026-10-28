@@ -1,12 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.db.model import Organization, Person
-from app.dependencies.auth import AdminContextDep
+from app.db.model import Organization
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.organization import OrganizationFilterDep
@@ -14,9 +13,6 @@ from app.queries.factory import query_params_factory
 from app.schemas.agent import OrganizationAdminUpdate, OrganizationCreate, OrganizationRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -32,23 +28,14 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: OrganizationFilterDep,
 ) -> ListResponse[OrganizationRead]:
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    aliases: Aliases = {
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        }
-    }
     filter_keys = [
         "created_by",
         "updated_by",
     ]
-    _, filter_joins = query_params_factory(
+    _, join_specs, aliases = query_params_factory(
         db_model_class=Organization,
         filter_keys=filter_keys,
         facet_keys=[],
-        aliases=aliases,
     )
     return app.queries.common.router_read_many(
         db=db,
@@ -64,7 +51,7 @@ def read_many(
         response_schema_class=OrganizationRead,
         name_to_facet_query_params=None,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -94,7 +81,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> OrganizationRead:
 
 
 def create_one(
-    organization: OrganizationCreate, db: SessionDep, user_context: AdminContextDep
+    organization: OrganizationCreate, db: SessionDep, user_context: UserContextDep
 ) -> OrganizationRead:
     return app.queries.common.router_create_one(
         db=db,
@@ -130,7 +117,7 @@ admin_update_one = update_one
 def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
 ) -> DeleteResponse:
     return app.queries.common.router_admin_delete_one(
         id_=id_,

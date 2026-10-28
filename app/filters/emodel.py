@@ -5,7 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import EModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
@@ -13,8 +13,6 @@ from app.filters.common import (
     ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    NestedETypeClassFilter,
-    NestedMTypeClassFilter,
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.ion_channel_model import NestedIonChannelModelFilter
@@ -28,23 +26,6 @@ class NestedEModelFilter(
 ):
     score__lte: float | None = None
     score__gte: float | None = None
-
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("emodel__brain_region", NestedBrainRegionFilter)),
-    ] = None
-    mtype: Annotated[
-        NestedMTypeClassFilter,
-        FilterDepends(with_prefix("emodel__mtype", NestedMTypeClassFilter)),
-    ]
-    etype: Annotated[
-        NestedETypeClassFilter,
-        FilterDepends(with_prefix("emodel__etype", NestedETypeClassFilter)),
-    ]
-    exemplar_morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("emodel__exemplar_morphology", NestedCellMorphologyFilter)),
-    ] = None
 
     class Constants(CustomFilter.Constants):
         model = EModel
@@ -73,11 +54,11 @@ class EModelFilter(
         FilterDepends(with_prefix("ion_channel_model", NestedIonChannelModelFilter)),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = EModel
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "id",
             "creation_date",
             "update_date",

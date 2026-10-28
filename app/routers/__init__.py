@@ -1,3 +1,4 @@
+# app/routers/__init__.py
 """Web api."""
 
 from fastapi import APIRouter, Depends
@@ -19,12 +20,9 @@ from app.routers import (
     cell_morphology,
     cell_morphology_protocol,
     circuit,
-    circuit_extraction_campaign,
-    circuit_extraction_config,
-    circuit_extraction_config_generation,
-    circuit_extraction_execution,
     consortium,
     contribution,
+    debug,
     derivation,
     electrical_cell_recording,
     electrical_recording_stimulus,
@@ -77,6 +75,7 @@ from app.routers import (
     subject,
     task_activity,
     task_config,
+    task_result,
     validation,
     validation_result,
 )
@@ -85,6 +84,12 @@ router = APIRouter()
 router.include_router(root.router)
 router.include_router(
     admin.router,
+    dependencies=[
+        Depends(user_with_service_admin_role),
+    ],
+)
+router.include_router(
+    debug.router,
     dependencies=[
         Depends(user_with_service_admin_role),
     ],
@@ -106,13 +111,10 @@ authenticated_routers = [
     cell_morphology.router,
     cell_morphology_protocol.router,
     circuit.router,
-    circuit_extraction_campaign.router,
-    circuit_extraction_config.router,
-    circuit_extraction_config_generation.router,
-    circuit_extraction_execution.router,
     consortium.router,
     contribution.router,
     derivation.router,
+    derivation.from_router,
     electrical_cell_recording.router,
     electrical_recording_stimulus.router,
     em_cell_mesh.router,
@@ -125,6 +127,7 @@ authenticated_routers = [
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
     external_url.router,
+    task_result.router,
     ion_channel.router,
     ion_channel_model.router,
     ion_channel_modeling_campaign.router,

@@ -1,7 +1,8 @@
+# app/utils/routers.py
 from typing import Any
 
 from app.db.types import EntityType, ResourceType
-from app.routers.types import EntityRoute, ResourceRoute
+from app.types import EntityRoute, ResourceRoute
 
 
 def entity_route_to_type(entity_route: EntityRoute) -> EntityType:

@@ -1,5 +1,3 @@
-import itertools
-
 import pytest
 
 from app.db.model import (
@@ -12,6 +10,8 @@ from app.db.model import (
 )
 from app.db.types import (
     CellMorphologyGenerationType,
+    EntityLifecycleStatus,
+    EntityType,
     ModifiedMorphologyMethodType,
     SlicingDirectionType,
 )
@@ -50,6 +50,7 @@ def json_data_digital_reconstruction():
             "protocol_document": "https://example.com",
             "slicing_direction": SlicingDirectionType.horizontal,
             "slicing_thickness": 200,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -64,6 +65,7 @@ def json_data_modified_reconstruction():
             "protocol_document": "https://www.example.com",
             "protocol_design": CellMorphologyProtocolDesign.fluorophore,
             "method_type": ModifiedMorphologyMethodType.cloned,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -77,6 +79,7 @@ def json_data_computationally_synthesized():
             "generation_type": CellMorphologyGenerationType.computationally_synthesized,
             "protocol_design": CellMorphologyProtocolDesign.electron_microscopy,
             "method_type": "free-text",
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -88,6 +91,7 @@ def json_data_placeholder():
             "name": "Placeholder Test",
             "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.placeholder,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -98,6 +102,46 @@ def json_data(json_data_digital_reconstruction):
     return json_data_digital_reconstruction
 
 
+@pytest.mark.parametrize(
+    "json_data_fixture",
+    [
+        "json_data_digital_reconstruction",
+        "json_data_modified_reconstruction",
+        "json_data_computationally_synthesized",
+        "json_data_placeholder",
+    ],
+)
+def test_create_rejects_invalid_entity_type(request, client, json_data_fixture):
+    payload = request.getfixturevalue(json_data_fixture).copy()
+    payload.pop("type", None)
+    payload["type"] = EntityType.subject.value
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=payload,
+        expected_status_code=422,
+    ).json()
+    assert data["message"] == "Validation error"
+    assert any(
+        "type must be cell_morphology_protocol" in detail["msg"] for detail in data["details"]
+    )
+
+
+def test_create_accepts_explicit_entity_type(client, json_data_digital_reconstruction):
+    payload = json_data_digital_reconstruction.copy()
+    payload.pop("type", None)
+    payload["type"] = EntityType.cell_morphology_protocol.value
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    assert data["type"] == EntityType.cell_morphology_protocol.value
+
+
+def test_create_omitted_type_returns_cell_morphology_protocol_type(client, json_data_placeholder):
+    payload = json_data_placeholder.copy()
+    payload.pop("type", None)
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    assert data["type"] == EntityType.cell_morphology_protocol.value
+
+
 def _assert_read_response(actual, expected):
     ignored_keys = {
         "authorized_project_id",
@@ -106,6 +150,9 @@ def _assert_read_response(actual, expected):
         "created_by",
         "updated_by",
         "id",
+        "contributions",
+        "generated_from_derivations",
+        "used_by_derivations",
     }
     assert ignored_keys.issubset(actual)
     actual = {k: v for k, v in actual.items() if k not in ignored_keys}
@@ -222,13 +269,11 @@ def test_read_one(client, model_id, json_data):
 
 
 def test_read_many(clients, json_data):
-    name = json_data["name"]
     check_entity_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        # ensure that each protocol has a unique name
-        json_data=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
+        json_data=json_data,
     )
 
 
@@ -252,15 +297,15 @@ def test_pagination(client, create_id):
 @pytest.fixture
 def models(
     db,
-    person_id,
+    user_id,
     json_data_digital_reconstruction,
     json_data_modified_reconstruction,
     json_data_computationally_synthesized,
     json_data_placeholder,
 ):
     common_fields = {
-        "created_by_id": person_id,
-        "updated_by_id": person_id,
+        "created_by_id": user_id,
+        "updated_by_id": user_id,
         "authorized_project_id": PROJECT_ID,
         "authorized_public": False,
     }
@@ -352,14 +397,14 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
 
     data = assert_request(
@@ -368,6 +413,11 @@ def test_filtering(client, models):
         params={"ilike_search": "*Placeholder*"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"lifecycle_status": EntityLifecycleStatus.draft}
+    ).json()["data"]
+    assert len(data) == len(models)
 
 
 def test_sorting(client, models):

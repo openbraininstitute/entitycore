@@ -1,27 +1,16 @@
-import uuid
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import AgentRead, CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin, make_update_schema
+from app.schemas.agent import AgentRead
 from app.schemas.entity import NestedEntityRead
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.role import RoleRead
-
-# LNMC contributions
-# Reconstructor full name,
-# Experimenter full name,
-# LNMC/BBP,
-# EPFL, Switzerland
+from app.schemas.utils import make_update_schema
 
 
-class ContributionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ContributionCreate(ContributionBase):
-    agent_id: uuid.UUID
-    role_id: uuid.UUID
-    entity_id: uuid.UUID
+class ContributionCreate(IdentifiableCreate):
+    agent_id: UUID
+    role_id: UUID
+    entity_id: UUID
 
 
 ContributionUserUpdate = make_update_schema(ContributionCreate, "ContributionUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -32,16 +21,16 @@ ContributionAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedContributionRead(ContributionBase, IdentifiableMixin):
+class NestedContributionRead(NestedIdentifiableRead):
     agent: AgentRead
     role: RoleRead
 
 
-class ContributionRead(
-    NestedContributionRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
-):
+class ContributionRead(IdentifiableRead):
+    agent: AgentRead
+    role: RoleRead
     entity: NestedEntityRead
 
 
-class ContributionReadWithoutEntityMixin(BaseModel):
+class ContributionReadWithoutEntityMixin:
     contributions: list[NestedContributionRead] | None

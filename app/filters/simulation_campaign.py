@@ -43,11 +43,11 @@ class SimulationCampaignFilter(
         FilterDepends(with_prefix("simulation", NestedSimulationFilter)),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = SimulationCampaign
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "id",
             "creation_date",
             "update_date",

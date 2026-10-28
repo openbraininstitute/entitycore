@@ -1,26 +1,23 @@
 from pydantic import (
-    BaseModel,
-    ConfigDict,
     computed_field,
     model_validator,
 )
 
 from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin, NameDescriptionMixin
+from app.schemas.base import NameDescriptionMixin
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.types import SerializableHttpUrl
 from app.schemas.utils import make_update_schema
 
 
-class ExternalUrlBase(BaseModel, NameDescriptionMixin):
+class ExternalUrlBaseMixin(NameDescriptionMixin):
     """Base model for external url."""
 
-    model_config = ConfigDict(from_attributes=True)
     source: ExternalSource
     url: SerializableHttpUrl
 
 
-class ExternalUrlCreate(ExternalUrlBase):
+class ExternalUrlCreate(ExternalUrlBaseMixin, IdentifiableCreate):
     """Create model for external url."""
 
     @model_validator(mode="after")
@@ -39,10 +36,7 @@ ExternalUrlAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedExternalUrlRead(
-    ExternalUrlBase,
-    IdentifiableMixin,
-):
+class NestedExternalUrlRead(ExternalUrlBaseMixin, NestedIdentifiableRead):
     """Read model for nested external url."""
 
     @computed_field
@@ -52,8 +46,12 @@ class NestedExternalUrlRead(
 
 
 class ExternalUrlRead(
-    NestedExternalUrlRead,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
+    ExternalUrlBaseMixin,
+    IdentifiableRead,
 ):
     """Read model for external url."""
+
+    @computed_field
+    @property
+    def source_name(self) -> str:
+        return EXTERNAL_SOURCE_INFO[self.source]["name"]

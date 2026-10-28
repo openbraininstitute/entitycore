@@ -1,25 +1,70 @@
 import uuid
 
+from fastapi import UploadFile
 from starlette.responses import RedirectResponse
 
+from app.config import settings, storages
 from app.db.model import Asset, Entity
-from app.db.types import EntityType
-from app.db.utils import RESOURCE_TYPE_TO_CLASS
+from app.db.types import AssetLabel, EntityType, StorageType
+from app.db.utils import ENTITY_TYPE_TO_CLASS, RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.dependencies.virtual_lab_api import AdminVirtualLabClientProtocol
 from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilterDep
+from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
 from app.repository.group import RepositoryGroup
-from app.routers.types import EntityRoute, ResourceRoute
 from app.schemas.asset import (
     AssetRead,
+    AssetReadWithUploadMeta,
+    AssetRegister,
+    DetailedFileList,
+    MultipartDirectoryUploadRequest,
+    MultipartDirectoryUploadResponse,
+    MultipartUploadInitiateRequest,
 )
+from app.schemas.auth import UserContext
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-from app.service.asset import create_asset_download_redirect
+from app.service.asset import (
+    create_asset_download_redirect,
+    directory_multipart_upload_complete_unverified,
+    directory_multipart_upload_initiate_unverified,
+    list_directory_unverified,
+    multipart_upload_complete_unverified,
+    multipart_upload_initiate_unverified,
+    register_entity_asset_unverified,
+    upload_and_create_entity_asset,
+)
+from app.types import EntityRoute, ResourceRoute
 from app.utils.routers import entity_route_to_type, route_to_type
-from app.utils.s3 import StorageClientFactory
+from app.utils.s3 import (
+    StorageClientFactory,
+)
+from app.utils.virtual_lab import resolve_virtual_lab_id
+
+
+def _get_entity_and_vlab(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+) -> tuple[Entity, uuid.UUID]:
+    entity = crud.get_identifiable_one(
+        db=repos.db,
+        db_model_class=ENTITY_TYPE_TO_CLASS[entity_type],
+        id_=entity_id,
+    )
+    if settings.APP_DISABLE_AUTH:
+        # No virtual-lab API available in local dev: resolve from headers or the fallback.
+        virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
+        return entity, virtual_lab_id
+    vlab_proj_mapping = virtual_lab_client.get_virtual_lab_by_project(
+        project_id=entity.authorized_project_id
+    )
+    return entity, vlab_proj_mapping.virtual_lab_id
 
 
 def delete_one(
@@ -47,7 +92,6 @@ def get_entity_asset(
             entity_type=entity_type,
             entity_id=entity_id,
             asset_id=asset_id,
-            include_deleted=True,
         )
     return AssetRead.model_validate(asset)
 
@@ -66,7 +110,7 @@ def get_entity_assets(
         Asset.entity_id == entity_id,
         Entity.type == entity_type.name,
     )
-    name_to_facet_query_params = filter_joins = None
+    name_to_facet_query_params = join_specs = None
     return router_read_many(
         db=repos.db,
         db_model_class=db_model_class,
@@ -74,14 +118,14 @@ def get_entity_assets(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases={},
+        aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=AssetRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -122,3 +166,139 @@ def download_entity_asset(
         storage_client_factory=storage_client_factory,
         asset_path=asset_path,
     )
+
+
+def upload_entity_asset(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
+    storage_client_factory: StorageClientFactory,
+    entity_id: uuid.UUID,
+    entity_type: EntityType,
+    file: UploadFile,
+    label: AssetLabel,
+    meta: dict | None = None,
+) -> AssetRead:
+    """Upload an asset through admin flow."""
+    entity, virtual_lab_id = _get_entity_and_vlab(
+        repos, user_context, virtual_lab_client, entity_type, entity_id
+    )
+    return upload_and_create_entity_asset(
+        repos,
+        entity=entity,
+        user_profile=user_context.profile,
+        virtual_lab_id=virtual_lab_id,
+        storage_client_factory=storage_client_factory,
+        file=file,
+        label=label,
+        meta=meta,
+    )
+
+
+def register_entity_asset(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
+    storage_client_factory: StorageClientFactory,
+    entity_id: uuid.UUID,
+    entity_type: EntityType,
+    asset: AssetRegister,
+) -> AssetRead:
+    entity, virtual_lab_id = _get_entity_and_vlab(
+        repos, user_context, virtual_lab_client, entity_type, entity_id
+    )
+    return register_entity_asset_unverified(
+        repos,
+        entity=entity,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
+        storage_client_factory=storage_client_factory,
+        asset=asset,
+    )
+
+
+def multipart_upload_initiate(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
+    storage_client_factory: StorageClientFactory,
+    entity_id: uuid.UUID,
+    entity_type: EntityType,
+    json_model: MultipartUploadInitiateRequest,
+) -> AssetReadWithUploadMeta:
+    entity, virtual_lab_id = _get_entity_and_vlab(
+        repos, user_context, virtual_lab_client, entity_type, entity_id
+    )
+    storage = storages[StorageType.aws_s3_internal]
+    return multipart_upload_initiate_unverified(
+        repos,
+        entity=entity,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
+        s3_client=storage_client_factory(storage),
+        storage=storage,
+        json_model=json_model,
+    )
+
+
+def list_directory(
+    repos: RepositoryGroup,
+    storage_client_factory: StorageClientFactory,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> DetailedFileList:
+    asset = get_entity_asset(repos, entity_type=entity_type, entity_id=entity_id, asset_id=asset_id)
+    return list_directory_unverified(asset=asset, storage_client_factory=storage_client_factory)
+
+
+def directory_multipart_upload_initiate(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClientProtocol,
+    storage_client_factory: StorageClientFactory,
+    entity_id: uuid.UUID,
+    entity_type: EntityType,
+    json_model: MultipartDirectoryUploadRequest,
+) -> MultipartDirectoryUploadResponse:
+    entity, virtual_lab_id = _get_entity_and_vlab(
+        repos, user_context, virtual_lab_client, entity_type, entity_id
+    )
+    storage = storages[StorageType.aws_s3_internal]
+    return directory_multipart_upload_initiate_unverified(
+        repos=repos,
+        entity=entity,
+        virtual_lab_id=virtual_lab_id,
+        s3_client=storage_client_factory(storage),
+        storage=storage,
+        json_model=json_model,
+        user_profile=user_context.profile,
+    )
+
+
+def multipart_upload_complete(
+    repos: RepositoryGroup,
+    storage_client_factory: StorageClientFactory,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset_db = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
+        )
+    return multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)
+
+
+def directory_multipart_upload_complete(
+    repos: RepositoryGroup,
+    storage_client_factory: StorageClientFactory,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset_db = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
+        )
+    return directory_multipart_upload_complete_unverified(repos, asset_db, storage_client_factory)

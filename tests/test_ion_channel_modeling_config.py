@@ -43,7 +43,9 @@ def model_id(ion_channel_modeling_config_id):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.ion_channel_modeling_config)
+    check_entity_read_response(
+        data=data, json_data=json_data, expected_entity_type=EntityType.ion_channel_modeling_config
+    )
     assert data["ion_channel_modeling_campaign_id"]
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
@@ -135,11 +137,11 @@ def test_filtering_ordering(client, models, public_ion_channel_modeling_campaign
     data = _req({"order_by": "-name", "name__in": ["config-1", "config-2"]})
     assert [d["name"] for d in data] == ["config-2", "config-1"]
 
-    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    data = _req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = _req({"ilike_search": "*modeling-config*"})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "config-1"})
-    assert len(data) == 1
+    data = _req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

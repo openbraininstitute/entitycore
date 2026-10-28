@@ -1,18 +1,16 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
-    Agent,
     Contribution,
     IonChannelRecording,
-    Person,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -27,6 +25,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_recording import (
     IonChannelRecordingAdminUpdate,
@@ -36,9 +35,6 @@ from app.schemas.ion_channel_recording import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -66,6 +62,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> IonChannelRecordingRead:
     return router_read_one(
         db=db,
@@ -74,12 +71,14 @@ def read_one(
         user_context=user_context,
         response_schema_class=IonChannelRecordingRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> IonChannelRecordingRead:
     return router_read_one(
         db=db,
@@ -88,6 +87,7 @@ def admin_read_one(
         user_context=None,
         response_schema_class=IonChannelRecordingRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -115,22 +115,9 @@ def _read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[IonChannelRecordingRead]:
-    agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
-    subject_alias = aliased(Subject, flat=True)
-    aliases: Aliases = {
-        Agent: {
-            "contribution": agent_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
-        },
-        Subject: subject_alias,
-    }
     facet_keys = [
         "brain_region",
         "created_by",
@@ -141,21 +128,14 @@ def _read_many(
         "ion_channel",
     ]
     filter_keys = [
-        "brain_region",
-        "created_by",
-        "updated_by",
-        "contribution",
-        "subject",
-        "subject.species",
-        "subject.strain",
-        "ion_channel",
+        *facet_keys,
+        "validation_result",
     ]
 
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=IonChannelRecording,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -171,8 +151,9 @@ def _read_many(
         pagination_request=pagination_request,
         response_schema_class=IonChannelRecordingRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -184,6 +165,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[IonChannelRecordingRead]:
     return _read_many(
         user_context=user_context,
@@ -193,6 +175,7 @@ def read_many(
         with_search=with_search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -205,6 +188,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[IonChannelRecordingRead]:
     return _read_many(
         user_context=user_context,
@@ -214,6 +198,7 @@ def admin_read_many(
         with_search=with_search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 

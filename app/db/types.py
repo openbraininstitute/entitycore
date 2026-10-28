@@ -1,7 +1,9 @@
+# app/db/types.py
+
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
@@ -68,7 +70,7 @@ class PointLocationType(TypeDecorator):
     impl = JSONB
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
+    def process_bind_param(self, value, dialect):  # ruff:ignore[unused-method-argument, no-self-use]
         if value is None:
             return None
 
@@ -77,7 +79,7 @@ class PointLocationType(TypeDecorator):
 
         return value.model_dump()
 
-    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
+    def process_result_value(self, value, dialect):  # ruff:ignore[unused-method-argument, no-self-use]
         if value is None:
             return None
 
@@ -98,6 +100,12 @@ class StorageType(StrEnum):
     aws_s3_open = auto()
 
 
+class EntityLifecycleStatus(StrEnum):
+    draft = auto()
+    active = auto()
+    disqualified = auto()
+
+
 class EntityType(StrEnum):
     """Entity types."""
 
@@ -111,6 +119,7 @@ class EntityType(StrEnum):
     electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
+    task_result = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
@@ -133,8 +142,6 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
-    circuit_extraction_campaign = auto()
-    circuit_extraction_config = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
     analysis_notebook_template = auto()
@@ -143,6 +150,23 @@ class EntityType(StrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     task_config = auto()
+
+
+class TaskResultType(StrEnum):
+    circuit_simulation__result = auto()
+    circuit_extraction__circuit = auto()
+    ion_channel_modeling__result = auto()
+    skeletonization__morphology = auto()
+    ion_channel_simulation__result = auto()
+    em_synapse_mapping__result = auto()
+    aind_ephys_preprocessing__result = auto()
+    aind_ephys_spikesorting__result = auto()
+    extracellular_recording_weights_calculation__result = auto()
+    mesh_lod_generation__result = auto()
+    efeature_extraction__result = auto()
+    emodel_optimization__result = auto()
+    optimized_emodel_analysis_validation__result = auto()
+    circuit_synaptic_physiology_assignment__result = auto()
 
 
 class TaskConfigType(StrEnum):
@@ -164,6 +188,24 @@ class TaskConfigType(StrEnum):
     aind_ephys_preprocessing__config = auto()
     aind_ephys_spikesorting__campaign = auto()
     aind_ephys_spikesorting__config = auto()
+    extracellular_recording_weights_calculation__campaign = auto()
+    extracellular_recording_weights_calculation__config = auto()
+    mesh_lod_generation__campaign = auto()
+    mesh_lod_generation__config = auto()
+    efeature_extraction__campaign = auto()
+    efeature_extraction__config = auto()
+    emodel_optimization__campaign = auto()
+    emodel_optimization__config = auto()
+    optimized_emodel_analysis_validation__campaign = auto()
+    optimized_emodel_analysis_validation__config = auto()
+    circuit_synaptic_physiology_assignment__campaign = auto()
+    circuit_synaptic_physiology_assignment__config = auto()
+    circuit_simplification__campaign = auto()
+    circuit_simplification__config = auto()
+    circuit_single_build__campaign = auto()
+    circuit_single_build__config = auto()
+    memodel_build__campaign = auto()
+    memodel_build__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -185,6 +227,24 @@ class TaskActivityType(StrEnum):
     aind_ephys_preprocessing__execution = auto()
     aind_ephys_spikesorting__config_generation = auto()
     aind_ephys_spikesorting__execution = auto()
+    extracellular_recording_weights_calculation__config_generation = auto()
+    extracellular_recording_weights_calculation__execution = auto()
+    mesh_lod_generation__config_generation = auto()
+    mesh_lod_generation__execution = auto()
+    efeature_extraction__config_generation = auto()
+    efeature_extraction__execution = auto()
+    emodel_optimization__config_generation = auto()
+    emodel_optimization__execution = auto()
+    optimized_emodel_analysis_validation__config_generation = auto()
+    optimized_emodel_analysis_validation__execution = auto()
+    circuit_synaptic_physiology_assignment__config_generation = auto()
+    circuit_synaptic_physiology_assignment__execution = auto()
+    circuit_simplification__config_generation = auto()
+    circuit_simplification__execution = auto()
+    circuit_single_build__config_generation = auto()
+    circuit_single_build__execution = auto()
+    memodel_build__config_generation = auto()
+    memodel_build__execution = auto()
 
 
 class AgentType(StrEnum):
@@ -237,8 +297,6 @@ class ActivityType(StrEnum):
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
     ion_channel_modeling_config_generation = auto()
-    circuit_extraction_config_generation = auto()
-    circuit_extraction_execution = auto()
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
     task_activity = auto()
@@ -260,6 +318,8 @@ class DerivationType(StrEnum):
           (generated). The optional ``label`` field on the derivation carries the SONATA
           ``model_template`` entry, by convention ``hoc:<template_name>``
           (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
+        circuit_simplification: Indicates that a circuit entity was derived by simplifying
+          the biophysical complexity of another circuit while preserving network connectivity.
         unspecified: Indicates a derivation that does not require a specific type.
     """
 
@@ -267,6 +327,8 @@ class DerivationType(StrEnum):
     circuit_extraction = auto()
     circuit_rewiring = auto()
     emodel_circuit = auto()
+    em_dense_reconstruction_dataset_cell_morphology = auto()
+    circuit_simplification = auto()
     unspecified = auto()
 
 
@@ -285,7 +347,6 @@ class AnnotationBodyType(StrEnum):
 class AssetStatus(StrEnum):
     CREATED = auto()
     UPLOADING = auto()
-    DELETED = auto()
 
 
 class ValidationStatus(StrEnum):
@@ -410,11 +471,13 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
+    other = "application/octet-stream"
 
 
 class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
+    directory_child = auto()
     morphology = auto()
     morphology_with_spines = auto()
     cell_composition_summary = auto()
@@ -427,18 +490,25 @@ class AssetLabel(StrEnum):
     circuit_figures = auto()
     circuit_analysis_data = auto()
     circuit_connectivity_matrices = auto()
+    task_result = auto()
     nwb = auto()
     neuron_hoc = auto()
+    electrode_locations = auto()
     emodel_optimization_output = auto()
+    emodel_optimisation_checkpoint = auto()
+    emodel_analysis_figures = auto()
+    emodel_analysis_summary = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
     custom_node_sets = auto()
+    compartment_sets = auto()
     campaign_generation_config = auto()
     campaign_summary = auto()
     replay_spikes = auto()
     voltage_report = auto()
     spike_report = auto()
+    lfp_report = auto()
     neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
     brain_atlas_region_mesh = auto()
@@ -450,6 +520,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    circuit_morphology_pack = auto()
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
@@ -462,12 +533,25 @@ class AssetLabel(StrEnum):
     task_config = auto()
     lod_mesh_block = auto()
     electrode_array_weight_matrix = auto()
+    electrode_array_image = auto()
+    efeature_extraction_features = auto()
+    efeature_extraction_figures = auto()
+    efeature_extraction_cells = auto()
+    efeature_extraction_protocols = auto()
+    current_report = auto()
 
 
 class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
+
+    @model_validator(mode="after")
+    def validate_directory_content_type(self):
+        if self.is_directory and self.content_type is not None:
+            msg = "content_type must be None when is_directory is True"
+            raise ValueError(msg)
+        return self
 
 
 CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
@@ -498,7 +582,9 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
+    ContentType.other: (),
 }
+
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
@@ -682,6 +768,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 ),
             )
         ],
+        AssetLabel.circuit_morphology_pack: [
+            LabelRequirements(
+                content_type=ContentType.other,
+                is_directory=False,
+                description=(
+                    "Morphologies of the circuit's biophysical neurons, simplified at several "
+                    "levels of detail and cut into chunks of space, for a viewer to stream."
+                ),
+            )
+        ],
     },
     EntityType.electrical_cell_recording: {
         AssetLabel.nwb: [
@@ -830,7 +926,23 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                     "Weights sum the activity of M compartments in the circuit."
                 ),
             ),
-        ]
+        ],
+        AssetLabel.electrode_array_image: [
+            LabelRequirements(
+                content_type=ContentType.png,
+                is_directory=False,
+                description=(
+                    "Image representing the layout of the electrode array relative to the circuit."
+                ),
+            ),
+        ],
+        AssetLabel.electrode_locations: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="File with electrode locations.",
+            )
+        ],
     },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [
@@ -838,6 +950,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Node set groups for regions, mtypes, etc.",
+            )
+        ],
+        AssetLabel.compartment_sets: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="SONATA compartment sets for explicit morphology locations.",
             )
         ],
         AssetLabel.replay_spikes: [
@@ -879,6 +998,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ],
     },
     EntityType.simulation_result: {
+        AssetLabel.current_report: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation current report.",
+            ),
+        ],
         AssetLabel.spike_report: [
             LabelRequirements(
                 content_type=ContentType.h5,
@@ -897,6 +1023,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Simulation voltage report in NWB format.",
             ),
+        ],
+        AssetLabel.lfp_report: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation LFP report.",
+            )
         ],
     },
     EntityType.single_neuron_synaptome: {
@@ -970,24 +1103,6 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             ),
         ],
     },
-    EntityType.circuit_extraction_campaign: {
-        AssetLabel.campaign_generation_config: [
-            LabelRequirements(
-                content_type=ContentType.json,
-                is_directory=False,
-                description="Circuit extraction campaign configuration.",
-            )
-        ],
-    },
-    EntityType.circuit_extraction_config: {
-        AssetLabel.circuit_extraction_config: [
-            LabelRequirements(
-                content_type=ContentType.json,
-                is_directory=False,
-                description="Single circuit extraction configuration.",
-            )
-        ],
-    },
     EntityType.skeletonization_campaign: {
         AssetLabel.campaign_generation_config: [
             LabelRequirements(
@@ -1018,6 +1133,92 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
 }
 ALLOWED_ASSET_LABELS_PER_ENTITY |= {
     k: None for k in EntityType if k not in ALLOWED_ASSET_LABELS_PER_ENTITY
+}
+
+
+ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
+    TaskResultType.circuit_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
+    TaskResultType.circuit_extraction__circuit: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit],
+    TaskResultType.ion_channel_modeling__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.ion_channel_modeling_campaign
+    ],
+    TaskResultType.skeletonization__morphology: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.cell_morphology
+    ],
+    TaskResultType.ion_channel_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
+    TaskResultType.em_synapse_mapping__result: None,
+    TaskResultType.aind_ephys_preprocessing__result: None,
+    TaskResultType.aind_ephys_spikesorting__result: None,
+    TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # ruff:ignore[line-too-long]
+        EntityType.simulatable_extracellular_recording_array
+    ],
+    TaskResultType.mesh_lod_generation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.em_cell_mesh
+    ],
+    TaskResultType.efeature_extraction__result: {
+        AssetLabel.efeature_extraction_features: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Extracted e-features JSON (FitnessCalculatorConfiguration).",
+            ),
+        ],
+        AssetLabel.efeature_extraction_figures: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Directory of per-protocol/per-feature PDF extraction"
+                    " figures with manifest.json."
+                ),
+            ),
+        ],
+        AssetLabel.efeature_extraction_cells: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="BluePyEfe cells data as HDF5.",
+            ),
+        ],
+        AssetLabel.efeature_extraction_protocols: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="BluePyEfe protocols data as HDF5.",
+            ),
+        ],
+    },
+    TaskResultType.emodel_optimization__result: {
+        AssetLabel.emodel_optimisation_checkpoint: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="EModel optimisation output checkpoint.",
+            )
+        ],
+        AssetLabel.emodel_analysis_figures: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description="EModel analysis generated figures.",
+            )
+        ],
+        AssetLabel.emodel_analysis_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="EModel analysis generated final.json output.",
+            )
+        ],
+    },
+    TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.validation_result
+    ],
+    TaskResultType.circuit_synaptic_physiology_assignment__result: None,
 }
 
 
@@ -1141,12 +1342,15 @@ class TargetSimulator(StrEnum):
     """Target simulator values as used in libsonata.
 
     See: https://sonata-extension.readthedocs.io/en/latest/sonata_config.html#target-simulator
+
+    Ensure the list is in alphabetical order to guarantee correct ordering.
     """
 
-    neuron = "NEURON"
+    brian2 = "Brian2"
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
-    brian2 = "Brian2"
+    nest = "NEST"
+    neuron = "NEURON"
 
 
 class ElectrodeType(StrEnum):

@@ -1,6 +1,6 @@
 """Database session utils."""
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from sqlalchemy import Engine, create_engine
@@ -34,14 +34,19 @@ class DatabaseSessionManager:
         self._engine = None
         L.info("DB engine has been closed")
 
-    @contextmanager
-    def session(self) -> Iterator[Session]:
-        """Yield a new database session."""
+    @property
+    def engine(self) -> Engine:
+        """The database engine."""
         if not self._engine:
             err = "DB engine not initialized"
             raise RuntimeError(err)
+        return self._engine
+
+    @contextmanager
+    def session(self) -> Generator[Session]:
+        """Yield a new database session."""
         with Session(
-            self._engine,
+            self.engine,
             expire_on_commit=False,
             autocommit=False,
             autoflush=False,

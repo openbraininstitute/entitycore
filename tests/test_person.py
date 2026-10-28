@@ -1,15 +1,15 @@
-from unittest.mock import ANY
+import uuid
 
 import pytest
 
-from app.db.model import Agent, Person
+from app.db.model import Agent, Person, PlatformUser
 
 from tests.utils import (
-    ADMIN_SUB_ID,
     MISSING_ID,
     MISSING_ID_COMPACT,
     USER_SUB_ID_1,
     add_all_db,
+    add_db,
     assert_request,
     check_global_delete_one,
 )
@@ -31,11 +31,11 @@ def _assert_read_response(data, json_data):
     assert data["given_name"] == json_data["given_name"]
     assert data["family_name"] == json_data["family_name"]
     assert "id" in data
-    assert data["sub_id"] == ANY
+    assert "sub_id" in data
 
 
-def test_create_person(client, client_admin, json_data):
-    response = client_admin.post(ROUTE, json=json_data)
+def test_create_person(client, json_data):
+    response = client.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
     _assert_read_response(data, json_data)
@@ -48,47 +48,60 @@ def test_create_person(client, client_admin, json_data):
     _assert_read_response(data, json_data)
     assert data["id"] == id_
 
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    data = response.json()["data"]
+    valid_orcids = [
+        "https://orcid.org/0000-0002-1825-0097",
+        "https://orcid.org/0000-0003-1234-5674",
+    ]
 
-    # Two people are expected, the registered one without a subject id
-    # and the new agent registered from the token with a subject id
-    assert len(data) == 2
+    for orcid in valid_orcids:
+        data = assert_request(
+            client.post,
+            url=ROUTE,
+            json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid[-4:]}"},
+        ).json()
+        assert data["orcid"] == orcid
 
-    created_from_data, created_from_token = _classify_agents(data)
+    invalid_orcids = [
+        "invalid-orcid",
+        "1234-5678",
+        "abcd-efgh-ijkl-mnop",
+        "0000-0003-1234-5678",
+        "0000-0002-1825-0097",
+    ]
 
-    assert created_from_data["given_name"] == json_data["given_name"]
-    assert created_from_data["id"] == id_
-    assert created_from_data["sub_id"] is None
+    for orcid in invalid_orcids:
+        data = assert_request(
+            client.post,
+            url=ROUTE,
+            json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid}"},
+            expected_status_code=422,
+        ).json()
+        assert data["message"] == "Validation error"
 
-    assert created_from_token["pref_label"] == "Admin User"
-    assert created_from_token["sub_id"] == str(ADMIN_SUB_ID)
-
-    # If register again only the data agent added and the token agent is reused
-    response = client_admin.post(
-        ROUTE,
-        json=json_data,
-    )
-    assert response.status_code == 200
-
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    data = response.json()["data"]
-
-    assert len(data) == 3
-    assert sum(1 for d in data if d["sub_id"] is not None) == 1
+    orcid = "https://orcid.org/0000-0004-5678-9012"
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-1"},
+    ).json()
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-2"},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
 
 
 def test_read_many(clients, json_data):
-
     route = ROUTE
     admin_route = ADMIN_ROUTE
 
-    assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+    assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
 
     def _req(client, client_route):
         data = assert_request(client.get, url=client_route).json()["data"]
+        # 2 persons: auto-created (from get_or_create_user) + explicitly created
         assert len(data) == 2
 
     # user that created the resource can read it
@@ -126,6 +139,7 @@ def test_delete_one(db, clients, json_data):
         admin_route=ADMIN_ROUTE,
         json_data=json_data,
         expected_counts_before={
+            # 2 persons: auto-created (from get_or_create_user) + explicitly created
             Person: 2,
             Agent: 2,
         },
@@ -134,13 +148,6 @@ def test_delete_one(db, clients, json_data):
             Agent: 1,
         },
     )
-
-
-def _classify_agents(data):
-    if data[0]["sub_id"] is None:
-        return data
-
-    return data[1], data[0]
 
 
 def test_missing(client):
@@ -158,7 +165,7 @@ def test_missing(client):
 
 
 @pytest.fixture
-def models(db, person_id):
+def models(db, user_id):
     return add_all_db(
         db,
         [
@@ -166,22 +173,24 @@ def models(db, person_id):
                 given_name="John",
                 family_name="Smith",
                 pref_label="John Smith",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                orcid="https://orcid.org/0000-0001-1111-110X",
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             Person(
                 given_name="john",
                 family_name="Cooper",
                 pref_label="John Cooper",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                orcid="https://orcid.org/0000-0002-2222-2208",
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
             Person(
                 given_name="Beatrix",
                 family_name="John",
                 pref_label="Beatrix John",
-                created_by_id=person_id,
-                updated_by_id=person_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
             ),
         ],
     )
@@ -203,5 +212,89 @@ def test_filtering(client, models):
     data = _req({"family_name__ilike": "Smith"})
     assert len(data) == 1
 
-    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
-    assert len(data) == len(models) + 1  # +1 for person_id
+    data = _req({"orcid": "https://orcid.org/0000-0001-1111-110X"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Smith"
+
+    data = _req({"orcid": "https://orcid.org/0000-0002-2222-2208"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Cooper"
+
+    data = _req(
+        {
+            "orcid__in": [
+                "https://orcid.org/0000-0001-1111-110X",
+                "https://orcid.org/0000-0002-2222-2208",
+            ]
+        }
+    )
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"John Smith", "John Cooper"}
+
+    data = _req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
+    assert len(data) == len(models)
+
+    data = _req({"created_by__id__in": [USER_SUB_ID_1], "updated_by__id__in": [USER_SUB_ID_1]})
+    assert len(data) == len(models)
+
+    # backward compat: sub_id is an alias for id
+    data = _req({"created_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)
+
+    data = _req({"created_by__sub_id__in": [USER_SUB_ID_1]})
+    assert len(data) == len(models)
+
+
+def test_sub_id_filtering(db, client, user_id):
+    sub = uuid.uuid4()
+    add_db(
+        db,
+        PlatformUser(id=sub, pref_label="linked user"),
+    )
+    person = add_db(
+        db,
+        Person(
+            given_name="Linked",
+            family_name="User",
+            pref_label="Linked User",
+            sub_id=sub,
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+    add_db(
+        db,
+        Person(
+            given_name="Unlinked",
+            family_name="Person",
+            pref_label="Unlinked Person",
+            created_by_id=user_id,
+            updated_by_id=user_id,
+        ),
+    )
+
+    def _req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = _req({"sub_id": str(sub)})
+    assert len(data) == 1
+    assert data[0]["id"] == str(person.id)
+    assert data[0]["sub_id"] == str(sub)
+
+    data = _req({"sub_id__in": [str(sub)]})
+    assert len(data) == 1
+    assert data[0]["sub_id"] == str(sub)
+
+    data = _req({"sub_id": str(user_id)})
+    assert len(data) == 0
+
+
+def test_create_person_does_not_accept_sub_id(client, json_data):
+    sub = str(uuid.uuid4())
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"sub_id": sub},
+    ).json()
+    # sub_id in the payload is ignored; it can only be set programmatically
+    assert data["sub_id"] is None

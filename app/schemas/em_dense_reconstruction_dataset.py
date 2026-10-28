@@ -1,12 +1,11 @@
-from pydantic import BaseModel
-
 from app.db.types import SlicingDirectionType
-from app.schemas.base import NameDescriptionMixin, make_update_schema
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.types import SerializableAnyUrl, SerializableHttpUrl
+from app.schemas.utils import make_update_schema
 
 
-class EMDenseReconstructionDatasetBase(BaseModel, NameDescriptionMixin):
+class EMDenseReconstructionDatasetBaseMixin(NameDescriptionMixin):
     protocol_document: SerializableHttpUrl | None = None
     fixation: str | None = None
     staining_type: str | None = None  # TODO: controlled vocabulary
@@ -32,14 +31,14 @@ class EMDenseReconstructionDatasetBase(BaseModel, NameDescriptionMixin):
 
 
 class EMDenseReconstructionDatasetRead(
-    EMDenseReconstructionDatasetBase,
+    EMDenseReconstructionDatasetBaseMixin,
     ScientificArtifactRead,
 ):
     pass
 
 
 class EMDenseReconstructionDatasetCreate(
-    EMDenseReconstructionDatasetBase,
+    EMDenseReconstructionDatasetBaseMixin,
     ScientificArtifactCreate,
 ):
     pass

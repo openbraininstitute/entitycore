@@ -12,7 +12,7 @@ from app.filters.common import (
     NestedAgentFilterDep,
 )
 from app.filters.entity import NestedEntityFilter, NestedEntityFilterDep
-from app.filters.person import CreatorFilterMixin
+from app.filters.platform_user import CreatorFilterMixin
 
 NestedContributionFilter = NestedAgentFilter
 NestedContributionFilterDep = FilterDepends(with_prefix("contribution", NestedAgentFilter))
@@ -21,11 +21,11 @@ NestedContributionFilterDep = FilterDepends(with_prefix("contribution", NestedAg
 class ContributionFilter(IdFilterMixin, CreationFilterMixin, CreatorFilterMixin, CustomFilter):
     agent: Annotated[NestedAgentFilter | None, NestedAgentFilterDep] = None
     entity: Annotated[NestedEntityFilter | None, NestedEntityFilterDep] = None
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = Contribution
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
 
 
 ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]

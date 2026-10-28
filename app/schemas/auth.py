@@ -5,17 +5,18 @@ from uuid import UUID
 
 import jwt
 from fastapi.security import HTTPAuthorizationCredentials
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from app.errors import AuthErrorReason
 from app.logger import L
+from app.schemas.base import Schema
 
 PROJECT_REGEX = re.compile(
     r"^/proj/(?P<vlab>[0-9a-fA-F-]+)/(?P<proj>[0-9a-fA-F-]+)/(?P<role>admin|member)$"
 )
 
 
-class CacheKey(BaseModel):
+class CacheKey(Schema):
     """Cache key for UserContext."""
 
     model_config = ConfigDict(frozen=True)
@@ -25,7 +26,7 @@ class CacheKey(BaseModel):
     token_digest: str
 
 
-class UserInfoBase(BaseModel):
+class UserInfoBase(Schema):
     """Basic user info keycloak information."""
 
     sub: UUID
@@ -48,7 +49,7 @@ class DecodedToken(UserInfoBase):
             # the signature can be ignored because the token will be validated with KeyCloak
             decoded = jwt.decode(token.credentials, options={"verify_signature": False})
             return cls.model_validate(decoded)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # ruff:ignore[blind-except]
             L.info("Unable to decode token as JWT [{}]", e)
         return None
 
@@ -60,7 +61,7 @@ class UserProjectRole(StrEnum):
     member = auto()
 
 
-class UserProjectGroup(BaseModel):
+class UserProjectGroup(Schema):
     """Keycloak user group."""
 
     model_config = ConfigDict(frozen=True)
@@ -93,7 +94,7 @@ class UserInfoResponse(UserInfoBase):
     }
     """
 
-    groups: set[str] = set()
+    groups: set[str] = set()  # ruff:ignore[mutable-class-default]
 
     def is_service_admin(self, service_name: str) -> bool:
         """Return True if admin for the specified service."""
@@ -151,7 +152,7 @@ class UserInfoResponse(UserInfoBase):
         }
 
 
-class UserProfile(BaseModel):
+class UserProfile(Schema):
     """User profile representing a keycloak user."""
 
     name: str
@@ -176,7 +177,7 @@ class UserProfile(BaseModel):
         )
 
 
-class UserContextBase(BaseModel):
+class UserContextBase(Schema):
     model_config = ConfigDict(frozen=True, extra="forbid")
     profile: UserProfile
     expiration: float | None
@@ -191,22 +192,40 @@ class UserContext(UserContextBase):
 
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
-    user_project_groups: list[UserProjectGroup] = []
+    user_project_groups: list[UserProjectGroup] = []  # ruff:ignore[mutable-class-default]
 
     @property
     def user_project_ids(self) -> list[UUID]:
-        """Return all projects that the user has access to regardless of role."""
+        """All projects that the user has access to regardless of role."""
         return [g.project_id for g in self.user_project_groups]
 
     @property
+    def authorized_project_ids(self) -> list[UUID]:
+        """Project ids in effect for authorization.
+
+        A request-bound project_id (e.g. from a header) takes precedence
+        over the projects derived from Keycloak groups.
+        """
+        if self.project_id:
+            return [self.project_id]
+        return self.user_project_ids
+
+    @property
     def member_project_ids(self) -> set[UUID]:
-        """Return the project ids for which the user is a member."""
+        """The project ids for which the user is a member."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member}
 
     @property
     def admin_project_ids(self) -> set[UUID]:
-        """Return the project ids for which the user is an admin."""
+        """The project ids for which the user is an admin."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin}
+
+    def find_virtual_lab_from_project_id(self, project_id: UUID) -> UUID | None:
+        """Return virtual lab id from project id."""
+        for group in self.user_project_groups:
+            if group.project_id == project_id:
+                return group.virtual_lab_id
+        return None
 
 
 class UserContextWithProjectId(UserContextBase):
@@ -214,3 +233,8 @@ class UserContextWithProjectId(UserContextBase):
 
     virtual_lab_id: UUID
     project_id: UUID
+
+    @property
+    def authorized_project_ids(self) -> list[UUID]:
+        """Project ids in effect for authorization (always the bound project)."""
+        return [self.project_id]

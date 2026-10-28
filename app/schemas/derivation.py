@@ -1,10 +1,13 @@
 import re
 import uuid
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import model_validator
 
 from app.db.types import DerivationType
-from app.schemas.base import BasicEntityRead
+from app.schemas.base import Schema
+from app.schemas.entity import NestedEntityRead
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
+from app.schemas.utils import make_update_schema
 
 # Allowed label values per derivation type.
 # - emodel_circuit: SONATA ``model_template`` entry, by convention ``hoc:<template_name>``.
@@ -20,11 +23,11 @@ _CIRCUIT_CUSTOMIZATION_LABELS = frozenset(
 )
 
 
-class DerivationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class DerivationBase(Schema):
+    pass
 
 
-class DerivationCreate(DerivationBase):
+class DerivationCreate(DerivationBase, IdentifiableCreate):
     used_id: uuid.UUID
     generated_id: uuid.UUID
     derivation_type: DerivationType
@@ -55,8 +58,24 @@ class DerivationCreate(DerivationBase):
         return self
 
 
-class DerivationRead(DerivationBase):
-    used: BasicEntityRead
-    generated: BasicEntityRead
+# core attributes. Instead of changing them, the derivation should be deleted instead
+DERIVATION_EXCLUDED_FIELDS = {"used_id", "generated_id", "derivation_type"}
+
+
+DerivationUserUpdate = make_update_schema(
+    DerivationCreate,
+    "DerivationUserUpdate",
+    excluded_fields=DERIVATION_EXCLUDED_FIELDS,
+)  # pyright: ignore [reportInvalidTypeForm]
+DerivationAdminUpdate = make_update_schema(
+    DerivationCreate,
+    "DerivationAdminUpdate",
+    excluded_fields=DERIVATION_EXCLUDED_FIELDS,
+)  # pyright: ignore [reportInvalidTypeForm]
+
+
+class DerivationRead(DerivationBase, IdentifiableRead):
+    used: NestedEntityRead
+    generated: NestedEntityRead
     derivation_type: DerivationType
     label: str | None = None

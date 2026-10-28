@@ -1,31 +1,36 @@
 import asyncio
 import os
-from collections.abc import AsyncIterator
+import tracemalloc
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any
 
-import httpx
+import httpx2
 from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import iter_route_contexts
+from sqlalchemy.orm import configure_mappers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette_compress import CompressMiddleware
 
 from app.config import settings
 from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
-from app.logger import L
+from app.gc_control import configure_gc, start_gc_thread
+from app.logger import L, timed
 from app.middleware import RequestContextMiddleware
 from app.routers import router
 from app.schemas.api import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     """Execute actions on server startup and shutdown."""
     L.info(
         "Starting application [PID={}, CPU_COUNT={}, ENVIRONMENT={}]",
@@ -33,8 +38,21 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         os.cpu_count(),
         settings.ENVIRONMENT,
     )
+    with timed("Eagerly configuring SQLAlchemy mappers"):
+        configure_mappers()
+    with timed("Forcing FastAPI to build the effective route contexts at startup"):
+        list(iter_route_contexts(app.router.routes))
     database_session_manager = configure_database_session_manager()
-    http_client = httpx.Client()
+    app.state.database_session_manager = database_session_manager
+    http_client = httpx2.Client()
+    if settings.GC_CONTROL_ENABLED:
+        configure_gc()
+        stop_gc = start_gc_thread()
+    else:
+        stop_gc = lambda: None
+    if settings.TRACEMALLOC_ENABLED:
+        with timed("Starting tracemalloc"):
+            tracemalloc.start()
     try:
         yield {
             "database_session_manager": database_session_manager,
@@ -44,8 +62,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         # this can happen if the task is cancelled without sending SIGINT
         L.info("Ignored {} in lifespan", err)
     finally:
+        stop_gc()
         database_session_manager.close()
-        http_client.close()  # noqa: ASYNC212
+        http_client.close()
         L.info("Stopping application")
 
 
@@ -56,7 +75,8 @@ async def api_error_handler(request: Request, exception: ApiError) -> Response:
         error_code=exception.error_code,
         details=exception.details,
     )
-    L.warning(
+    L.log(
+        exception.log_level,
         "API error in {} {}: {}, cause: {}",
         request.method,
         request.url,
@@ -118,36 +138,43 @@ async def http_exception_handler(request: Request, exception: StarletteHTTPExcep
     )
 
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION or "0.0.0",
-    debug=settings.APP_DEBUG,
-    lifespan=lifespan,
-    exception_handlers={
-        ApiError: api_error_handler,
-        RequestValidationError: validation_exception_handler,
-        StarletteHTTPException: http_exception_handler,
-    },
-    root_path=settings.ROOT_PATH,
-    redirect_slashes=False,
-    strict_content_type=False,
-)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-app.add_middleware(RequestContextMiddleware)
+def create_app() -> FastAPI:
+    """Create the FastAPI application, configured from the current settings."""
+    app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.APP_VERSION or "0.0.0",
+        debug=settings.APP_DEBUG,
+        lifespan=lifespan,
+        exception_handlers={
+            ApiError: api_error_handler,
+            RequestValidationError: validation_exception_handler,
+            StarletteHTTPException: http_exception_handler,
+        },
+        redirect_slashes=False,
+        strict_content_type=False,
+    )
+    # Inside RequestContextMiddleware (added later), so that the compressed response_size is logged.
+    # Brotli is disabled because it uses much more memory than zstd.
+    if settings.COMPRESSION_ENABLED:
+        app.add_middleware(CompressMiddleware, brotli=False)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(RequestContextMiddleware)
+    app.include_router(
+        router,
+        responses={
+            404: {"description": "Not found", "model": ErrorResponse},
+            422: {"description": "Validation Error", "model": ErrorResponse},
+        },
+        dependencies=[Depends(forbid_extra_query_params)],
+    )
+    return app
 
 
-app.include_router(
-    router,
-    responses={
-        404: {"description": "Not found", "model": ErrorResponse},
-        422: {"description": "Validation Error", "model": ErrorResponse},
-    },
-    dependencies=[Depends(forbid_extra_query_params)],
-)
+app = create_app()

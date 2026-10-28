@@ -1,11 +1,42 @@
 import uuid
+from http import HTTPStatus
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from app.db.auth import constrain_entity_query_to_project, constrain_to_readable_entities
+from app.db.auth import (
+    constrain_entity_query_to_project,
+    constrain_to_readable_entities_by_context,
+    constrain_to_readable_entities_by_project,
+    is_in_projects,
+)
 from app.db.model import Entity
-from app.errors import ensure_result
+from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.schemas.auth import UserContext
+
+
+def get_accessible_entity[T: Entity](
+    db: Session,
+    db_model_class: type[T],
+    entity_id: uuid.UUID,
+    user_context: UserContext,
+) -> T:
+    """Return a specific entity by type and id, readable by the given project.
+
+    Args:
+        db: db session.
+        db_model_class: Entity subclass.
+        entity_id: id of the entity.
+        user_context: UserContext
+
+    Returns:
+        the selected entity if it's public or owned by project_id,
+        or raises NoResultFound if the entity doesn't exist, or it's forbidden.
+    """
+    query = sa.select(db_model_class).where(db_model_class.id == entity_id)
+    query = constrain_to_readable_entities_by_context(query=query, user_context=user_context)
+    with ensure_result(f"Entity {db_model_class.__name__} {entity_id} not found or forbidden"):
+        return db.execute(query).scalar_one()
 
 
 def get_readable_entity[T: Entity](
@@ -27,7 +58,7 @@ def get_readable_entity[T: Entity](
         or raises NoResultFound if the entity doesn't exist, or it's forbidden.
     """
     query = sa.select(db_model_class).where(db_model_class.id == entity_id)
-    query = constrain_to_readable_entities(query, project_id=project_id)
+    query = constrain_to_readable_entities_by_project(query=query, project_id=project_id)
     with ensure_result(f"Entity {db_model_class.__name__} {entity_id} not found or forbidden"):
         return db.execute(query).scalar_one()
 
@@ -54,7 +85,47 @@ def get_writable_entity[T: Entity](
         or raises NoResultFound if the entity doesn't exist, or it's forbidden.
     """
     query = sa.select(db_model_class).where(db_model_class.id == entity_id)
-    query = constrain_entity_query_to_project(query, project_id=project_id)
+    query = constrain_entity_query_to_project(query=query, project_id=project_id)
+    if for_update:
+        query = query.with_for_update()
+    with ensure_result(f"Entity {db_model_class.__name__} {entity_id} not found or forbidden"):
+        return db.execute(query).scalar_one()
+
+
+def get_writable_entity_by_context[T: Entity](
+    db: Session,
+    db_model_class: type[T],
+    entity_id: uuid.UUID,
+    user_context: UserContext,
+    *,
+    for_update: bool = False,
+) -> T:
+    """Return a specific entity the user may attach assets to.
+
+    Writable entities are those in one of the user's authorized projects (public or
+    private), matching the previous project-scoped asset write behavior.
+
+    Args:
+        db: db session.
+        db_model_class: Entity subclass.
+        entity_id: id of the entity.
+        user_context: User's context
+        for_update: if True, lock the row for update.
+
+    Returns:
+        the selected entity,
+        or raises NoResultFound if the entity doesn't exist, or it's forbidden.
+    """
+    if not user_context.authorized_project_ids:
+        raise ApiError(
+            message="User not authorized for the given virtual-lab-id or project-id",
+            error_code=ApiErrorCode.NOT_AUTHORIZED,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    query = sa.select(db_model_class).where(db_model_class.id == entity_id)
+    query = query.where(
+        is_in_projects(db_model_class, user_context.authorized_project_ids),
+    )
     if for_update:
         query = query.with_for_update()
     with ensure_result(f"Entity {db_model_class.__name__} {entity_id} not found or forbidden"):

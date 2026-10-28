@@ -1,7 +1,7 @@
 import app.service.experimental_synapses_per_connection as service
 from app.routers.admin import router as admin_router
 from app.routers.common import create_user_router, register_default_admin_routes
-from app.routers.types import EntityRoute
+from app.types import EntityRoute
 
 ROUTE = EntityRoute.experimental_synapses_per_connection
 router = create_user_router(route=ROUTE, service=service)

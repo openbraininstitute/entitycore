@@ -1,30 +1,21 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import JSON_DICT
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelModelingConfigBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class IonChannelModelingConfigBaseMixin(NameDescriptionMixin):
     ion_channel_modeling_campaign_id: uuid.UUID
     scan_parameters: JSON_DICT
 
 
 class IonChannelModelingConfigCreate(
-    IonChannelModelingConfigBase, AuthorizationOptionalPublicMixin
+    IonChannelModelingConfigBaseMixin,
+    EntityCreate,
 ):
     pass
 
@@ -41,17 +32,14 @@ IonChannelModelingConfigAdminUpdate = make_update_schema(
 
 
 class NestedIonChannelModelingConfigRead(
-    IonChannelModelingConfigBase, EntityTypeMixin, IdentifiableMixin
+    IonChannelModelingConfigBaseMixin,
+    NestedEntityRead,
 ):
     pass
 
 
 class IonChannelModelingConfigRead(
-    NestedIonChannelModelingConfigRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
-    ContributionReadWithoutEntityMixin,
+    IonChannelModelingConfigBaseMixin,
+    EntityRead,
 ):
     pass

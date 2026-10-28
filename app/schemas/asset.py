@@ -1,14 +1,19 @@
-import datetime
 import uuid
+from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    BeforeValidator,
+    Field,
+    field_validator,
+    model_validator,
+)
 from pydantic.networks import AnyUrl
 
 from app.config import settings, storages
 from app.db.types import (
-    ALLOWED_ASSET_LABELS_PER_ENTITY,
     CONTENT_TYPE_TO_SUFFIX,
     AssetLabel,
     AssetStatus,
@@ -17,53 +22,84 @@ from app.db.types import (
     LabelRequirements,
     StorageType,
 )
+from app.schemas.base import Schema
 
 
-def validate_path(s: str) -> str:
-    if s in {"", ".", ".."} or "/" in s:
-        msg = "Invalid path: cannot be empty, '.', '..', or contain '/'"
+def validate_relative_path(path: Path) -> Path:
+    """Validate a relative path.
+
+    Any path is valid as long as it:
+    - is not absolute
+    - is not empty or "."
+    - does not contain ".." components
+
+    Leading "./" and trailing "/" are stripped away by pathlib.
+    """
+    if not path.parts:
+        msg = "Empty paths are forbidden"
+        raise ValueError(msg)
+    if path.is_absolute():
+        msg = "Absolute paths are forbidden"
+        raise ValueError(msg)
+    if ".." in path.parts:
+        msg = "Parent traversal is forbidden"
+        raise ValueError(msg)
+    return path
+
+
+def validate_path_component(path: Path) -> Path:
+    """Validate a single path component (file or directory), not nested."""
+    if len(path.parts) != 1 or path.parts[0] in {"..", "/"}:
+        msg = "Expected a valid file or directory name"
+        raise ValueError(msg)
+    return path
+
+
+def validate_relative_path_str(s: str) -> str:
+    """Validate a relative path as a string."""
+    if (normalized := str(validate_relative_path(Path(s)))) != s:
+        msg = f"Path must be normalized as {normalized!r}"
         raise ValueError(msg)
     return s
 
 
-def validate_full_path(s: str) -> str:
-    forbidden = {"", ".", ".."}
-    items = s.split("/")
-    # even directories are not allowed to start or end with '/'
-    if not items or any(item in forbidden for item in items):
-        msg = (
-            "Invalid full path: cannot be empty, start or end with '/', "
-            "and the path components cannot be empty, '.' or '..'"
-        )
+def validate_path_component_str(s: str) -> str:
+    """Validate a single path component (file or directory) as string, not nested."""
+    if (normalized := str(validate_path_component(Path(s)))) != s:
+        msg = f"Name must be normalized as {normalized!r}"
         raise ValueError(msg)
     return s
 
 
-class AssetBase(BaseModel):
+PathComponentStr = Annotated[str, AfterValidator(validate_path_component_str)]
+RelativePathStr = Annotated[str, AfterValidator(validate_relative_path_str)]
+Sha256Digest = Annotated[
+    str,
+    Field(
+        description="SHA256 digest of the file content in hexadecimal format.",
+        pattern=r"^[a-fA-F0-9]{64}$",
+    ),
+    BeforeValidator(lambda x: x.hex() if isinstance(x, bytes) else x),  # convert bytes from db
+]
+
+
+class AssetBase(Schema):
     """Asset model with common attributes."""
 
-    model_config = ConfigDict(from_attributes=True)
-    path: Annotated[str, AfterValidator(validate_path)]
-    full_path: Annotated[str, AfterValidator(validate_full_path)]
+    path: RelativePathStr
+    full_path: RelativePathStr
     is_directory: bool
     content_type: ContentType
-    meta: dict = {}
+    meta: dict = {}  # ruff:ignore[mutable-class-default]
     label: AssetLabel
     storage_type: StorageType
 
 
-class SizeAndDigestMixin(BaseModel):
+class SizeAndDigestMixin(Schema):
     """Mixin with size and digest."""
 
     size: int
-    sha256_digest: str | None
-
-    @field_validator("sha256_digest", mode="before")
-    @classmethod
-    def convert_bytes_to_hex(cls, value: bytes | str | None) -> str | None:
-        if isinstance(value, bytes):
-            return value.hex()
-        return value  # fallback (str or None)
+    sha256_digest: Sha256Digest | None
 
 
 class AssetRead(AssetBase, SizeAndDigestMixin):
@@ -73,12 +109,12 @@ class AssetRead(AssetBase, SizeAndDigestMixin):
     status: AssetStatus
 
 
-class ToUploadPart(BaseModel):
+class ToUploadPart(Schema):
     part_number: Annotated[int, Field(description="Index of this part in the multipart upload.")]
     url: Annotated[str, Field(description="Presigned url to upload file part.")]
 
 
-class UploadMeta(BaseModel):
+class UploadMeta(Schema):
     """Database schema."""
 
     upload_id: Annotated[str, Field(description="Unique ID for this multipart upload session.")]
@@ -86,7 +122,7 @@ class UploadMeta(BaseModel):
     part_count: Annotated[int, Field(description="Total number of parts.")]
 
 
-class UploadMetaRead(BaseModel):
+class UploadMetaRead(Schema):
     """Response schema."""
 
     parts: list[ToUploadPart]
@@ -95,6 +131,48 @@ class UploadMetaRead(BaseModel):
 
 class AssetReadWithUploadMeta(AssetRead):
     upload_meta: UploadMetaRead | None = None
+
+
+class AssetCreate(AssetBase, SizeAndDigestMixin):
+    """Asset model for creation."""
+
+    entity_type: EntityType
+    parent_id: uuid.UUID | None
+    created_by_id: uuid.UUID
+    updated_by_id: uuid.UUID
+
+    @model_validator(mode="after")
+    def ensure_parent_id_consistency(self):
+        """Ensure consistency of parent_id."""
+        if self.is_directory is True and self.parent_id is not None:
+            msg = "Directories assets cannot have a parent_id"
+            raise ValueError(msg)
+        return self
+
+
+def validate_asset_label(
+    asset: AssetCreate,
+    allowed_labels: dict[AssetLabel, list[LabelRequirements]] | None,
+) -> None:
+    """Validate an asset label and its requirements against an allowed-label map."""
+    if allowed_labels is None:
+        msg = f"There are no allowed asset labels defined for '{asset.entity_type}'"
+        raise ValueError(msg)
+
+    if asset.label == AssetLabel.directory_child:
+        if asset.parent_id is None:
+            msg = "Directory child assets must have a parent_id"
+            raise ValueError(msg)
+        return
+
+    if asset.label not in allowed_labels:
+        msg = (
+            f"Asset label '{asset.label}' is not allowed for entity type '{asset.entity_type}'. "
+            f"Allowed asset labels: {sorted(label.value for label in allowed_labels)}"
+        )
+        raise ValueError(msg)
+
+    _raise_on_label_requirement(asset, allowed_labels[asset.label])
 
 
 def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirements]) -> None:
@@ -118,50 +196,19 @@ def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirem
                 "The label requirement for directory does not match `is_directory`"
             )
 
+        if not req.content_type or req.content_type != asset.content_type:
+            continue
+        # A content type with no suffix of its own, such as application/octet-stream, takes any.
+        suffixes = CONTENT_TYPE_TO_SUFFIX[req.content_type]
         suffix = Path(asset.path).suffix.lower()
-        if (
-            req.content_type
-            and req.content_type == asset.content_type
-            and suffix not in CONTENT_TYPE_TO_SUFFIX[req.content_type]
-        ):
-            suffix_errors.append(
-                f"Suffix for content-type {CONTENT_TYPE_TO_SUFFIX[req.content_type]} "
-                f"does not match {suffix}"
-            )
+        if suffixes and suffix not in suffixes:
+            suffix_errors.append(f"Suffix for content-type {suffixes} does not match {suffix}")
 
     if directory_errors:
         raise ValueError(directory_errors[0])
 
     if suffix_errors:
         raise ValueError(suffix_errors[0])
-
-
-class AssetCreate(AssetBase, SizeAndDigestMixin):
-    """Asset model for creation."""
-
-    entity_type: EntityType
-    created_by_id: uuid.UUID
-    updated_by_id: uuid.UUID
-
-    @model_validator(mode="after")
-    def ensure_entity_type_label_consistency(self):
-        """Asset label must be within the allowed labels for the entity_type."""
-        allowed_asset_labels = ALLOWED_ASSET_LABELS_PER_ENTITY.get(self.entity_type, None)
-
-        if allowed_asset_labels is None:
-            msg = f"There are no allowed asset labels defined for '{self.entity_type}'"
-            raise ValueError(msg)
-
-        if self.label not in allowed_asset_labels:
-            msg = (
-                f"Asset label '{self.label}' is not allowed for entity type '{self.entity_type}'. "
-                f"Allowed asset labels: {sorted(label.value for label in allowed_asset_labels)}"
-            )
-            raise ValueError(msg)
-
-        _raise_on_label_requirement(self, allowed_asset_labels[self.label])
-
-        return self
 
 
 class AssetRegister(AssetBase):
@@ -176,38 +223,69 @@ class AssetRegister(AssetBase):
         return v
 
 
-class AssetsMixin(BaseModel):
+class AssetsMixin:
     assets: list[AssetRead]
 
 
-class DirectoryUpload(BaseModel):
-    directory_name: Path
-    files: list[Path]
-    meta: dict | None
+class DirectoryUploadRequest(Schema):
+    directory_name: Annotated[
+        PathComponentStr,
+        Field(
+            description="Name of the directory to be uploaded. Nested directories aren't allowed.",
+            min_length=1,
+        ),
+    ]
+    files: Annotated[
+        list[RelativePathStr],
+        Field(
+            description="List of filenames to be uploaded, relative to the base directory.",
+            min_length=1,
+        ),
+    ]
+    meta: dict | None = None
     label: AssetLabel
 
+    @model_validator(mode="after")
+    def verify_children(self):
+        """Verify the validity of the children."""
+        unique_filenames = set(self.files)
+        if len(unique_filenames) != len(self.files):
+            msg = "Filenames must be unique within the directory."
+            raise ValueError(msg)
+        return self
 
-class DetailedFile(BaseModel):
+
+class DetailedFile(Schema):
     name: str
     size: int
-    last_modified: datetime.datetime
+    last_modified: datetime
 
 
-class DetailedFileList(BaseModel):
+class DetailedFileList(Schema):
     files: dict[Path, DetailedFile]
 
 
-class AssetAndPresignedURLS(BaseModel):
+class AssetAndPresignedURLS(Schema):
     asset: AssetRead
     files: dict[Path, AnyUrl]
 
 
-class InitiateUploadRequest(BaseModel):
-    filename: Annotated[str, Field(description="File name to be uploaded.")]
-    filesize: Annotated[int, Field(description="File size to be uploaded in bytes.", gt=0)]
-    sha256_digest: str
+class MultipartUploadInitiateRequest(Schema):
+    filename: Annotated[
+        PathComponentStr,
+        Field(description="File name to be uploaded."),
+    ]
+    filesize: Annotated[
+        int,
+        Field(
+            description="File size to be uploaded in bytes.",
+            gt=0,
+            lt=settings.S3_MULTIPART_UPLOAD_MAX_SIZE,
+        ),
+    ]
+    sha256_digest: Sha256Digest
     content_type: Annotated[
-        str | None,
+        ContentType | None,
         Field(
             description=(
                 "Content type of file. "
@@ -219,3 +297,74 @@ class InitiateUploadRequest(BaseModel):
     preferred_part_count: Annotated[int, Field(description="Hint of desired part count.")] = (
         settings.S3_MULTIPART_UPLOAD_DEFAULT_PARTS
     )
+
+
+class MultipartDirectoryFileRequest(Schema):
+    filename: Annotated[
+        RelativePathStr,
+        Field(description="File name to be uploaded, relative to the base directory."),
+    ]
+    filesize: Annotated[
+        int,
+        Field(
+            description="File size to be uploaded in bytes.",
+            ge=0,
+            lt=settings.S3_MULTIPART_UPLOAD_MAX_SIZE,
+        ),
+    ]
+    sha256_digest: Sha256Digest
+    content_type: Annotated[
+        ContentType | None,
+        Field(
+            description=(
+                "Content type of file. "
+                "If not provided it will be deduced from the file's extension."
+            )
+        ),
+    ] = None
+    label: Literal[AssetLabel.directory_child] = AssetLabel.directory_child
+    preferred_part_count: Annotated[int, Field(description="Hint of desired part count.")] = (
+        settings.S3_MULTIPART_UPLOAD_DEFAULT_PARTS
+    )
+
+
+class MultipartDirectoryUploadRequest(Schema):
+    """Request schema for initiating a multipart directory upload.
+
+    Similar to DirectoryUploadRequest schema, but with additional information for multipart uploads.
+    """
+
+    directory_name: Annotated[
+        PathComponentStr,
+        Field(
+            description="Name of the directory to be uploaded. Nested directories are not allowed.",
+        ),
+    ]
+    files: Annotated[
+        list[MultipartDirectoryFileRequest],
+        Field(
+            description="List of files to be uploaded inside the directory.",
+            min_length=1,
+        ),
+    ]
+    meta: dict | None = None
+    label: AssetLabel
+
+    @model_validator(mode="after")
+    def verify_children(self):
+        """Verify the validity of the children."""
+        unique_filenames = {file.filename for file in self.files}
+        if len(unique_filenames) != len(self.files):
+            msg = "Filenames must be unique within the directory."
+            raise ValueError(msg)
+        return self
+
+
+class MultipartDirectoryUploadResponse(Schema):
+    """Response schema after initiating a multipart directory upload.
+
+    Similar to AssetAndPresignedURLS schema, but with additional information for multipart uploads.
+    """
+
+    asset: AssetRead
+    files: list[AssetReadWithUploadMeta]

@@ -6,6 +6,10 @@ from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.ion_channel import NestedIonChannelFilter, NestedIonChannelFilterDep
 from app.filters.scientific_artifact import ScientificArtifactFilter
+from app.filters.validation_result import (
+    NestedValidationResultFilter,
+    NestedValidationResultFilterDep,
+)
 
 
 class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSearchFilterMixin):
@@ -17,14 +21,17 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILike
     temperature__lte: float | None = None
     temperature__gte: float | None = None
     ion_channel: Annotated[NestedIonChannelFilter | None, NestedIonChannelFilterDep] = None
+    validation_result: Annotated[
+        NestedValidationResultFilter | None, NestedValidationResultFilterDep
+    ] = None
     cell_line: str | None = None
     cell_line__ilike: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelRecording
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",

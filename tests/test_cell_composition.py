@@ -28,14 +28,14 @@ def json_data(brain_region_id, species_id):
 
 
 @pytest.fixture
-def cell_composition_id(db, json_data, person_id):
+def cell_composition_id(db, json_data, user_id):
     row = add_db(
         db,
         CellComposition(
             **json_data
             | {
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -49,7 +49,9 @@ def test_create_one(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.cell_composition)
+    check_entity_read_response(
+        data=data, json_data=json_data, expected_entity_type=EntityType.cell_composition
+    )
 
 
 def test_read_one(client, client_admin, cell_composition_id):
@@ -78,7 +80,7 @@ def test_read_many(clients, json_data):
     )
 
 
-def test_filtering(client, db, brain_region_id, species_id, person_id):
+def test_filtering(client, db, brain_region_id, species_id, user_id):
     row1 = add_db(
         db,
         CellComposition(
@@ -86,8 +88,8 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
             description="my-description-1",
             brain_region_id=brain_region_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_project_id=PROJECT_ID,
         ),
     )
@@ -98,8 +100,8 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
             description="my-description-2",
             brain_region_id=brain_region_id,
             species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
+            created_by_id=user_id,
+            updated_by_id=user_id,
             authorized_project_id=PROJECT_ID,
         ),
     )
@@ -115,7 +117,7 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+        params={"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == 2
 
@@ -132,6 +134,11 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         params={"ilike_search": "*composition-1"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == 2
 
 
 def test_delete_one(db, clients, json_data):

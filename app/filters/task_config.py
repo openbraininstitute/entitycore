@@ -20,16 +20,24 @@ class NestedTaskConfigFilter(TaskConfigFilterBase):
         model = TaskConfig
 
 
+NestedTaskConfigGeneratorFilterDep = FilterDepends(
+    with_prefix("task_config_generator", NestedTaskConfigFilter)
+)
+
+
 class TaskConfigFilter(EntityFilterMixin, TaskConfigFilterBase, ILikeSearchFilterMixin):
     task_config_generator_id: uuid.UUID | None = None
     task_config_generator_id__in: list[uuid.UUID] | None = None
+    task_config_generator: Annotated[
+        NestedTaskConfigFilter | None,
+        NestedTaskConfigGeneratorFilterDep,
+    ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = TaskConfig
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 TaskConfigFilterDep = Annotated[TaskConfigFilter, FilterDepends(TaskConfigFilter)]
-NestedTaskConfigFilterDep = FilterDepends(with_prefix("task_config", NestedTaskConfigFilter))

@@ -13,7 +13,7 @@ from sqlalchemy.orm import (
 
 from app.db.auth import (
     constrain_entity_query_to_project,
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
 from app.db.model import (
@@ -22,16 +22,16 @@ from app.db.model import (
     MeasurementKind,
     MeasurementLabel,
 )
-from app.db.utils import MEASURABLE_ENTITIES
+from app.db.utils import MEASURABLE_ENTITIES, MeasurableEntityType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode
+from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.measurement_annotation import (
     MeasurementAnnotationFilterDep,
 )
+from app.queries import crud
 from app.queries.common import (
-    router_admin_delete_one,
     router_create_one,
     router_read_many,
     router_read_one,
@@ -39,32 +39,32 @@ from app.queries.common import (
 )
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
+from app.queries.utils import is_user_authorized_for_deletion
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationAdminUpdate,
     MeasurementAnnotationCreate,
     MeasurementAnnotationRead,
     MeasurementAnnotationUserUpdate,
+    MeasurementKindCreate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
-def _update_measurement_label_ids(
-    db: SessionDep, measurement_annotation: MeasurementAnnotationCreate
-) -> MeasurementAnnotationCreate:
-    """Update measurement_label_id for each measurement_kind, based on the provided pref_label.
-
-    Any existing ``measurement_kind.measurement_label_id`` is ignored and overridden if present.
-    """
-    labels = {kind.pref_label for kind in measurement_annotation.measurement_kinds}
+def _resolve_and_set_measurement_label_ids(
+    *,
+    db: SessionDep,
+    entity_type: MeasurableEntityType,
+    measurement_kinds: list[MeasurementKindCreate],
+) -> None:
+    labels = {kind.pref_label for kind in measurement_kinds}
     query = sa.select(MeasurementLabel.pref_label, MeasurementLabel.id).where(
-        MeasurementLabel.entity_type == measurement_annotation.entity_type,
+        MeasurementLabel.entity_type == entity_type,
     )
     allowed_labels = {row.pref_label: row.id for row in db.execute(query)}
     if invalid_labels := labels.difference(allowed_labels):
         raise ApiError(
-            message=(
-                f"Invalid measurement labels for entity type {measurement_annotation.entity_type}"
-            ),
+            message=f"Invalid measurement labels for entity type {entity_type}",
             error_code=ApiErrorCode.INVALID_REQUEST,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             details={
@@ -72,8 +72,50 @@ def _update_measurement_label_ids(
                 "allowed_labels": sorted(allowed_labels),
             },
         )
-    for measurement_kind in measurement_annotation.measurement_kinds:
+    for measurement_kind in measurement_kinds:
         measurement_kind.measurement_label_id = allowed_labels[measurement_kind.pref_label]
+
+
+def _update_measurement_label_ids_on_create(
+    db: SessionDep, measurement_annotation: MeasurementAnnotationCreate
+) -> MeasurementAnnotationCreate:
+    """Update measurement_label_id for each measurement_kind, based on the provided pref_label.
+
+    Any existing ``measurement_kind.measurement_label_id`` is ignored and overridden if present.
+    """
+    _resolve_and_set_measurement_label_ids(
+        db=db,
+        entity_type=measurement_annotation.entity_type,
+        measurement_kinds=list(measurement_annotation.measurement_kinds),
+    )
+    return measurement_annotation
+
+
+def _update_measurement_label_ids_on_update(
+    db: SessionDep,
+    id_: uuid.UUID,
+    measurement_annotation: MeasurementAnnotationUserUpdate,
+) -> MeasurementAnnotationUserUpdate:
+    if measurement_annotation.measurement_kinds is None:
+        return measurement_annotation
+
+    entity_type = measurement_annotation.entity_type
+    if entity_type is None:
+        query = sa.select(MeasurementAnnotation.entity_type).where(MeasurementAnnotation.id == id_)
+        str_entity_type = db.execute(query).scalar_one_or_none()
+        if str_entity_type is None:
+            raise ApiError(
+                message=f"MeasurementAnnotation {id_} not found",
+                error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+                http_status_code=HTTPStatus.NOT_FOUND,
+            )
+        entity_type = MeasurableEntityType(str_entity_type)
+
+    _resolve_and_set_measurement_label_ids(
+        db=db,
+        entity_type=entity_type,
+        measurement_kinds=list(measurement_annotation.measurement_kinds),
+    )
     return measurement_annotation
 
 
@@ -105,21 +147,19 @@ def read_many(
     filter_model: MeasurementAnnotationFilterDep,
     pagination_request: PaginationQuery,
 ) -> ListResponse[MeasurementAnnotationRead]:
-    apply_filter_query_operations = lambda q: constrain_to_readable_entities(
-        q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
+    apply_filter_query_operations = lambda q: constrain_to_readable_entities_by_project(
+        query=q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
         project_id=user_context.project_id,
     )
     facet_keys = []
     filter_keys = [
-        "measurement_kind",
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
     )
     return router_read_many(
         db=db,
@@ -128,19 +168,19 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=_load_from_db_with_entity,
         pagination_request=pagination_request,
         response_schema_class=MeasurementAnnotationRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
 def admin_read_many(
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
     db: SessionDep,
     filter_model: MeasurementAnnotationFilterDep,
     pagination_request: PaginationQuery,
@@ -150,15 +190,13 @@ def admin_read_many(
     )
     facet_keys = []
     filter_keys = [
-        "measurement_kind",
         "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
     ]
-    name_to_facet_query_params, filter_joins = query_params_factory(
+    name_to_facet_query_params, join_specs, aliases = query_params_factory(
         db_model_class=MeasurementAnnotation,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
     )
     return router_read_many(
         db=db,
@@ -167,14 +205,14 @@ def admin_read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=_load_from_db_with_entity,
         pagination_request=pagination_request,
         response_schema_class=MeasurementAnnotationRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        filter_joins=filter_joins,
+        join_specs=join_specs,
     )
 
 
@@ -185,7 +223,7 @@ def read_one(
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_readable_entities(q, project_id=user_context.project_id)
+        q = constrain_to_readable_entities_by_project(query=q, project_id=user_context.project_id)
         return _load_from_db(q=q)
 
     return router_read_one(
@@ -221,12 +259,12 @@ def create_one(
     db: SessionDep,
     measurement_annotation: Annotated[
         MeasurementAnnotationCreate,
-        Depends(_update_measurement_label_ids),
+        Depends(_update_measurement_label_ids_on_create),
     ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
+        q = constrain_entity_query_to_project(query=q, project_id=user_context.project_id)
         return _load_from_db(q=q)
 
     _entity = get_writable_entity(
@@ -247,41 +285,48 @@ def create_one(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> MeasurementAnnotationRead:
-    def apply_operations(q):
-        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
-        return _load_from_db(q=q)
+) -> DeleteResponse:
 
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-        user_context=None,  # validated with apply_operations
-        response_schema_class=MeasurementAnnotationRead,
-        apply_operations=apply_operations,
+    query = (
+        sa.select(MeasurementAnnotation)
+        .where(MeasurementAnnotation.id == id_)
+        .options(selectinload(MeasurementAnnotation.entity), raiseload("*"))
     )
-    router_admin_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-    )
-    return one
+
+    with ensure_result(error_message="MeasurementAnnotation not found"):
+        annotation = db.execute(query).unique().scalar_one()
+
+    # use entity's authorized_project_id for authorization
+    if not is_user_authorized_for_deletion(db, user_context, annotation.entity):
+        raise ApiError(
+            message="User is not authorized to access resource.",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
+    crud.delete_one(db=db, row=annotation)
+
+    return DeleteResponse(id=id_)
 
 
 def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MeasurementAnnotationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: Annotated[
+        MeasurementAnnotationUserUpdate,
+        Depends(_update_measurement_label_ids_on_update),
+    ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         entity_alias = aliased(Entity)
         q = q.join(entity_alias, entity_alias.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_writable_entities(q, user_context, db_model_class=entity_alias)
+        q = constrain_to_writable_entities(
+            query=q, user_context=user_context, db_model_class=entity_alias
+        )
         return _load_from_db_with_entity(q=q)
 
     return router_update_one(
@@ -300,7 +345,10 @@ def admin_update_one(
     user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MeasurementAnnotationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: Annotated[
+        MeasurementAnnotationAdminUpdate,
+        Depends(_update_measurement_label_ids_on_update),
+    ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         entity_alias = aliased(Entity)

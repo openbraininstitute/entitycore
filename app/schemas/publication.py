@@ -1,12 +1,11 @@
 from typing import TypedDict
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import field_validator
 
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    CreationMixin,
-    IdentifiableMixin,
+    Schema,
 )
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 from app.utils.doi import is_doi
 
@@ -18,8 +17,7 @@ class Author(TypedDict):
     family_name: str
 
 
-class PublicationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class PublicationBase(Schema):
     DOI: str
     title: str | None = None
     authors: list[Author] | None = None
@@ -27,7 +25,7 @@ class PublicationBase(BaseModel):
     abstract: str | None = None
 
 
-class PublicationCreate(PublicationBase):
+class PublicationCreate(PublicationBase, IdentifiableCreate):
     """Create model for publication."""
 
     @field_validator("DOI", mode="before")
@@ -49,14 +47,13 @@ PublicationAdminUpdate = make_update_schema(
 
 class NestedPublicationRead(
     PublicationBase,
-    IdentifiableMixin,
+    NestedIdentifiableRead,
 ):
     """Read model for nested publication."""
 
 
 class PublicationRead(
-    NestedPublicationRead,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
+    PublicationBase,
+    IdentifiableRead,
 ):
     """Read model for publication."""

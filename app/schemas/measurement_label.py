@@ -1,26 +1,20 @@
-from pydantic import ConfigDict
-
 from app.db.utils import MeasurableEntityType
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import AnnotationBase
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
 from app.schemas.utils import make_update_schema
 
 
 class MeasurementLabelBase(AnnotationBase):
-    model_config = ConfigDict(from_attributes=True)
     entity_type: MeasurableEntityType
 
 
-class MeasurementLabelCreate(MeasurementLabelBase):
+class MeasurementLabelCreate(MeasurementLabelBase, IdentifiableCreate):
     pass
 
 
 class MeasurementLabelRead(
     MeasurementLabelBase,
-    IdentifiableMixin,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
+    IdentifiableRead,
 ):
     pass
 

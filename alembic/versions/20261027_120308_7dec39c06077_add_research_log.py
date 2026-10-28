@@ -47,11 +47,11 @@ def upgrade() -> None:
         enum_name="entitytype",
         new_value="research_log",
     )
-    # Use explicit SQL for the values inserted before an existing value, because add_enum_value
-    # with before_value in alembic-postgresql-enum 1.11 renders ADD VALUE ... AFTER, see
-    # https://github.com/Pogchamp-company/alembic-postgresql-enum/issues/142
-    op.execute(
-        "ALTER TYPE public.contenttype ADD VALUE 'text/markdown' BEFORE 'application/octet-stream'"
+    op.add_enum_value(
+        enum_schema="public",
+        enum_name="contenttype",
+        new_value="text/markdown",
+        before_value="application/octet-stream",
     )
     op.add_enum_value(
         enum_schema="public",
@@ -63,11 +63,17 @@ def upgrade() -> None:
         enum_name="assetlabel",
         new_value="research_log_files",
     )
-    op.execute(
-        "ALTER TYPE public.derivationtype ADD VALUE 'research_log_input' BEFORE 'unspecified'"
+    op.add_enum_value(
+        enum_schema="public",
+        enum_name="derivationtype",
+        new_value="research_log_input",
+        before_value="unspecified",
     )
-    op.execute(
-        "ALTER TYPE public.derivationtype ADD VALUE 'research_log_output' BEFORE 'unspecified'"
+    op.add_enum_value(
+        enum_schema="public",
+        enum_name="derivationtype",
+        new_value="research_log_output",
+        before_value="unspecified",
     )
     # ### end Alembic commands ###
 

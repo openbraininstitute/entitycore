@@ -76,16 +76,9 @@ def test_get_derived_from(
     public_root_circuit,
     root_circuit_json_data,
 ):
-    # Create source circuits (used) for the typed derivations.
-    # Source/target circuits use circuit_extraction / circuit_rewiring
-    # (circuit -> circuit), and a single unspecified derivation goes to a
-    # private target. Direct DB inserts via add_all_db bypass the create-time
-    # type validator, but the data still satisfies it for consistency.
     source_ids = [
         _add_source_circuit(db, root_circuit_json_data, user_id, f"source-{i}").id for i in range(6)
     ]
-    # A private target circuit (owned by PROJECT_ID) used to check authorization:
-    # user_2 must not be able to read its derivations.
     private_target = _add_source_circuit(
         db, root_circuit_json_data, user_id, "private-target", public=False
     )
@@ -113,7 +106,7 @@ def test_get_derived_from(
         + [
             Derivation(
                 used_id=source_ids[5],
-                generated_id=private_target.id,  # private
+                generated_id=private_target.id,
                 derivation_type=DerivationType.unspecified,
                 created_by_id=user_id,
                 updated_by_id=user_id,

@@ -72,11 +72,6 @@ def validate_derivation_entity_types(
 
     Raises:
         ValueError: if any of the entity types is not allowed for the derivation type.
-
-    Example:
-        >>> validate_derivation_entity_types(
-        ...     DerivationType.circuit_extraction, EntityType.circuit, EntityType.circuit
-        ... )
     """
     allowed = ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE[derivation_type]
     for role, entity_type, allowed_types in (

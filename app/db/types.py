@@ -1,5 +1,6 @@
 # app/db/types.py
 
+import re
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
@@ -309,8 +310,7 @@ class DerivationType(StrEnum):
     Attributes:
         circuit_customization: Indicates that a circuit entity was derived from another circuit by
           customizing certain components. The optional ``label`` field specifies the type of
-          customization, such as ``synaptic_modification``, ``emodel_addition``,
-          ``emodel_modification``, ``population_modification``.
+          customization, as one of the values of ``CircuitCustomizationLabel``.
         circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from
          a circuit.
         circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
@@ -329,8 +329,8 @@ class DerivationType(StrEnum):
           session described by a ResearchLog (generated).
         unspecified: Indicates a derivation that does not require a specific type.
 
-    The entity types allowed for each derivation type are defined in
-    ``ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE``.
+    The entity types and labels allowed for each derivation type are defined in
+    ``DERIVATION_TYPE_RULES``.
     """
 
     circuit_customization = auto()
@@ -344,53 +344,85 @@ class DerivationType(StrEnum):
     unspecified = auto()
 
 
-class DerivationEntityTypes(BaseModel):
-    """Entity types allowed for the used and generated entities of a derivation.
+class CircuitCustomizationLabel(StrEnum):
+    """Labels of circuit_customization derivations, for the type of customization."""
 
-    A value of None means that any entity type is allowed.
+    synaptic_modification = auto()
+    emodel_addition = auto()
+    emodel_modification = auto()
+    population_modification = auto()
+
+
+class DerivationLabelRule(BaseModel):
+    """Labels allowed for a derivation type.
+
+    Attributes:
+        pattern: regular expression that the whole label must match.
+        description: description of the allowed labels, used in error messages.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    pattern: re.Pattern[str]
+    description: str
+
+
+class DerivationTypeRules(BaseModel):
+    """Entity types and labels allowed for a derivation type.
+
+    A value of None means that any entity type, or any label, is allowed.
     """
 
     model_config = ConfigDict(frozen=True)
 
     used: frozenset[EntityType] | None
     generated: frozenset[EntityType] | None
+    label: DerivationLabelRule | None = None
 
 
-ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityTypes] = {
-    DerivationType.circuit_customization: DerivationEntityTypes(
+DERIVATION_TYPE_RULES: dict[DerivationType, DerivationTypeRules] = {
+    DerivationType.circuit_customization: DerivationTypeRules(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+        label=DerivationLabelRule(
+            pattern=re.compile("|".join(re.escape(label) for label in CircuitCustomizationLabel)),
+            description=f"one of {sorted(label.value for label in CircuitCustomizationLabel)}",
+        ),
+    ),
+    DerivationType.circuit_extraction: DerivationTypeRules(
         used=frozenset({EntityType.circuit}),
         generated=frozenset({EntityType.circuit}),
     ),
-    DerivationType.circuit_extraction: DerivationEntityTypes(
+    DerivationType.circuit_rewiring: DerivationTypeRules(
         used=frozenset({EntityType.circuit}),
         generated=frozenset({EntityType.circuit}),
     ),
-    DerivationType.circuit_rewiring: DerivationEntityTypes(
+    DerivationType.circuit_simplification: DerivationTypeRules(
         used=frozenset({EntityType.circuit}),
         generated=frozenset({EntityType.circuit}),
     ),
-    DerivationType.circuit_simplification: DerivationEntityTypes(
-        used=frozenset({EntityType.circuit}),
-        generated=frozenset({EntityType.circuit}),
-    ),
-    DerivationType.emodel_circuit: DerivationEntityTypes(
+    DerivationType.emodel_circuit: DerivationTypeRules(
         used=frozenset({EntityType.emodel}),
         generated=frozenset({EntityType.circuit}),
+        label=DerivationLabelRule(
+            pattern=re.compile(r"hoc:[A-Za-z0-9_]+"),
+            description="'hoc:<template_name>' (e.g. 'hoc:cADpyr_L5TPC')",
+        ),
     ),
-    DerivationType.em_dense_reconstruction_dataset_cell_morphology: DerivationEntityTypes(
+    DerivationType.em_dense_reconstruction_dataset_cell_morphology: DerivationTypeRules(
         used=frozenset({EntityType.em_dense_reconstruction_dataset}),
         generated=frozenset({EntityType.cell_morphology}),
     ),
-    DerivationType.research_log_input: DerivationEntityTypes(
+    DerivationType.research_log_input: DerivationTypeRules(
         used=None,
         generated=frozenset({EntityType.research_log}),
     ),
-    DerivationType.research_log_output: DerivationEntityTypes(
+    DerivationType.research_log_output: DerivationTypeRules(
         used=None,
         generated=frozenset({EntityType.research_log}),
     ),
     # placeholder used by existing derivations, to be replaced by dedicated derivation types
-    DerivationType.unspecified: DerivationEntityTypes(used=None, generated=None),
+    DerivationType.unspecified: DerivationTypeRules(used=None, generated=None),
 }
 
 

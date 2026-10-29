@@ -5,6 +5,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, cast
 
 import sqlalchemy as sa
+from pydantic import BaseModel
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
@@ -31,6 +32,7 @@ from app.queries.common import (
 )
 from app.queries.entity import get_accessible_entity, get_writable_entity
 from app.queries.factory import query_params_factory
+from app.queries.types import ApplyOperations
 from app.queries.utils import is_user_authorized_for_deletion
 from app.schemas.derivation import (
     DerivationAdminUpdate,
@@ -38,6 +40,7 @@ from app.schemas.derivation import (
     DerivationRead,
     DerivationUserUpdate,
     validate_derivation_entity_types,
+    validate_derivation_label,
 )
 from app.schemas.entity import BasicEntityRead
 from app.schemas.routers import DeleteResponse
@@ -186,6 +189,32 @@ def admin_read_one(
     )
 
 
+def _update_one(
+    *,
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: BaseModel,
+    apply_operations: ApplyOperations,
+) -> DerivationRead:
+    derivation = router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Derivation,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=DerivationRead,
+        apply_operations=apply_operations,
+        check_authorized_project=False,
+    )
+    # the derivation type is not in the payload, so the label is validated after the update
+    # against the stored type: if the label is invalid, the transaction is rolled back
+    if "label" in json_model.model_fields_set:
+        with ensure_valid_schema("Derivation schema is invalid"):
+            validate_derivation_label(derivation.derivation_type, derivation.label)
+    return derivation
+
+
 def update_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -200,15 +229,12 @@ def update_one(
         )
         return _load(q)
 
-    return router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=Derivation,
+    return _update_one(
         user_context=user_context,
+        db=db,
+        id_=id_,
         json_model=json_model,
-        response_schema_class=DerivationRead,
         apply_operations=apply_operations,
-        check_authorized_project=False,  # checked with apply_operations
     )
 
 
@@ -217,16 +243,13 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: DerivationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-):
-    return router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=Derivation,
+) -> DerivationRead:
+    return _update_one(
         user_context=user_context,
+        db=db,
+        id_=id_,
         json_model=json_model,
-        response_schema_class=DerivationRead,
         apply_operations=_load,
-        check_authorized_project=False,
     )
 
 
@@ -364,6 +387,7 @@ def create_one(
         validate_derivation_entity_types(
             json_model.derivation_type, used_entity.type, generated_entity.type
         )
+        validate_derivation_label(json_model.derivation_type, json_model.label)
     return router_create_one(
         db=db,
         json_model=json_model,

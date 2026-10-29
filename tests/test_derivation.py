@@ -53,15 +53,15 @@ def _add_derivation(
     )
 
 
-def _add_source_circuit(db, root_circuit_json_data, person_id, name, *, public=True):
+def _add_source_circuit(db, root_circuit_json_data, user_id, name, *, public=True):
     return add_db(
         db,
         Circuit(
             **root_circuit_json_data
             | {
                 "name": name,
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": public,
             }
@@ -223,7 +223,7 @@ def test_derived_from_entity_filter(
             Derivation(
                 used_id=trace_ids[i],
                 generated_id=public_emodel_id,
-                derivation_type=DerivationType.circuit_extraction,
+                derivation_type=DerivationType.unspecified,
                 created_by_id=user_id,
                 updated_by_id=user_id,
             )
@@ -235,7 +235,7 @@ def test_derived_from_entity_filter(
         clients.user_1.get,
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={
-            "derivation_type": DerivationType.circuit_extraction,
+            "derivation_type": DerivationType.unspecified,
             "type": "electrical_cell_recording",
         },
     ).json()["data"]
@@ -246,7 +246,7 @@ def test_derived_from_entity_filter(
         clients.user_1.get,
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={
-            "derivation_type": DerivationType.circuit_extraction,
+            "derivation_type": DerivationType.unspecified,
             "order_by": "creation_date",
         },
     ).json()["data"]
@@ -256,7 +256,7 @@ def test_derived_from_entity_filter(
         clients.user_1.get,
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={
-            "derivation_type": DerivationType.circuit_extraction,
+            "derivation_type": DerivationType.unspecified,
             "order_by": "-creation_date",
         },
     ).json()["data"]
@@ -425,7 +425,7 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
         (root_circuit, circuit, DerivationType.circuit_extraction, None, alice),
         (root_circuit, public_circuit, DerivationType.circuit_rewiring, "label-b", bob),
         (circuit, public_circuit, DerivationType.circuit_customization, "label-a", alice),
-        (public_circuit, circuit, DerivationType.emodel_circuit, "label-c", bob),
+        (public_circuit, circuit, DerivationType.circuit_simplification, "label-c", bob),
         (public_circuit, root_circuit, DerivationType.unspecified, None, alice),
         (circuit, root_circuit, DerivationType.circuit_extraction, "label-c", bob),
     ]
@@ -814,16 +814,14 @@ def test_create_invalid_label_for_derivation_type(
 
 
 @pytest.mark.parametrize(
-    ("derivation_type", "use_emodel_as_used", "use_emodel_as_generated"),
+    ("derivation_type", "used", "generated", "invalid_role"),
     [
-        # circuit-only types reject emodel as the used entity
-        ("circuit_extraction", True, False),
-        ("circuit_rewiring", True, False),
-        ("circuit_customization", True, False),
-        # emodel_circuit rejects circuit as used
-        ("emodel_circuit", False, False),
-        # emodel_circuit rejects emodel as generated
-        ("emodel_circuit", True, True),
+        ("circuit_extraction", "emodel", "circuit", "used"),
+        ("circuit_rewiring", "emodel", "circuit", "used"),
+        ("circuit_customization", "emodel", "circuit", "used"),
+        ("circuit_simplification", "root_circuit", "public_emodel", "generated"),
+        ("emodel_circuit", "root_circuit", "circuit", "used"),
+        ("emodel_circuit", "emodel", "public_emodel", "generated"),
     ],
 )
 def test_create_invalid_entity_types_for_derivation_type(
@@ -833,22 +831,61 @@ def test_create_invalid_entity_types_for_derivation_type(
     root_circuit,
     circuit,
     derivation_type,
-    use_emodel_as_used,
-    use_emodel_as_generated,
+    used,
+    generated,
+    invalid_role,
 ):
-    used_id = str(emodel_id) if use_emodel_as_used else str(root_circuit.id)
-    generated_id = str(public_emodel_id) if use_emodel_as_generated else str(circuit.id)
+    entity_ids = {
+        "emodel": str(emodel_id),
+        "public_emodel": str(public_emodel_id),
+        "root_circuit": str(root_circuit.id),
+        "circuit": str(circuit.id),
+    }
     data = assert_request(
         client.post,
-        url="/derivation",
+        url=ROUTE,
         json={
-            "used_id": used_id,
-            "generated_id": generated_id,
+            "used_id": entity_ids[used],
+            "generated_id": entity_ids[generated],
             "derivation_type": derivation_type,
         },
         expected_status_code=422,
     ).json()
     assert data["error_code"] == "INVALID_REQUEST"
+    assert data["message"] == "Derivation schema is invalid"
+    assert len(data["details"]) == 1
+    assert f"requires {invalid_role} entity type" in data["details"][0]
+
+
+@pytest.mark.parametrize(
+    ("used", "generated"),
+    [
+        ("emodel", "circuit"),
+        ("public_emodel", "emodel"),
+        ("root_circuit", "circuit"),
+    ],
+)
+def test_create_unspecified_allows_any_entity_types(
+    client, emodel_id, public_emodel_id, root_circuit, circuit, used, generated
+):
+    entity_ids = {
+        "emodel": str(emodel_id),
+        "public_emodel": str(public_emodel_id),
+        "root_circuit": str(root_circuit.id),
+        "circuit": str(circuit.id),
+    }
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "used_id": entity_ids[used],
+            "generated_id": entity_ids[generated],
+            "derivation_type": DerivationType.unspecified,
+        },
+    ).json()
+    assert data["used"]["id"] == entity_ids[used]
+    assert data["generated"]["id"] == entity_ids[generated]
+    assert data["derivation_type"] == DerivationType.unspecified
 
 
 def test_create_invalid_data(client, root_circuit, circuit):

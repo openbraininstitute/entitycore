@@ -150,6 +150,7 @@ class EntityType(StrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     task_config = auto()
+    research_log = auto()
 
 
 class TaskResultType(StrEnum):
@@ -322,6 +323,10 @@ class DerivationType(StrEnum):
           (generated) was reconstructed from an EM dense reconstruction dataset (used).
         circuit_simplification: Indicates that a circuit entity was derived by simplifying
           the biophysical complexity of another circuit while preserving network connectivity.
+        research_log_input: Indicates that an entity (used) was an input of the research session
+          described by a ResearchLog (generated).
+        research_log_output: Indicates that an entity (used) was produced during the research
+          session described by a ResearchLog (generated).
         unspecified: Indicates a derivation that does not require a specific type.
 
     The entity types allowed for each derivation type are defined in
@@ -334,6 +339,8 @@ class DerivationType(StrEnum):
     emodel_circuit = auto()
     em_dense_reconstruction_dataset_cell_morphology = auto()
     circuit_simplification = auto()
+    research_log_input = auto()
+    research_log_output = auto()
     unspecified = auto()
 
 
@@ -511,6 +518,7 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
+    markdown = "text/markdown"
     other = "application/octet-stream"
 
 
@@ -579,6 +587,8 @@ class AssetLabel(StrEnum):
     efeature_extraction_cells = auto()
     efeature_extraction_protocols = auto()
     current_report = auto()
+    research_log_document = auto()
+    research_log_files = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -622,6 +632,10 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
+    ContentType.markdown: (
+        ".md",
+        ".markdown",
+    ),
     ContentType.other: (),
 }
 
@@ -1141,6 +1155,22 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=True,
                 description="A directory containing all the LOD mesh blocks in glb format.",
             ),
+        ],
+    },
+    EntityType.research_log: {
+        AssetLabel.research_log_document: [
+            LabelRequirements(
+                content_type=ContentType.markdown,
+                is_directory=False,
+                description="Logbook of the research session, in markdown.",
+            )
+        ],
+        AssetLabel.research_log_files: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description="Optional directory with the files referenced by the logbook.",
+            )
         ],
     },
     EntityType.skeletonization_campaign: {

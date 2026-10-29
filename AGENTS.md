@@ -59,6 +59,8 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 
 ## Adding a New Entity
 
+For non-trivial designs, write a design record first (see `docs/design/README.md`).
+
 1. SQLAlchemy model → `app/db/model.py` (docstring with an "Assets:" section)
 2. Enum value → `app/db/types.py` (`EntityType`)
 3. Route → `app/types.py` (`EntityRoute` member named like the `EntityType`; URL value is auto-hyphenated)

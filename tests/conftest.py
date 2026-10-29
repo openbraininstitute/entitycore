@@ -45,6 +45,7 @@ from app.db.model import (
     PlaceholderCellMorphologyProtocol,
     PlatformUser,
     Publication,
+    ResearchLog,
     Role,
     Simulation,
     SimulationCampaign,
@@ -1927,6 +1928,29 @@ def analysis_notebook_result(db, analysis_notebook_result_json_data, user_id):
         db,
         AnalysisNotebookResult(
             **analysis_notebook_result_json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def research_log_json_data():
+    return {
+        "name": "research-log",
+        "description": "research-log-description",
+    }
+
+
+@pytest.fixture
+def research_log(db, research_log_json_data, user_id):
+    return add_db(
+        db,
+        ResearchLog(
+            **research_log_json_data
             | {
                 "created_by_id": user_id,
                 "updated_by_id": user_id,

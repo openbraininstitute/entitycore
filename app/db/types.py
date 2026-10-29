@@ -356,20 +356,23 @@ class DerivationEntityTypes(BaseModel):
     generated: frozenset[EntityType] | None
 
 
-_CIRCUIT_TO_CIRCUIT = DerivationEntityTypes(
-    used=frozenset({EntityType.circuit}),
-    generated=frozenset({EntityType.circuit}),
-)
-_ANY_TO_RESEARCH_LOG = DerivationEntityTypes(
-    used=None,
-    generated=frozenset({EntityType.research_log}),
-)
-
 ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityTypes] = {
-    DerivationType.circuit_customization: _CIRCUIT_TO_CIRCUIT,
-    DerivationType.circuit_extraction: _CIRCUIT_TO_CIRCUIT,
-    DerivationType.circuit_rewiring: _CIRCUIT_TO_CIRCUIT,
-    DerivationType.circuit_simplification: _CIRCUIT_TO_CIRCUIT,
+    DerivationType.circuit_customization: DerivationEntityTypes(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.circuit_extraction: DerivationEntityTypes(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.circuit_rewiring: DerivationEntityTypes(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.circuit_simplification: DerivationEntityTypes(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
     DerivationType.emodel_circuit: DerivationEntityTypes(
         used=frozenset({EntityType.emodel}),
         generated=frozenset({EntityType.circuit}),
@@ -378,8 +381,14 @@ ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityT
         used=frozenset({EntityType.em_dense_reconstruction_dataset}),
         generated=frozenset({EntityType.cell_morphology}),
     ),
-    DerivationType.research_log_input: _ANY_TO_RESEARCH_LOG,
-    DerivationType.research_log_output: _ANY_TO_RESEARCH_LOG,
+    DerivationType.research_log_input: DerivationEntityTypes(
+        used=None,
+        generated=frozenset({EntityType.research_log}),
+    ),
+    DerivationType.research_log_output: DerivationEntityTypes(
+        used=None,
+        generated=frozenset({EntityType.research_log}),
+    ),
     # placeholder used by existing derivations, to be replaced by dedicated derivation types
     DerivationType.unspecified: DerivationEntityTypes(used=None, generated=None),
 }

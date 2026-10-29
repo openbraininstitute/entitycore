@@ -17,6 +17,7 @@ from app.errors import (
     ApiError,
     ApiErrorCode,
     ensure_result,
+    ensure_valid_schema,
 )
 from app.filters.derivation import DerivationFilterDep
 from app.filters.entity import BasicEntityFilterDep
@@ -36,6 +37,7 @@ from app.schemas.derivation import (
     DerivationCreate,
     DerivationRead,
     DerivationUserUpdate,
+    validate_derivation_entity_types,
 )
 from app.schemas.entity import BasicEntityRead
 from app.schemas.routers import DeleteResponse
@@ -346,18 +348,22 @@ def create_one(
 
     See also https://github.com/openbraininstitute/entitycore/issues/427
     """
-    _used_entity = get_accessible_entity(
+    used_entity = get_accessible_entity(
         db,
         Entity,
         json_model.used_id,
         user_context=cast("UserContext", user_context),
     )
-    _generated_entity = get_writable_entity(
+    generated_entity = get_writable_entity(
         db,
         Entity,
         json_model.generated_id,
         user_context.project_id,
     )
+    with ensure_valid_schema("Derivation schema is invalid"):
+        validate_derivation_entity_types(
+            json_model.derivation_type, used_entity.type, generated_entity.type
+        )
     return router_create_one(
         db=db,
         json_model=json_model,

@@ -3,7 +3,7 @@ import uuid
 
 from pydantic import model_validator
 
-from app.db.types import DerivationType
+from app.db.types import ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE, DerivationType, EntityType
 from app.schemas.base import Schema
 from app.schemas.entity import NestedEntityRead
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
@@ -56,6 +56,39 @@ class DerivationCreate(DerivationBase, IdentifiableCreate):
             )
             raise ValueError(msg)
         return self
+
+
+def validate_derivation_entity_types(
+    derivation_type: DerivationType,
+    used_type: EntityType,
+    generated_type: EntityType,
+) -> None:
+    """Validate the types of the used and generated entities against the derivation type.
+
+    Args:
+        derivation_type: type of the derivation.
+        used_type: type of the used entity.
+        generated_type: type of the generated entity.
+
+    Raises:
+        ValueError: if any of the entity types is not allowed for the derivation type.
+
+    Example:
+        >>> validate_derivation_entity_types(
+        ...     DerivationType.circuit_extraction, EntityType.circuit, EntityType.circuit
+        ... )
+    """
+    allowed = ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE[derivation_type]
+    for role, entity_type, allowed_types in (
+        ("used", used_type, allowed.used),
+        ("generated", generated_type, allowed.generated),
+    ):
+        if allowed_types is not None and entity_type not in allowed_types:
+            msg = (
+                f"derivation_type '{derivation_type}' requires {role} entity type "
+                f"to be one of {sorted(t.value for t in allowed_types)}, got '{entity_type}'"
+            )
+            raise ValueError(msg)
 
 
 # core attributes. Instead of changing them, the derivation should be deleted instead

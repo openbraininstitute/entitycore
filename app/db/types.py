@@ -318,9 +318,14 @@ class DerivationType(StrEnum):
           (generated). The optional ``label`` field on the derivation carries the SONATA
           ``model_template`` entry, by convention ``hoc:<template_name>``
           (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
+        em_dense_reconstruction_dataset_cell_morphology: Indicates that a cell morphology
+          (generated) was reconstructed from an EM dense reconstruction dataset (used).
         circuit_simplification: Indicates that a circuit entity was derived by simplifying
           the biophysical complexity of another circuit while preserving network connectivity.
         unspecified: Indicates a derivation that does not require a specific type.
+
+    The entity types allowed for each derivation type are defined in
+    ``ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE``.
     """
 
     circuit_customization = auto()
@@ -330,6 +335,41 @@ class DerivationType(StrEnum):
     em_dense_reconstruction_dataset_cell_morphology = auto()
     circuit_simplification = auto()
     unspecified = auto()
+
+
+class DerivationEntityTypes(BaseModel):
+    """Entity types allowed for the used and generated entities of a derivation.
+
+    A value of None means that any entity type is allowed.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    used: frozenset[EntityType] | None
+    generated: frozenset[EntityType] | None
+
+
+_CIRCUIT_TO_CIRCUIT = DerivationEntityTypes(
+    used=frozenset({EntityType.circuit}),
+    generated=frozenset({EntityType.circuit}),
+)
+
+ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityTypes] = {
+    DerivationType.circuit_customization: _CIRCUIT_TO_CIRCUIT,
+    DerivationType.circuit_extraction: _CIRCUIT_TO_CIRCUIT,
+    DerivationType.circuit_rewiring: _CIRCUIT_TO_CIRCUIT,
+    DerivationType.circuit_simplification: _CIRCUIT_TO_CIRCUIT,
+    DerivationType.emodel_circuit: DerivationEntityTypes(
+        used=frozenset({EntityType.emodel}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.em_dense_reconstruction_dataset_cell_morphology: DerivationEntityTypes(
+        used=frozenset({EntityType.em_dense_reconstruction_dataset}),
+        generated=frozenset({EntityType.cell_morphology}),
+    ),
+    # placeholder used by existing derivations, to be replaced by dedicated derivation types
+    DerivationType.unspecified: DerivationEntityTypes(used=None, generated=None),
+}
 
 
 ResourceType = combine_str_enums(

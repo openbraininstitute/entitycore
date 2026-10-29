@@ -9,7 +9,6 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
 from app.db.model import Derivation, DerivationType, Entity
-from app.db.types import EntityType
 from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -18,6 +17,7 @@ from app.errors import (
     ApiError,
     ApiErrorCode,
     ensure_result,
+    ensure_valid_schema,
 )
 from app.filters.derivation import DerivationFilterDep
 from app.filters.entity import BasicEntityFilterDep
@@ -37,6 +37,7 @@ from app.schemas.derivation import (
     DerivationCreate,
     DerivationRead,
     DerivationUserUpdate,
+    validate_derivation_entity_types,
 )
 from app.schemas.entity import BasicEntityRead
 from app.schemas.routers import DeleteResponse
@@ -46,66 +47,6 @@ from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:
     from app.schemas.auth import UserContext
-
-# Allowed entity types per derivation_type for (used, generated).
-# A value of ``None`` means "no type-specific check" (any entity allowed).
-# ``unspecified`` is intentionally unconstrained: it is currently used as a
-# placeholder for emodel/memodel derivations and will be replaced by dedicated
-# derivation types later.
-_ALLOWED_ENTITY_TYPES: dict[
-    DerivationType, tuple[frozenset[EntityType] | None, frozenset[EntityType] | None]
-] = {
-    DerivationType.circuit_extraction: (
-        frozenset({EntityType.circuit}),
-        frozenset({EntityType.circuit}),
-    ),
-    DerivationType.circuit_rewiring: (
-        frozenset({EntityType.circuit}),
-        frozenset({EntityType.circuit}),
-    ),
-    DerivationType.circuit_customization: (
-        frozenset({EntityType.circuit}),
-        frozenset({EntityType.circuit}),
-    ),
-    DerivationType.emodel_circuit: (
-        frozenset({EntityType.emodel}),
-        frozenset({EntityType.circuit}),
-    ),
-    DerivationType.unspecified: (None, None),
-}
-
-
-def _validate_entity_types(
-    derivation_type: DerivationType,
-    used_entity: Entity,
-    generated_entity: Entity,
-) -> None:
-    """Validate that the used/generated entity types match the derivation_type.
-
-    Raises:
-        ApiError: with ``INVALID_REQUEST`` (HTTP 422) if the types do not match.
-    """
-    allowed_used, allowed_generated = _ALLOWED_ENTITY_TYPES[derivation_type]
-    if allowed_used is not None and used_entity.type not in allowed_used:
-        raise ApiError(
-            message=(
-                f"derivation_type '{derivation_type.value}' requires used entity type "
-                f"to be one of {sorted(t.value for t in allowed_used)}, "
-                f"got '{used_entity.type.value}'"
-            ),
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    if allowed_generated is not None and generated_entity.type not in allowed_generated:
-        raise ApiError(
-            message=(
-                f"derivation_type '{derivation_type.value}' requires generated entity type "
-                f"to be one of {sorted(t.value for t in allowed_generated)}, "
-                f"got '{generated_entity.type.value}'"
-            ),
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
 
 
 def _load(query: sa.Select):
@@ -419,7 +360,10 @@ def create_one(
         json_model.generated_id,
         user_context.project_id,
     )
-    _validate_entity_types(json_model.derivation_type, used_entity, generated_entity)
+    with ensure_valid_schema("Derivation schema is invalid"):
+        validate_derivation_entity_types(
+            json_model.derivation_type, used_entity.type, generated_entity.type
+        )
     return router_create_one(
         db=db,
         json_model=json_model,

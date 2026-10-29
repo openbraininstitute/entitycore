@@ -915,6 +915,22 @@ def test_update_invalid_label_for_derivation_type(db, clients, emodel_id, circui
     assert data["label"] is None
 
 
+@pytest.mark.parametrize("route", [ROUTE, ADMIN_ROUTE])
+def test_update_without_label_keeps_invalid_label(db, clients, emodel_id, circuit, user_id, route):
+    # a label that does not match the rule, inserted directly in the db
+    derivation = _add_derivation(
+        db,
+        used_id=emodel_id,
+        generated_id=circuit.id,
+        user_id=user_id,
+        derivation_type=DerivationType.emodel_circuit,
+        label="cADpyr_L5TPC",
+    )
+    client = clients.user_1 if route == ROUTE else clients.admin
+    data = assert_request(client.patch, url=f"{route}/{derivation.id}", json={}).json()
+    assert data["label"] == "cADpyr_L5TPC"
+
+
 def test_create_invalid_data(client, root_circuit, circuit):
     # test that the derivation type is mandatory
     data = assert_request(

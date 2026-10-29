@@ -234,3 +234,21 @@ def test_derivations(db, client, model, root_circuit, circuit):
     assert count_db_class(db, Derivation) == 0
     assert_request(client.get, url=f"/circuit/{root_circuit.id}")
     assert_request(client.get, url=f"/circuit/{circuit.id}")
+
+
+@pytest.mark.parametrize(
+    "derivation_type", [DerivationType.research_log_input, DerivationType.research_log_output]
+)
+def test_derivation_generated_must_be_research_log(client, model, circuit, derivation_type):
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(model.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": derivation_type,
+        },
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
+    assert "requires generated entity type" in data["details"][0]

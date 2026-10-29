@@ -360,6 +360,10 @@ _CIRCUIT_TO_CIRCUIT = DerivationEntityTypes(
     used=frozenset({EntityType.circuit}),
     generated=frozenset({EntityType.circuit}),
 )
+_ANY_TO_RESEARCH_LOG = DerivationEntityTypes(
+    used=None,
+    generated=frozenset({EntityType.research_log}),
+)
 
 ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityTypes] = {
     DerivationType.circuit_customization: _CIRCUIT_TO_CIRCUIT,
@@ -374,6 +378,8 @@ ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE: dict[DerivationType, DerivationEntityT
         used=frozenset({EntityType.em_dense_reconstruction_dataset}),
         generated=frozenset({EntityType.cell_morphology}),
     ),
+    DerivationType.research_log_input: _ANY_TO_RESEARCH_LOG,
+    DerivationType.research_log_output: _ANY_TO_RESEARCH_LOG,
     # placeholder used by existing derivations, to be replaced by dedicated derivation types
     DerivationType.unspecified: DerivationEntityTypes(used=None, generated=None),
 }

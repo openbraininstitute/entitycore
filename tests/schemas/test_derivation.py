@@ -23,6 +23,8 @@ def test_allowed_entity_types_defined_for_every_derivation_type():
             EntityType.em_dense_reconstruction_dataset,
             EntityType.cell_morphology,
         ),
+        (DerivationType.research_log_input, EntityType.circuit, EntityType.research_log),
+        (DerivationType.research_log_output, EntityType.emodel, EntityType.research_log),
         (DerivationType.unspecified, EntityType.emodel, EntityType.emodel),
         (DerivationType.unspecified, EntityType.circuit, EntityType.cell_morphology),
     ],
@@ -43,6 +45,12 @@ def test_validate_derivation_entity_types(derivation_type, used_type, generated_
             EntityType.circuit,
             EntityType.cell_morphology,
             "used",
+        ),
+        (
+            DerivationType.research_log_input,
+            EntityType.circuit,
+            EntityType.circuit,
+            "generated",
         ),
     ],
 )

@@ -70,7 +70,7 @@ The rounded boxes are derivations, labelled with their `derivation_type`.
 
 - The ResearchLog is always the generated entity, so all its links are on the same side and the type tells inputs from outputs.
 - Links are created with `POST /derivation`, which already requires the linked entity to be readable and the ResearchLog to be writable. They can be added one at a time while the session runs.
-- The entity types are not validated for now: allowed entity types per derivation type are added in [#606](https://github.com/openbraininstitute/entitycore/pull/606), which will restrict the generated entity of these two types to ResearchLog.
+- The generated entity of these two derivation types must be a ResearchLog, and the used entity can be of any type ([#606](https://github.com/openbraininstitute/entitycore/pull/606)).
 
 The existing endpoints are enough to read the links:
 
@@ -108,7 +108,6 @@ Derivations follow the permissions of the ResearchLog (the generated entity), wh
 
 ## Follow-ups
 
-- entitycore: validate the entity types per derivation type ([#606](https://github.com/openbraininstitute/entitycore/pull/606)), including `research_log_input` / `research_log_output`.
 - entitycore: per-project tags with facets, for ResearchLogs and possibly any entity type (separate design).
 - entitysdk: `ResearchLog` model, upload helpers and derivation helpers.
 - Platform: display ResearchLogs under `Reports`, rendering the markdown and resolving relative links against `research_log_files`.

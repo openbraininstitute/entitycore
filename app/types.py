@@ -47,6 +47,7 @@ class EntityRoute(HyphenStrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     task_config = auto()
+    research_log = auto()
 
 
 class GlobalRoute(HyphenStrEnum):

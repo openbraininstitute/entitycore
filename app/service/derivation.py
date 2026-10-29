@@ -38,6 +38,7 @@ from app.schemas.derivation import (
     DerivationRead,
     DerivationUserUpdate,
     validate_derivation_entity_types,
+    validate_derivation_label,
 )
 from app.schemas.entity import BasicEntityRead
 from app.schemas.routers import DeleteResponse
@@ -186,6 +187,17 @@ def admin_read_one(
     )
 
 
+def _validate_updated_label(json_model, derivation: DerivationRead) -> None:
+    """Validate the updated label against the type of the derivation.
+
+    The label is validated after the update because the derivation type is not part of the update
+    payload. If the label is invalid, the transaction is rolled back.
+    """
+    if "label" in json_model.model_fields_set:
+        with ensure_valid_schema("Derivation schema is invalid"):
+            validate_derivation_label(derivation.derivation_type, derivation.label)
+
+
 def update_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -200,7 +212,7 @@ def update_one(
         )
         return _load(q)
 
-    return router_update_one(
+    derivation = router_update_one(
         id_=id_,
         db=db,
         db_model_class=Derivation,
@@ -210,6 +222,8 @@ def update_one(
         apply_operations=apply_operations,
         check_authorized_project=False,  # checked with apply_operations
     )
+    _validate_updated_label(json_model, derivation)
+    return derivation
 
 
 def admin_update_one(
@@ -217,8 +231,8 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: DerivationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-):
-    return router_update_one(
+) -> DerivationRead:
+    derivation = router_update_one(
         id_=id_,
         db=db,
         db_model_class=Derivation,
@@ -228,6 +242,8 @@ def admin_update_one(
         apply_operations=_load,
         check_authorized_project=False,
     )
+    _validate_updated_label(json_model, derivation)
+    return derivation
 
 
 def _read_many_from_entity(
@@ -364,6 +380,7 @@ def create_one(
         validate_derivation_entity_types(
             json_model.derivation_type, used_entity.type, generated_entity.type
         )
+        validate_derivation_label(json_model.derivation_type, json_model.label)
     return router_create_one(
         db=db,
         json_model=json_model,

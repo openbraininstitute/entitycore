@@ -2,12 +2,17 @@ import re
 
 import pytest
 
-from app.db.types import ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE, DerivationType, EntityType
-from app.schemas.derivation import validate_derivation_entity_types
+from app.db.types import (
+    DERIVATION_TYPE_RULES,
+    CircuitCustomizationLabel,
+    DerivationType,
+    EntityType,
+)
+from app.schemas.derivation import validate_derivation_entity_types, validate_derivation_label
 
 
-def test_allowed_entity_types_defined_for_every_derivation_type():
-    assert set(ALLOWED_ENTITY_TYPES_PER_DERIVATION_TYPE) == set(DerivationType)
+def test_rules_defined_for_every_derivation_type():
+    assert set(DERIVATION_TYPE_RULES) == set(DerivationType)
 
 
 @pytest.mark.parametrize(
@@ -68,3 +73,44 @@ def test_validate_derivation_entity_types_message():
         validate_derivation_entity_types(
             DerivationType.emodel_circuit, EntityType.circuit, EntityType.circuit
         )
+
+
+@pytest.mark.parametrize(
+    ("derivation_type", "label"),
+    [
+        (DerivationType.emodel_circuit, "hoc:cADpyr_L5TPC"),
+        (DerivationType.emodel_circuit, None),
+        *((DerivationType.circuit_customization, label) for label in CircuitCustomizationLabel),
+        (DerivationType.circuit_extraction, "any label"),
+        (DerivationType.unspecified, "any label"),
+    ],
+)
+def test_validate_derivation_label(derivation_type, label):
+    validate_derivation_label(derivation_type, label)
+
+
+@pytest.mark.parametrize(
+    ("derivation_type", "label"),
+    [
+        (DerivationType.emodel_circuit, "cADpyr_L5TPC"),
+        (DerivationType.emodel_circuit, "hoc:"),
+        (DerivationType.emodel_circuit, "nml:cADpyr_L5TPC"),
+        (DerivationType.emodel_circuit, "hoc:cADpyr_L5TPC "),
+        (DerivationType.circuit_customization, "unknown_modification"),
+        (DerivationType.circuit_customization, "synaptic_modification_extra"),
+        (DerivationType.circuit_customization, ""),
+    ],
+)
+def test_validate_derivation_label_raises(derivation_type, label):
+    with pytest.raises(ValueError, match=f"label for derivation_type '{derivation_type}' must be"):
+        validate_derivation_label(derivation_type, label)
+
+
+def test_validate_derivation_label_message():
+    expected = (
+        "label for derivation_type 'circuit_customization' must be one of "
+        "['emodel_addition', 'emodel_modification', 'population_modification', "
+        "'synaptic_modification']"
+    )
+    with pytest.raises(ValueError, match=f"^{re.escape(expected)}$"):
+        validate_derivation_label(DerivationType.circuit_customization, "other")

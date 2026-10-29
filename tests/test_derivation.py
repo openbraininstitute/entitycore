@@ -417,7 +417,7 @@ def derivation_filter_models(db, root_circuit, circuit, public_circuit):
         # (used, generated, derivation_type, label, creator)
         (root_circuit, circuit, DerivationType.circuit_extraction, None, alice),
         (root_circuit, public_circuit, DerivationType.circuit_rewiring, "label-b", bob),
-        (circuit, public_circuit, DerivationType.circuit_customization, "label-a", alice),
+        (circuit, public_circuit, DerivationType.circuit_customization, "emodel_addition", alice),
         (public_circuit, circuit, DerivationType.circuit_simplification, "label-c", bob),
         (public_circuit, root_circuit, DerivationType.unspecified, None, alice),
         (circuit, root_circuit, DerivationType.circuit_extraction, "label-c", bob),
@@ -804,6 +804,7 @@ def test_create_invalid_label_for_derivation_type(
         expected_status_code=422,
     ).json()
     assert data["error_code"] == "INVALID_REQUEST"
+    assert f"label for derivation_type '{derivation_type}' must be" in data["details"][0]
 
 
 @pytest.mark.parametrize(
@@ -879,6 +880,39 @@ def test_create_unspecified_allows_any_entity_types(
     assert data["used"]["id"] == entity_ids[used]
     assert data["generated"]["id"] == entity_ids[generated]
     assert data["derivation_type"] == DerivationType.unspecified
+
+
+@pytest.mark.parametrize("route", [ROUTE, ADMIN_ROUTE])
+def test_update_invalid_label_for_derivation_type(db, clients, emodel_id, circuit, user_id, route):
+    derivation = _add_derivation(
+        db,
+        used_id=emodel_id,
+        generated_id=circuit.id,
+        user_id=user_id,
+        derivation_type=DerivationType.emodel_circuit,
+        label="hoc:cADpyr_L5TPC",
+    )
+    client = clients.user_1 if route == ROUTE else clients.admin
+    data = assert_request(
+        client.patch,
+        url=f"{route}/{derivation.id}",
+        json={"label": "cADpyr_L5TPC"},
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
+    assert data["message"] == "Derivation schema is invalid"
+    assert "label for derivation_type 'emodel_circuit' must be" in data["details"][0]
+
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{derivation.id}").json()
+    assert data["label"] == "hoc:cADpyr_L5TPC"
+
+    data = assert_request(
+        client.patch, url=f"{route}/{derivation.id}", json={"label": "hoc:bAC_L23BC"}
+    ).json()
+    assert data["label"] == "hoc:bAC_L23BC"
+
+    data = assert_request(client.patch, url=f"{route}/{derivation.id}", json={"label": None}).json()
+    assert data["label"] is None
 
 
 def test_create_invalid_data(client, root_circuit, circuit):

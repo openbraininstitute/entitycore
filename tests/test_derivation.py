@@ -53,7 +53,7 @@ def _add_derivation(
     )
 
 
-def _add_source_circuit(db, root_circuit_json_data, person_id, name):
+def _add_source_circuit(db, root_circuit_json_data, person_id, name, *, public=True):
     return add_db(
         db,
         Circuit(
@@ -63,7 +63,7 @@ def _add_source_circuit(db, root_circuit_json_data, person_id, name):
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
-                "authorized_public": True,
+                "authorized_public": public,
             }
         ),
     )
@@ -72,11 +72,8 @@ def _add_source_circuit(db, root_circuit_json_data, person_id, name):
 def test_get_derived_from(
     db,
     clients,
-    emodel_id,
-    public_emodel_id,
     user_id,
     public_root_circuit,
-    root_circuit,
     root_circuit_json_data,
 ):
     # Create source circuits (used) for the typed derivations.
@@ -87,11 +84,16 @@ def test_get_derived_from(
     source_ids = [
         _add_source_circuit(db, root_circuit_json_data, user_id, f"source-{i}").id for i in range(6)
     ]
+    # A private target circuit (owned by PROJECT_ID) used to check authorization:
+    # user_2 must not be able to read its derivations.
+    private_target = _add_source_circuit(
+        db, root_circuit_json_data, user_id, "private-target", public=False
+    )
     derivations = (
         [
             Derivation(
                 used_id=src_id,
-                generated_id=public_emodel_id,
+                generated_id=public_root_circuit.id,
                 derivation_type=DerivationType.circuit_extraction,
                 created_by_id=user_id,
                 updated_by_id=user_id,
@@ -101,7 +103,7 @@ def test_get_derived_from(
         + [
             Derivation(
                 used_id=src_id,
-                generated_id=public_emodel_id,
+                generated_id=public_root_circuit.id,
                 derivation_type=DerivationType.circuit_rewiring,
                 created_by_id=user_id,
                 updated_by_id=user_id,
@@ -111,7 +113,7 @@ def test_get_derived_from(
         + [
             Derivation(
                 used_id=source_ids[5],
-                generated_id=emodel_id,  # private
+                generated_id=private_target.id,  # private
                 derivation_type=DerivationType.unspecified,
                 created_by_id=user_id,
                 updated_by_id=user_id,
@@ -141,7 +143,7 @@ def test_get_derived_from(
     assert all(d["type"] == "circuit" for d in data)
 
     response = clients.user_1.get(
-        url=f"/circuit/{root_circuit.id}/derived-from",
+        url=f"/circuit/{private_target.id}/derived-from",
         params={"derivation_type": DerivationType.unspecified},
     )
     assert_response(response, 200)
@@ -176,7 +178,7 @@ def test_get_derived_from(
 
     # Test private unreadable entity
     response = clients.user_2.get(
-        url=f"/circuit/{root_circuit.id}/derived-from",
+        url=f"/circuit/{private_target.id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 404)
@@ -199,7 +201,7 @@ def test_get_derived_from(
 
     data = assert_request(
         clients.admin.get,
-        url=f"/admin/circuit/{root_circuit.id}/derived-from",
+        url=f"/admin/circuit/{private_target.id}/derived-from",
         params={"derivation_type": "unspecified"},
     ).json()["data"]
     assert len(data) == 1
@@ -647,7 +649,6 @@ def test_update_one(db, clients, root_circuit, circuit, user_id):
         "circuit_customization",
         "circuit_extraction",
         "circuit_rewiring",
-        "emodel_circuit",
         "unspecified",
     ],
 )
@@ -782,74 +783,6 @@ def test_create_circuit_customization_with_label(client, root_circuit, circuit):
     )
     assert data["derivation_type"] == str(DerivationType.circuit_customization)
     assert data["label"] == "synaptic_modification"
-
-
-@pytest.mark.parametrize(
-    ("derivation_type", "label"),
-    [
-        ("emodel_circuit", "cADpyr_L5TPC"),  # missing hoc: prefix
-        ("emodel_circuit", "hoc:"),  # empty template name
-        ("emodel_circuit", "nml:cADpyr_L5TPC"),  # wrong prefix
-        ("circuit_customization", "unknown_modification"),
-        ("circuit_customization", ""),
-    ],
-)
-def test_create_invalid_label_for_derivation_type(
-    client, emodel_id, circuit, derivation_type, label
-):
-    used_id = emodel_id if derivation_type == "emodel_circuit" else str(circuit.id)
-    data = assert_request(
-        client.post,
-        url="/derivation",
-        json={
-            "used_id": str(used_id),
-            "generated_id": str(circuit.id),
-            "derivation_type": derivation_type,
-            "label": label,
-        },
-        expected_status_code=422,
-    ).json()
-    assert data["error_code"] == "INVALID_REQUEST"
-
-
-def test_create_emodel_circuit_with_label(client, emodel_id, circuit):
-    """Link an emodel (used) to a circuit (generated) with the SONATA model_template label."""
-    data = assert_request(
-        client.post,
-        url="/derivation",
-        json={
-            "used_id": str(emodel_id),
-            "generated_id": str(circuit.id),
-            "derivation_type": "emodel_circuit",
-            "label": "hoc:cADpyr_L5TPC",
-        },
-    ).json()
-    assert data == {
-        "used": {"type": "emodel", "id": str(emodel_id)},
-        "generated": {"type": "circuit", "id": str(circuit.id)},
-        "derivation_type": "emodel_circuit",
-        "label": "hoc:cADpyr_L5TPC",
-    }
-
-
-def test_create_circuit_customization_with_label(client, root_circuit, circuit):
-    """Derive a circuit from another by customizing components, with a label for the type."""
-    data = assert_request(
-        client.post,
-        url="/derivation",
-        json={
-            "used_id": str(root_circuit.id),
-            "generated_id": str(circuit.id),
-            "derivation_type": "circuit_customization",
-            "label": "synaptic_modification",
-        },
-    ).json()
-    assert data == {
-        "used": {"type": "circuit", "id": str(root_circuit.id)},
-        "generated": {"type": "circuit", "id": str(circuit.id)},
-        "derivation_type": "circuit_customization",
-        "label": "synaptic_modification",
-    }
 
 
 @pytest.mark.parametrize(

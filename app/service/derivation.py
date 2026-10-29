@@ -407,13 +407,13 @@ def create_one(
 
     See also https://github.com/openbraininstitute/entitycore/issues/427
     """
-    _used_entity = get_accessible_entity(
+    used_entity = get_accessible_entity(
         db,
         Entity,
         json_model.used_id,
         user_context=cast("UserContext", user_context),
     )
-    _generated_entity = get_writable_entity(
+    generated_entity = get_writable_entity(
         db,
         Entity,
         json_model.generated_id,

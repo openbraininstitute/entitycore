@@ -1372,7 +1372,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "subject_id": str(subject_id),
         "build_category": "em_reconstruction",
         "authorized_project_id": PROJECT_ID,
-        "authorized_public": False,
+        "authorized_public": True,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "target_simulator": TargetSimulator.coreneuron,

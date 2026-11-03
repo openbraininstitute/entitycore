@@ -1308,8 +1308,6 @@ def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "recording_origin": "in_vivo",
-        "probe_names": ["ProbeA"],
-        "channel_count": 384,
         "sampling_frequency": 30000.0,
         "duration": 600.0,
         "authorized_public": False,

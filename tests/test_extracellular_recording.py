@@ -2,14 +2,8 @@ from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import Derivation, ExtracellularRecording
-from app.db.types import (
-    AssetLabel,
-    DerivationType,
-    ElectricalRecordingOrigin,
-    ElectricalRecordingType,
-    EntityType,
-)
+from app.db.model import ExtracellularRecording
+from app.db.types import AssetLabel, ElectricalRecordingOrigin, EntityType
 
 from .utils import (
     PROJECT_ID,
@@ -21,7 +15,6 @@ from .utils import (
     check_entity_read_many,
     check_entity_update_one,
     check_missing,
-    count_db_class,
     upload_entity_asset,
 )
 
@@ -45,8 +38,6 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "authorized_project_id": PROJECT_ID,
         "authorized_public": False,
         "brain_region": ANY,
-        "channel_count": 384,
-        "comment": "",
         "contact_email": None,
         "contributions": [],
         "created_by": ANY,
@@ -60,13 +51,10 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "lifecycle_status": "active",
         "name": "my-name",
         "notice_text": None,
-        "probe_names": ["ProbeA"],
         "published_in": None,
         "recording_origin": ElectricalRecordingOrigin.in_vivo,
-        "recording_type": ElectricalRecordingType.extracellular,
         "sampling_frequency": 30000.0,
         "subject": ANY,
-        "temperature": None,
         "type": EntityType.extracellular_recording,
         "update_date": ANY,
         "updated_by": ANY,
@@ -82,7 +70,7 @@ def json_data(extracellular_recording_json_data):
     return extracellular_recording_json_data
 
 
-@pytest.mark.parametrize("field", ["channel_count", "sampling_frequency", "duration"])
+@pytest.mark.parametrize("field", ["sampling_frequency", "duration"])
 def test_create_one_rejects_non_positive_values(client, json_data, field):
     assert_request(client.post, url=ROUTE, json=json_data | {field: 0}, expected_status_code=422)
 
@@ -96,10 +84,10 @@ def test_update_one(clients, json_data):
         patch_payload={
             "name": "name",
             "description": "description",
-            "channel_count": 768,
+            "duration": 900.0,
         },
         optional_payload={
-            "temperature": 36.5,
+            "contact_email": "lab@example.org",
         },
     )
 
@@ -159,9 +147,9 @@ def test_upload_nwb(client, json_data):
 @pytest.fixture
 def models(db, json_data, user_id):
     values = [
-        (ElectricalRecordingOrigin.in_vivo, 384, 30000.0, 600.0),
-        (ElectricalRecordingOrigin.in_vivo, 768, 30000.0, 1200.0),
-        (ElectricalRecordingOrigin.in_silico, 32, 20000.0, 10.0),
+        (ElectricalRecordingOrigin.in_vivo, 30000.0, 600.0),
+        (ElectricalRecordingOrigin.in_vivo, 30000.0, 1200.0),
+        (ElectricalRecordingOrigin.in_silico, 20000.0, 10.0),
     ]
     return add_all_db(
         db,
@@ -170,9 +158,7 @@ def models(db, json_data, user_id):
                 **json_data
                 | {
                     "name": f"recording-{i}",
-                    "recording_type": ElectricalRecordingType.extracellular,
                     "recording_origin": origin,
-                    "channel_count": channel_count,
                     "sampling_frequency": sampling_frequency,
                     "duration": duration,
                     "created_by_id": user_id,
@@ -180,7 +166,7 @@ def models(db, json_data, user_id):
                     "authorized_project_id": PROJECT_ID,
                 }
             )
-            for i, (origin, channel_count, sampling_frequency, duration) in enumerate(values)
+            for i, (origin, sampling_frequency, duration) in enumerate(values)
         ],
     )
 
@@ -192,7 +178,7 @@ def test_filtering_and_sorting(client, models):
 
     assert len(names({})) == len(models)
     assert names({"recording_origin": "in_silico"}) == ["recording-2"]
-    assert names({"channel_count__gte": 384, "order_by": "channel_count"}) == [
+    assert names({"sampling_frequency__gte": 25000.0, "order_by": "duration"}) == [
         "recording-0",
         "recording-1",
     ]
@@ -200,37 +186,3 @@ def test_filtering_and_sorting(client, models):
     assert names({"duration__gte": 600.0, "duration__lte": 900.0}) == ["recording-0"]
     assert names({"order_by": "-duration"}) == ["recording-1", "recording-0", "recording-2"]
     assert names({"ilike_search": "recording-1"}) == ["recording-1"]
-
-
-def test_simulation_result_derivation(db, client, json_data, simulation_result):
-    recording_id = _create_id(
-        client, json_data | {"recording_origin": ElectricalRecordingOrigin.in_silico}
-    )
-    assert_request(
-        client.post,
-        url="/derivation",
-        json={
-            "used_id": str(simulation_result.id),
-            "generated_id": recording_id,
-            "derivation_type": DerivationType.simulation_result_extracellular_recording,
-        },
-    )
-
-    data = assert_request(
-        client.get,
-        url=f"{ROUTE}/{recording_id}",
-        params={"expand": "generated_from_derivations:simulation_result_extracellular_recording"},
-    ).json()
-    assert [d["used"]["id"] for d in data["generated_from_derivations"]] == [
-        str(simulation_result.id)
-    ]
-
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"generated_derivation__used_id": str(simulation_result.id)},
-    ).json()["data"]
-    assert [d["id"] for d in data] == [recording_id]
-
-    assert_request(client.delete, url=f"{ROUTE}/{recording_id}")
-    assert count_db_class(db, Derivation) == 0

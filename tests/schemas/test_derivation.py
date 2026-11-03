@@ -30,11 +30,6 @@ def test_rules_defined_for_every_derivation_type():
         ),
         (DerivationType.research_log_input, EntityType.circuit, EntityType.research_log),
         (DerivationType.research_log_output, EntityType.emodel, EntityType.research_log),
-        (
-            DerivationType.simulation_result_extracellular_recording,
-            EntityType.simulation_result,
-            EntityType.extracellular_recording,
-        ),
         (DerivationType.unspecified, EntityType.emodel, EntityType.emodel),
         (DerivationType.unspecified, EntityType.circuit, EntityType.cell_morphology),
     ],

@@ -24,52 +24,41 @@ def upgrade() -> None:
     op.create_table(
         "extracellular_recording",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("probe_names", postgresql.ARRAY(sa.VARCHAR()), nullable=False),
-        sa.Column("channel_count", sa.Integer(), nullable=False),
+        sa.Column(
+            "recording_origin",
+            postgresql.ENUM(name="electricalrecordingorigin", create_type=False),
+            nullable=False,
+        ),
         sa.Column("sampling_frequency", sa.Float(), nullable=False),
         sa.Column("duration", sa.Float(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"],
-            ["electrical_recording.id"],
-            name=op.f("fk_extracellular_recording_id_electrical_recording"),
+            ["scientific_artifact.id"],
+            name=op.f("fk_extracellular_recording_id_scientific_artifact"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_extracellular_recording")),
+    )
+    op.create_index(
+        "ix_extracellular_recording_description_vector",
+        "extracellular_recording",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_extracellular_recording_name"), "extracellular_recording", ["name"], unique=False
     )
     op.add_enum_value(
         enum_schema="public",
         enum_name="entitytype",
         new_value="extracellular_recording",
     )
-    op.add_enum_value(
-        enum_schema="public",
-        enum_name="derivationtype",
-        new_value="simulation_result_extracellular_recording",
-        before_value="unspecified",
-    )
 
 
 def downgrade() -> None:
-    op.sync_enum_values(
-        enum_schema="public",
-        enum_name="derivationtype",
-        new_values=[
-            "circuit_customization",
-            "circuit_extraction",
-            "circuit_rewiring",
-            "emodel_circuit",
-            "em_dense_reconstruction_dataset_cell_morphology",
-            "circuit_simplification",
-            "research_log_input",
-            "research_log_output",
-            "unspecified",
-        ],
-        affected_columns=[
-            TableReference(
-                table_schema="public", table_name="derivation", column_name="derivation_type"
-            )
-        ],
-        enum_values_to_rename=[],
-    )
     op.sync_enum_values(
         enum_schema="public",
         enum_name="entitytype",
@@ -124,5 +113,11 @@ def downgrade() -> None:
             ),
         ],
         enum_values_to_rename=[],
+    )
+    op.drop_index(op.f("ix_extracellular_recording_name"), table_name="extracellular_recording")
+    op.drop_index(
+        "ix_extracellular_recording_description_vector",
+        table_name="extracellular_recording",
+        postgresql_using="gin",
     )
     op.drop_table("extracellular_recording")

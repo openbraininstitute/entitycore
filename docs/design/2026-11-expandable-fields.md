@@ -147,6 +147,7 @@ Expanding a relationship to other entities must not return entities that the use
 - **`response_model_exclude_unset=True` on the routes.** It applies to all the fields of the route, not only the expandable ones.
 - **Passing the requested paths to Pydantic in the validation context.** It needs plumbing through every `model_validate` call and nested model, while the loaded state already carries the information.
 - **Allowed values as validated strings instead of enums.** Avoids large enums if nested paths multiply with qualifiers, at the cost of custom 422 errors and a hand-written OpenAPI description. Kept as a fallback (see Open questions).
+- **A placeholder when a related object is not expanded**, either the id in place of the object (as in the Stripe API) or a separate `<name>_id` field. The first gives the key two types (a string or an object) for typed clients and OpenAPI; the second adds a second representation of the same relationship. A field whose id is always needed stays non-expandable and always loaded.
 - **Other parameter names.** `include` in JSON:API selects related resources to add as separate documents, not fields; `fields` in JSON:API restricts the default fields, the opposite direction, and could be added later independently; GraphQL would be a full query language, not justified here. `expand` is already public and has the same meaning as in the Stripe API.
 
 ## Consequences

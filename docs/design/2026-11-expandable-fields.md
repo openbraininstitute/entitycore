@@ -25,7 +25,7 @@ In scope: a generic mechanism for columns and relationships at any nesting level
 
 The existing `expand` query parameter is kept and generalized.
 
-- A value is a path relative to the returned item, with `.` between levels and an optional `:qualifier` on the last segment: `summary`, `stimuli.summary`, `generated_from_derivations:circuit_extraction`. The same paths work for `read_one` and `read_many` (no `data.` prefix). `=` stays reserved for future keyed qualifiers.
+- A value is a path relative to the returned item, with `.` between levels and an optional `:qualifier` on the last segment: `summary`, `stimuli.summary`, `generated_from_derivations:circuit_extraction`. The same paths work for every endpoint returning the Read schema: `read_one`, `read_many` (no `data.` prefix), create (`POST`) and update (`PATCH`), user and admin. `=` stays reserved for future keyed qualifiers.
 - Repeat `expand` to request several paths. A path implies its expandable ancestors: `a.b` also loads `a` if `a` is expandable.
 - An expandable field that is not requested is **absent** from the response. Requested, a list is `[]` when empty, and a single value is `null` when it has no value. As in GraphQL, the client gets what it selects.
 - Invalid paths return 422 with the allowed values. The allowed values of each endpoint are listed in OpenAPI.
@@ -75,7 +75,7 @@ When a schema class is created, its expandable fields are collected, and three r
 
 The SQLAlchemy loaded state is the source of truth: the query loads what the requested paths need, and serialization includes an expandable field only if its attribute is loaded. No request information has to reach Pydantic, and nesting works because nested schemas behave the same way.
 
-A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `apply_derivation_expand` in `router_read_one` and `router_read_many`. For each path it walks the schema fields and the mapper in parallel and builds a chain of loader options from the root:
+A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `apply_derivation_expand` in `router_read_one` and `router_read_many`, and is also applied by `router_create_one` and `router_update_one` (see Create and update). For each path it walks the schema fields and the mapper in parallel and builds a chain of loader options from the root:
 
 | Segment | Option |
 |---|---|
@@ -87,6 +87,15 @@ A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `
 The services keep ending their loader options with `raiseload("*")`, and the specific options added by `apply_expand` override it, as today for derivations. An intermediate segment must be a field the service always loads, or an expandable field; otherwise the request fails at serialization, which signals a missing load in the service.
 
 First version restrictions: polymorphic relationships needing `of_type` (e.g. `Contribution.agent`) are not expandable through nested paths, and qualifiers are only accepted by fields whose loader supports them.
+
+### Create and update
+
+Create and update responses follow the same rule as reads: expandable fields are absent unless requested with `expand`. Without this, the two would differ: after a create, `router_create_one` refreshes the instance, and the refresh leaves deferred columns unloaded, so they are absent; after a PATCH, the columns it sets stay loaded, so they would be returned.
+
+- Create: when the service gives loader options, `router_create_one` already reads the new instance again with them, as `router_read_one` does; `apply_expand` is added to that query. When it only refreshes the instance and `expand` is given, it reads the instance again with the expand options.
+- Update: `apply_expand` is added to the query that loads the instance. Before validation, `router_update_one` expires the expandable attributes that are loaded but not requested, e.g. a column set by the PATCH, together with the attributes it already expires. Expiring only marks them as unloaded and runs no query.
+
+Without `expand`, create and update run the same queries as today.
 
 ### Validation and serialization
 
@@ -127,7 +136,7 @@ For comparison, a whole warm `read_many` of 30 cell morphologies takes about 60 
 
 The allowed paths of an endpoint are computed from its Read schema: each expandable field gives a path, and nested schemas (including `list[...]` and `X | None`) are walked with a prefix, with a depth limit and a cycle guard. Fields with qualifiers add one value per qualifier.
 
-They are exposed as a `StrEnum` per Read schema, as `EntityExpand` and `MeasurableEntityExpand` today, so FastAPI returns 422 for invalid values and OpenAPI lists them. One dependency per Read schema (e.g. `expand_dep(CellMorphologyRead)`) replaces `ExpandDep` and `MeasurableEntityExpandDep`, and passes the parsed paths to the services, so a future body-based read endpoint can reuse them.
+They are exposed as a `StrEnum` per Read schema, as `EntityExpand` and `MeasurableEntityExpand` today, so FastAPI returns 422 for invalid values and OpenAPI lists them. One dependency per Read schema (e.g. `expand_dep(CellMorphologyRead)`) replaces `ExpandDep` and `MeasurableEntityExpandDep`, is added to the read, create and update routes, and passes the parsed paths to the services, so a future body-based read endpoint can reuse them.
 
 ### Authorization of expanded entities
 
@@ -148,6 +157,7 @@ Expanding a relationship to other entities must not return entities that the use
 - **Passing the requested paths to Pydantic in the validation context.** It needs plumbing through every `model_validate` call and nested model, while the loaded state already carries the information.
 - **Allowed values as validated strings instead of enums.** Avoids large enums if nested paths multiply with qualifiers, at the cost of custom 422 errors and a hand-written OpenAPI description. Kept as a fallback (see Open questions).
 - **A placeholder when a related object is not expanded**, either the id in place of the object (as in the Stripe API) or a separate `<name>_id` field. The first gives the key two types (a string or an object) for typed clients and OpenAPI; the second adds a second representation of the same relationship. A field whose id is always needed stays non-expandable and always loaded.
+- **Never returning expandable fields in create and update responses**, by expiring them before validation. Simpler, but the same Read schema would then follow different rules depending on the endpoint. The Stripe API also accepts `expand` on create and update requests.
 - **Other parameter names.** `include` in JSON:API selects related resources to add as separate documents, not fields; `fields` in JSON:API restricts the default fields, the opposite direction, and could be added later independently; GraphQL would be a full query language, not justified here. `expand` is already public and has the same meaning as in the Stripe API.
 
 ## Consequences
@@ -155,7 +165,8 @@ Expanding a relationship to other entities must not return entities that the use
 - `generated_from_derivations` and `used_by_derivations` are **absent** instead of `null` when not expanded, and never `null` when expanded; their OpenAPI type becomes a plain array. entitysdk already defaults them to `None`, which accepts both; other clients reading these keys must handle the absence.
 - The `*AnnotationExpandedRead` schemas disappear from OpenAPI; the responses are unchanged. Clients generated from OpenAPI may notice.
 - `docs/API.md` ("Expanding derivations") is updated to describe the generic parameter.
-- A field is serialized when its attribute is loaded, even if not requested, e.g. an object already loaded in the same session. This is harmless and documented.
+- A field is serialized when its attribute is loaded, even if not requested, e.g. an object already loaded in the same session by a read. This is harmless and documented. Create and update avoid it for their own instance (see Create and update).
+- Every create and update route gets an `expand` parameter, user and admin.
 - The validator adds about 2% to the validation of the entity Read schemas, which all have expandable fields because of the derivations (see Prototype). `read_many` is profiled again on the implementation.
 - In Python code, an expandable field of a Read schema can be `MISSING`; code reading these fields must check it (`is MISSING`). This concerns entitycore only: clients see an absent key.
 - `pydantic>=2.14` is required (`MISSING` is stable from that version); the lock file already has 2.14.1.
@@ -170,6 +181,5 @@ Expanding a relationship to other entities must not return entities that the use
 
 ## Open questions
 
-- Create and update responses don't accept `expand`. With the loaded-state rule alone they would be inconsistent: `router_create_one` refreshes the instance, which leaves deferred columns and lazy relationships unloaded, so they are absent; `router_update_one` keeps the columns set by the PATCH loaded, so they are present. Proposed: never return expandable fields in create and update responses, by adding the expandable attributes to the attributes that `router_update_one` already expires. Alternative: accept `expand` on create and update too.
 - Allowed values: enum per Read schema (proposed) or validated strings. Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 derivation types). Nested objects mostly use `Nested*Read` schemas without derivations, so the enums should stay close to this size; to be measured during the implementation.
 - Migrate `measurement_annotation` in the same PR or in a follow-up.

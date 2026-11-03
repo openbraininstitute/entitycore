@@ -138,11 +138,15 @@ The allowed paths of an endpoint are computed from its Read schema: each expanda
 
 They are exposed as a `StrEnum` per Read schema, as `EntityExpand` and `MeasurableEntityExpand` today, so FastAPI returns 422 for invalid values and OpenAPI lists them. One dependency per Read schema (e.g. `expand_dep(CellMorphologyRead)`) replaces `ExpandDep` and `MeasurableEntityExpandDep`, is added to the read, create and update routes, and passes the parsed paths to the services, so a future body-based read endpoint can reuse them.
 
+Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 derivation types). Nested objects mostly use `Nested*Read` schemas without derivations, so the enums should stay close to this size. If nested paths and qualifiers make them too large, the dependency can switch to validated strings without changing the API.
+
 ### Authorization of expanded entities
 
 Expanding a relationship to other entities must not return entities that the user cannot read. Today the expanded derivations are not filtered ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). Custom loaders receive the user's project context (or none for the admin endpoints), so the derivation loader can apply the same filter as `GET /derivation`. Relationships to entities without such a loader are not expandable in the first version.
 
 ### Existing fields
+
+Both are migrated in the same pull request as the mechanism, to check that it covers the existing cases.
 
 - Derivations: marked in `DerivationReadMixin` with `attr=` and a derivation loader; the two properties on `Entity` are removed.
 - `measurement_annotation`: marked in the morphology and EM cell mesh Read schemas; the `*AnnotationExpandedRead` schemas are removed.
@@ -155,7 +159,7 @@ Expanding a relationship to other entities must not return entities that the use
 - **Treating every unloaded attribute as absent.** It would remove the `raiseload("*")` safety net: a relationship that a service forgot to load would silently disappear from the response.
 - **`response_model_exclude_unset=True` on the routes.** It applies to all the fields of the route, not only the expandable ones.
 - **Passing the requested paths to Pydantic in the validation context.** It needs plumbing through every `model_validate` call and nested model, while the loaded state already carries the information.
-- **Allowed values as validated strings instead of enums.** Avoids large enums if nested paths multiply with qualifiers, at the cost of custom 422 errors and a hand-written OpenAPI description. Kept as a fallback (see Open questions).
+- **Allowed values as validated strings instead of enums.** Avoids large enums if nested paths multiply with qualifiers, at the cost of custom 422 errors and a hand-written OpenAPI description. Kept as a fallback if the enums get too large.
 - **A placeholder when a related object is not expanded**, either the id in place of the object (as in the Stripe API) or a separate `<name>_id` field. The first gives the key two types (a string or an object) for typed clients and OpenAPI; the second adds a second representation of the same relationship. A field whose id is always needed stays non-expandable and always loaded.
 - **Never returning expandable fields in create and update responses**, by expiring them before validation. Simpler, but the same Read schema would then follow different rules depending on the endpoint. The Stripe API also accepts `expand` on create and update requests.
 - **Other parameter names.** `include` in JSON:API selects related resources to add as separate documents, not fields; `fields` in JSON:API restricts the default fields, the opposite direction, and could be added later independently; GraphQL would be a full query language, not justified here. `expand` is already public and has the same meaning as in the Stripe API.
@@ -178,8 +182,3 @@ Expanding a relationship to other entities must not return entities that the use
 - Frontend: handle absent derivation fields like `null`.
 - Clients building long `id__in` lists (entitysdk, obi-one): split them into chunks.
 - Body-based read endpoint, if query strings become a limit.
-
-## Open questions
-
-- Allowed values: enum per Read schema (proposed) or validated strings. Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 derivation types). Nested objects mostly use `Nested*Read` schemas without derivations, so the enums should stay close to this size; to be measured during the implementation.
-- Migrate `measurement_annotation` in the same PR or in a follow-up.

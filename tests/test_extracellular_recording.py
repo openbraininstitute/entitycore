@@ -46,7 +46,7 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "authorized_public": False,
         "brain_region": ANY,
         "channel_count": 384,
-        "comment": None,
+        "comment": "",
         "contact_email": None,
         "contributions": [],
         "created_by": ANY,

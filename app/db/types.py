@@ -152,6 +152,7 @@ class EntityType(StrEnum):
     skeletonization_campaign = auto()
     task_config = auto()
     research_log = auto()
+    extracellular_recording = auto()
 
 
 class TaskResultType(StrEnum):
@@ -327,6 +328,8 @@ class DerivationType(StrEnum):
           described by a ResearchLog (generated).
         research_log_output: Indicates that an entity (used) was produced during the research
           session described by a ResearchLog (generated).
+        simulation_result_extracellular_recording: Indicates that an extracellular recording
+          (generated) was computed from the reports of a simulation result (used).
         unspecified: Indicates a derivation that does not require a specific type.
 
     The entity types and labels allowed for each derivation type are defined in
@@ -341,6 +344,7 @@ class DerivationType(StrEnum):
     circuit_simplification = auto()
     research_log_input = auto()
     research_log_output = auto()
+    simulation_result_extracellular_recording = auto()
     unspecified = auto()
 
 
@@ -420,6 +424,10 @@ DERIVATION_TYPE_RULES: dict[DerivationType, DerivationTypeRules] = {
     DerivationType.research_log_output: DerivationTypeRules(
         used=None,
         generated=frozenset({EntityType.research_log}),
+    ),
+    DerivationType.simulation_result_extracellular_recording: DerivationTypeRules(
+        used=frozenset({EntityType.simulation_result}),
+        generated=frozenset({EntityType.extracellular_recording}),
     ),
     # placeholder used by existing derivations, to be replaced by dedicated derivation types
     DerivationType.unspecified: DerivationTypeRules(used=None, generated=None),
@@ -917,6 +925,18 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Electrical model NEURON template.",
             )
+        ],
+    },
+    EntityType.extracellular_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description=(
+                    "Extracellular voltage traces, with the electrode positions and probes "
+                    "in the electrodes table."
+                ),
+            ),
         ],
     },
     EntityType.ion_channel_model: {

@@ -1174,7 +1174,7 @@ class ElectricalRecording(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
     recording_origin: Mapped[ElectricalRecordingOrigin]
-    recording_location: Mapped[STRING_LIST]
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=list)
     ljp: Mapped[float] = mapped_column(default=0.0)
     temperature: Mapped[float | None]
     comment: Mapped[str] = mapped_column(default="")
@@ -1223,6 +1223,38 @@ class IonChannelRecording(
         uselist=False,
         foreign_keys=[ion_channel_id],
     )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
+class ExtracellularRecording(ElectricalRecording):
+    """Extracellular recording with one or more probes or electrode arrays, e.g. Neuropixels.
+
+    The recording is measured in vivo or in vitro, or computed from a simulation
+    (`recording_origin` `in_silico`). A recording computed from a simulation is linked to its
+    simulation result by a derivation of type `simulation_result_extracellular_recording`.
+
+    The inherited `recording_location` and `ljp` describe single-cell recordings and keep
+    their defaults.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the electrical recording ID.
+        probe_names (list[str]): Names of the probes or electrode arrays, as in the NWB file.
+        channel_count (int): Number of recorded channels, over all probes.
+        sampling_frequency (float): Sampling frequency of the raw traces, in Hz.
+        duration (float): Duration of the recording, in seconds.
+
+    Assets:
+        - an NWB file with label `nwb`, with the voltage traces and the electrodes table.
+    """
+
+    __tablename__ = EntityType.extracellular_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+    probe_names: Mapped[STRING_LIST]
+    channel_count: Mapped[int]
+    sampling_frequency: Mapped[float]
+    duration: Mapped[float]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 

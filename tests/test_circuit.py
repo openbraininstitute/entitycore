@@ -484,14 +484,14 @@ def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_cir
     # the derived children are not on the used side of these derivations
     assert ids({"used_derivation__derivation_type": "circuit_customization"}) == set()
 
-    # the filter alone does not load the derivation lists: they serialize as null
+    # the filter alone does not load the derivation lists: they are omitted
     data = assert_request(
         client.get,
         url=ROUTE,
         params={"generated_derivation__derivation_type": "circuit_extraction"},
     ).json()["data"]
-    assert data[0]["generated_from_derivations"] is None
-    assert data[0]["used_by_derivations"] is None
+    assert "generated_from_derivations" not in data[0]
+    assert "used_by_derivations" not in data[0]
 
 
 def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, user_id):
@@ -524,14 +524,14 @@ def test_expand_derivations(db, client, root_circuit, circuit, user_id):
         data = assert_request(client.get, url=ROUTE, params=params or {}).json()["data"]
         return next(d for d in data if d["id"] == str(entity_id))
 
-    # no expand -> the derivation lists are not loaded and serialize as null
+    # no expand -> the derivation lists are not loaded and are omitted
     child = get_by_id(circuit.id)
-    assert child["generated_from_derivations"] is None
-    assert child["used_by_derivations"] is None
+    assert "generated_from_derivations" not in child
+    assert "used_by_derivations" not in child
 
-    # expand=generated_from_derivations -> populated on the child; other direction is null
+    # expand=generated_from_derivations -> populated on the child; other direction omitted
     child = get_by_id(circuit.id, {"expand": "generated_from_derivations"})
-    assert child["used_by_derivations"] is None
+    assert "used_by_derivations" not in child
     assert len(child["generated_from_derivations"]) == 1
     entry = child["generated_from_derivations"][0]
     assert entry["used"]["id"] == str(root_circuit.id)
@@ -539,9 +539,9 @@ def test_expand_derivations(db, client, root_circuit, circuit, user_id):
     assert entry["derivation_type"] == DerivationType.circuit_extraction
     assert entry["label"] == "extracted"
 
-    # expand=used_by_derivations -> populated on the parent; other direction is null
+    # expand=used_by_derivations -> populated on the parent; other direction omitted
     parent = get_by_id(root_circuit.id, {"expand": "used_by_derivations"})
-    assert parent["generated_from_derivations"] is None
+    assert "generated_from_derivations" not in parent
     assert len(parent["used_by_derivations"]) == 1
     entry = parent["used_by_derivations"][0]
     assert entry["generated"]["id"] == str(circuit.id)
@@ -588,7 +588,7 @@ def test_expand_derivations_by_type(
     data = read_one(extraction)
     assert derivation_types(data) == ["circuit_extraction"]
     assert data["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
-    assert data["used_by_derivations"] is None
+    assert "used_by_derivations" not in data
 
     assert derivation_types(read_one(extraction, rewiring)) == [
         "circuit_extraction",
@@ -619,7 +619,7 @@ def test_expand_derivations_by_type(
     ).json()["data"]
     assert [d["id"] for d in data] == [str(circuit.id)]
     assert derivation_types(data[0]) == ["circuit_extraction"]
-    assert data[0]["used_by_derivations"] is None
+    assert "used_by_derivations" not in data[0]
 
 
 @pytest.mark.parametrize(
@@ -662,7 +662,7 @@ def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_ci
     ).json()["data"]
     assert {d["id"] for d in data} == {str(circuit.id)}
     assert data[0]["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
-    assert data[0]["used_by_derivations"] is None
+    assert "used_by_derivations" not in data[0]
 
 
 def test_derivation_filter_pagination_no_duplicates(
@@ -732,3 +732,44 @@ def test_ordering(client, root_circuit, models):
 
     descending = order_indices(req({"order_by": "-target_simulator"}))
     assert descending == sorted(descending, reverse=True)
+
+
+def test_expand_on_create_and_update(db, client, clients, root_circuit, circuit_json_data, user_id):
+    """Create and update responses follow the same `expand` rule as the reads."""
+    data = assert_request(client.post, url=ROUTE, json=circuit_json_data).json()
+    assert "generated_from_derivations" not in data
+    assert "used_by_derivations" not in data
+
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=circuit_json_data,
+        params={"expand": "generated_from_derivations"},
+    ).json()
+    assert data["generated_from_derivations"] == []
+    assert "used_by_derivations" not in data
+    circuit_id = data["id"]
+
+    _add_derivation(db, used_id=root_circuit.id, generated_id=circuit_id, user_id=user_id)
+    url = f"{ROUTE}/{circuit_id}"
+    data = assert_request(client.patch, url=url, json={"name": "new name"}).json()
+    assert data["name"] == "new name"
+    assert "generated_from_derivations" not in data
+
+    params = {"expand": "generated_from_derivations:circuit_extraction"}
+    data = assert_request(client.patch, url=url, json={"name": "other"}, params=params).json()
+    assert data["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
+
+    admin_url = f"{ADMIN_ROUTE}/{circuit_id}"
+    params = {"expand": "used_by_derivations"}
+    data = assert_request(clients.admin.patch, url=admin_url, json={}, params=params).json()
+    assert data["used_by_derivations"] == []
+    assert "generated_from_derivations" not in data
+
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=circuit_json_data,
+        params={"expand": "measurement_annotation"},
+        expected_status_code=422,
+    )

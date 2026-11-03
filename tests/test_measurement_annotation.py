@@ -457,7 +457,7 @@ def test_create_and_retrieve(
     data = response.json()
     assert data["measurement_annotation"]["id"] == measurement_annotation_id_2
     assert data["generated_from_derivations"] == []
-    assert data["used_by_derivations"] is None
+    assert "used_by_derivations" not in data
 
     # filter the annotations
     query_params = {

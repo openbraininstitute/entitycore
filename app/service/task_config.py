@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -8,10 +9,11 @@ from app.db.model import (
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    ExpandDep,
+    ExpandPaths,
     FacetsDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.task_config import TaskConfigFilterDep
@@ -22,7 +24,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.task_config import (
@@ -41,6 +42,9 @@ AdminUpdateSchema = TaskConfigAdminUpdate
 FilterDep = TaskConfigFilterDep
 
 
+ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]
+
+
 def _load(query: sa.Select):
     return query.options(
         joinedload(DBModel.created_by),
@@ -56,7 +60,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_read_one(
         db=db,
@@ -72,7 +76,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_read_one(
         db=db,
@@ -89,6 +93,7 @@ def create_one(
     db: SessionDep,
     json_model: CreateSchema,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_create_one(
         db=db,
@@ -97,6 +102,7 @@ def create_one(
         db_model_class=DBModel,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -105,6 +111,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: UserUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_update_one(
         id_=id_,
@@ -115,6 +122,7 @@ def update_one(
         response_schema_class=ReadSchema,
         apply_operations=_load,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -123,6 +131,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: AdminUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_update_one(
         id_=id_,
@@ -133,6 +142,7 @@ def admin_update_one(
         response_schema_class=ReadSchema,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -144,7 +154,7 @@ def _read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
 
@@ -189,7 +199,7 @@ def read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[ReadSchema]:
     return _read_many(
         user_context=user_context,
@@ -210,7 +220,7 @@ def admin_read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[ReadSchema]:
     return _read_many(
         user_context=user_context,

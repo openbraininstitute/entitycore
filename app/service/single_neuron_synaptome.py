@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -6,11 +7,12 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 from app.db.model import Contribution, MEModel, SingleNeuronSynaptome
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    ExpandDep,
+    ExpandPaths,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilterDep
@@ -21,7 +23,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.synaptome import (
@@ -31,6 +32,8 @@ from app.schemas.synaptome import (
     SingleNeuronSynaptomeUserUpdate,
 )
 from app.schemas.types import ListResponse
+
+ExpandDep = Annotated[ExpandPaths, expand_query(SingleNeuronSynaptomeRead, SingleNeuronSynaptome)]
 
 
 def _load(query: sa.Select):
@@ -51,7 +54,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeRead:
     return router_read_one(
         db=db,
@@ -67,7 +70,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeRead:
     return router_read_one(
         db=db,
@@ -84,6 +87,7 @@ def create_one(
     db: SessionDep,
     json_model: SingleNeuronSynaptomeCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeRead:
     return router_create_one(
         db=db,
@@ -92,6 +96,7 @@ def create_one(
         db_model_class=SingleNeuronSynaptome,
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -100,6 +105,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: SingleNeuronSynaptomeUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeRead:
     return router_update_one(
         id_=id_,
@@ -110,6 +116,7 @@ def update_one(
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=_load,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -118,6 +125,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: SingleNeuronSynaptomeAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeRead:
     return router_update_one(
         id_=id_,
@@ -128,6 +136,7 @@ def admin_update_one(
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -140,7 +149,7 @@ def _read_many(
     with_search: SearchDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     facet_keys = [
@@ -189,7 +198,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     return _read_many(
         user_context=user_context,
@@ -212,7 +221,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     return _read_many(
         user_context=user_context,

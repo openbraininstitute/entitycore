@@ -601,14 +601,14 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, user_id):
 
     # default read: derivation lists are not loaded, serialize as null
     plain = assert_request(client.get, url=f"{ROUTE}/{generated_id}").json()
-    assert plain["generated_from_derivations"] is None
-    assert plain["used_by_derivations"] is None
+    assert "generated_from_derivations" not in plain
+    assert "used_by_derivations" not in plain
 
     # expand on read_one, per direction
     expanded = assert_request(
         client.get, url=f"{ROUTE}/{generated_id}", params={"expand": "generated_from_derivations"}
     ).json()
-    assert expanded["used_by_derivations"] is None
+    assert "used_by_derivations" not in expanded
     assert len(expanded["generated_from_derivations"]) == 1
     entry = expanded["generated_from_derivations"][0]
     assert entry["used"]["id"] == used_id
@@ -624,6 +624,6 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, user_id):
         ).json()["data"]
         if d["id"] == used_id
     )
-    assert src["generated_from_derivations"] is None
+    assert "generated_from_derivations" not in src
     assert len(src["used_by_derivations"]) == 1
     assert src["used_by_derivations"][0]["generated"]["id"] == generated_id

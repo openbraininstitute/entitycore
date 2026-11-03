@@ -5,7 +5,7 @@ from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.base import NameDescriptionMixin
 from app.schemas.entity import BasicEntityRead
-from app.schemas.measurement_annotation import MeasurementAnnotationRead
+from app.schemas.measurement_annotation import MeasurementAnnotationReadMixin
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
     ScientificArtifactCreate,
@@ -33,6 +33,7 @@ class NestedEMCellMeshRead(
 class EMCellMeshRead(
     EMCellMeshBaseMixin,
     ScientificArtifactRead,
+    MeasurementAnnotationReadMixin,
 ):
     em_dense_reconstruction_dataset: BasicEntityRead
     mtypes: list[MTypeClassRead] | None
@@ -48,7 +49,3 @@ class EMCellMeshCreate(
 EMCellMeshUserUpdate = make_update_schema(
     EMCellMeshCreate, "EMCellMeshUserUpdate"
 )  # pyright : ignore [reportInvalidTypeForm]
-
-
-class EMCellMeshAnnotationExpandedRead(EMCellMeshRead):
-    measurement_annotation: MeasurementAnnotationRead | None

@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -8,7 +9,7 @@ from app.db.model import (
     Contribution,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import ExpandDep, PaginationQuery, SearchDep
+from app.dependencies.common import ExpandPaths, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.filters.cell_composition import CellCompositionFilterDep
 from app.queries.common import (
@@ -18,7 +19,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_composition import (
     CellCompositionAdminUpdate,
@@ -28,6 +28,8 @@ from app.schemas.cell_composition import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+ExpandDep = Annotated[ExpandPaths, expand_query(CellCompositionRead, CellComposition)]
 
 
 def _load_from_db(query: sa.Select):
@@ -48,6 +50,7 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     json_model: CellCompositionCreate,
+    expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_create_one(
         db=db,
@@ -56,6 +59,7 @@ def create_one(
         json_model=json_model,
         response_schema_class=CellCompositionRead,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
@@ -64,6 +68,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: CellCompositionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_update_one(
         id_=id_,
@@ -74,6 +79,7 @@ def update_one(
         response_schema_class=CellCompositionRead,
         apply_operations=_load_from_db,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -82,6 +88,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: CellCompositionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_update_one(
         id_=id_,
@@ -92,6 +99,7 @@ def admin_update_one(
         response_schema_class=CellCompositionRead,
         apply_operations=_load_from_db,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -112,7 +120,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_read_one(
         db=db,
@@ -128,7 +136,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_read_one(
         db=db,
@@ -148,7 +156,7 @@ def _read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[CellCompositionRead]:
 
@@ -187,7 +195,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellCompositionRead]:
     return _read_many(
         user_context=user_context,
@@ -206,7 +214,7 @@ def admin_read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellCompositionRead]:
     return _read_many(
         user_context=user_context,

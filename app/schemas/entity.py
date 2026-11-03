@@ -1,12 +1,21 @@
 """Entity schemas."""
 
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import RootModel
+from pydantic import MISSING, RootModel
+from sqlalchemy.orm import Load, QueryableAttribute
 
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import AuthorizationOptionalPublicMixin, Schema
+from app.schemas.base import (
+    AuthorizationOptionalPublicMixin,
+    Expandable,
+    ExpandableSchema,
+    ExpandLoader,
+    Schema,
+    expand_load,
+)
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
@@ -51,16 +60,46 @@ class UsedDerivationRead(Schema):
     label: str | None = None
 
 
-class DerivationReadMixin:
+def _derivation_loader(other_side: str) -> ExpandLoader:
+    """Return the loader of a derivation list, with the entity on the other side of each one."""
+
+    def load(
+        parent: Load | None, attr: QueryableAttribute, qualifiers: frozenset[str] | None
+    ) -> list[Load]:
+        derivation_class = attr.property.mapper.class_
+        if qualifiers is not None:
+            derivation_types = [DerivationType(q) for q in qualifiers]
+            attr = attr.and_(derivation_class.derivation_type.in_(derivation_types))
+        other_entity = getattr(derivation_class, other_side)
+        return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]
+
+    return load
+
+
+class DerivationReadMixin(ExpandableSchema):
     """On-demand derivation lists, available on every entity read (see the `expand` query param).
 
-    A direction that was not expanded serializes as ``null`` (load-aware property on the Entity
-    model, so no extra query and `raiseload` is never tripped); an expanded-but-empty direction
-    serializes as ``[]``.
+    A direction that is not expanded is omitted; an expanded direction without derivations is
+    ``[]``. The qualifier selects the derivation types, e.g.
+    ``expand=generated_from_derivations:circuit_extraction``.
     """
 
-    generated_from_derivations: list[GeneratedDerivationRead] | None = None
-    used_by_derivations: list[UsedDerivationRead] | None = None
+    generated_from_derivations: Annotated[
+        list[GeneratedDerivationRead] | MISSING,
+        Expandable(
+            attr="derivations_as_generated",
+            loader=_derivation_loader("used"),
+            qualifiers=tuple(DerivationType),
+        ),
+    ] = MISSING
+    used_by_derivations: Annotated[
+        list[UsedDerivationRead] | MISSING,
+        Expandable(
+            attr="derivations_as_used",
+            loader=_derivation_loader("generated"),
+            qualifiers=tuple(DerivationType),
+        ),
+    ] = MISSING
 
 
 from app.schemas.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]

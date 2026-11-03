@@ -1,6 +1,7 @@
 import threading
 import time
 import uuid
+from typing import Annotated
 
 import cachetools
 import sqlalchemy as sa
@@ -14,12 +15,12 @@ from app.config import settings
 from app.db.model import BrainAtlas, BrainAtlasRegion, Contribution
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    ExpandDep,
+    ExpandPaths,
     PaginationQuery,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.brain_atlas import (
     BrainAtlasAdminUpdate,
@@ -33,6 +34,9 @@ from app.schemas.types import ListResponse
 from app.utils.http_cache import CachedJson
 
 _REGIONS_ADAPTER = TypeAdapter(ListResponse[BrainAtlasRegionRead])
+
+
+ExpandDep = Annotated[ExpandPaths, expand_query(BrainAtlasRead, BrainAtlas)]
 
 
 def _regions_cache_key(
@@ -119,7 +123,7 @@ def _read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
     facet_keys = []
@@ -158,7 +162,7 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
         user_context=user_context,
@@ -175,7 +179,7 @@ def admin_read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
         db=db,
@@ -191,7 +195,7 @@ def read_one(
     user_context: UserContextDep,
     id_: uuid.UUID,
     db: SessionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
         id_=id_,
@@ -204,7 +208,9 @@ def read_one(
     )
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = None) -> BrainAtlasRead:
+def admin_read_one(
+    db: SessionDep, id_: uuid.UUID, expand: ExpandDep = frozenset()
+) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
         id_=id_,
         db=db,
@@ -220,6 +226,7 @@ def create_one(
     db: SessionDep,
     json_model: BrainAtlasCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
 ) -> BrainAtlasRead:
     return app.queries.common.router_create_one(
         db=db,
@@ -228,6 +235,7 @@ def create_one(
         db_model_class=BrainAtlas,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+        expand=expand,
     )
 
 
@@ -236,6 +244,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: BrainAtlasUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> BrainAtlasRead:
     return app.queries.common.router_update_one(
         id_=id_,
@@ -246,6 +255,7 @@ def update_one(
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -254,6 +264,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: BrainAtlasAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> BrainAtlasRead:
     return app.queries.common.router_update_one(
         id_=id_,
@@ -264,6 +275,7 @@ def admin_update_one(
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
         check_authorized_project=False,
+        expand=expand,
     )
 
 

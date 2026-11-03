@@ -86,7 +86,9 @@ A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `
 
 The services keep ending their loader options with `raiseload("*")`, and the specific options added by `apply_expand` override it, as today for derivations. An intermediate segment must be a field the service always loads, or an expandable field; otherwise the request fails at serialization, which signals a missing load in the service.
 
-First version restrictions: polymorphic relationships needing `of_type` (e.g. `Contribution.agent`) are not expandable through nested paths, and qualifiers are only accepted by fields whose loader supports them.
+The `raiseload("*")` of the service only covers the attributes of the returned item. Below an expandable relationship loaded by `apply_expand`, a `raiseload("*")` is added too, so that the nested relationships of its Read schema raise instead of being lazy loaded once per object; they must be loaded by a custom loader (e.g. `measurement_annotation` loads its kinds, items and labels).
+
+First version restrictions: polymorphic relationships needing `of_type` (e.g. `Contribution.agent`) are not expandable through nested paths, a field with a custom loader is always the last segment of a path, and qualifiers are only accepted by fields whose loader supports them.
 
 ### Create and update
 
@@ -136,7 +138,7 @@ For comparison, a whole warm `read_many` of 30 cell morphologies takes about 60 
 
 The allowed paths of an endpoint are computed from its Read schema: each expandable field gives a path, and nested schemas (including `list[...]` and `X | None`) are walked with a prefix, with a depth limit and a cycle guard. Fields with qualifiers add one value per qualifier.
 
-They are exposed as a `StrEnum` per Read schema, as `EntityExpand` and `MeasurableEntityExpand` today, so FastAPI returns 422 for invalid values and OpenAPI lists them. One dependency per Read schema (e.g. `expand_dep(CellMorphologyRead)`) replaces `ExpandDep` and `MeasurableEntityExpandDep`, is added to the read, create and update routes, and passes the parsed paths to the services, so a future body-based read endpoint can reuse them.
+They are exposed as a `StrEnum` per Read schema, named `<Schema>Expand` (e.g. `CircuitReadExpand`), as `EntityExpand` and `MeasurableEntityExpand` today, so FastAPI returns 422 for invalid values and OpenAPI lists them. One dependency per Read schema (`expand_query(CellMorphologyRead, CellMorphology)` in `app/dependencies/common.py`) replaces `ExpandDep` and `MeasurableEntityExpandDep`, is added to the read, create and update routes, and passes the parsed paths to the services, so a future body-based read endpoint can reuse them.
 
 Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 derivation types). Nested objects mostly use `Nested*Read` schemas without derivations, so the enums should stay close to this size. If nested paths and qualifiers make them too large, the dependency can switch to validated strings without changing the API.
 
@@ -168,10 +170,11 @@ Both are migrated in the same pull request as the mechanism, to check that it co
 
 - `generated_from_derivations` and `used_by_derivations` are **absent** instead of `null` when not expanded, and never `null` when expanded; their OpenAPI type becomes a plain array. entitysdk already defaults them to `None`, which accepts both; other clients reading these keys must handle the absence.
 - The `*AnnotationExpandedRead` schemas disappear from OpenAPI; the responses are unchanged. Clients generated from OpenAPI may notice.
-- `docs/API.md` ("Expanding derivations") is updated to describe the generic parameter.
+- `docs/API.md` ("Expanding derivations", renamed "Expanding optional fields") is updated to describe the generic parameter.
 - A field is serialized when its attribute is loaded, even if not requested, e.g. an object already loaded in the same session by a read. This is harmless and documented. Create and update avoid it for their own instance (see Create and update).
 - Every create and update route gets an `expand` parameter, user and admin.
-- The validator adds about 2% to the validation of the entity Read schemas, which all have expandable fields because of the derivations (see Prototype). `read_many` is profiled again on the implementation.
+- `/openapi.json` grows from 1.55 MB to 1.69 MB. Most of it comes from the `expand` parameter, documented with its description on 146 operations instead of 74; the 37 expand enums, one per Read schema, take 39 KB in total, most with the same 20 values.
+- The validator adds about 2% to the validation of the entity Read schemas, which all have expandable fields because of the derivations (see Prototype). Measured end to end on the implementation, the read endpoints take the same time as before and run the same SQL queries.
 - In Python code, an expandable field of a Read schema can be `MISSING`; code reading these fields must check it (`is MISSING`). This concerns entitycore only: clients see an absent key.
 - `pydantic>=2.14` is required (`MISSING` is stable from that version); the lock file already has 2.14.1.
 - Expand paths are short, but the query string is limited (16 KB request line on the AWS load balancer). The limit is a concern mainly for long `id__in` lists, which clients should split. Parsing `expand` in a dependency keeps the design compatible with a future body-based read endpoint.

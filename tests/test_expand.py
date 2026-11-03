@@ -1,89 +1,216 @@
+import uuid
+from typing import Annotated
+
 import pytest
+import sqlalchemy as sa
+from pydantic import MISSING, ValidationError
+from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
+from app.db.model import CellMorphology, Circuit, Species, Strain
 from app.db.types import DerivationType
 from app.queries import expand as test_module
+from app.schemas.base import Expandable, ExpandableSchema, Schema
+from app.schemas.cell_morphology import CellMorphologyRead
+from app.schemas.circuit import CircuitRead
 
-GENERATED = test_module.DerivationExpandDirection.generated_from_derivations
-USED = test_module.DerivationExpandDirection.used_by_derivations
-EXTRACTION = DerivationType.circuit_extraction
-REWIRING = DerivationType.circuit_rewiring
+DERIVATION_VALUES = {
+    "generated_from_derivations",
+    "used_by_derivations",
+    *(
+        f"{direction}:{t}"
+        for direction in ("generated_from_derivations", "used_by_derivations")
+        for t in DerivationType
+    ),
+}
 
 
-def test_entity_expand_values():
-    expected = {
-        "generated_from_derivations",
-        "used_by_derivations",
-        *(
-            f"{direction}:{t}"
-            for direction in ("generated_from_derivations", "used_by_derivations")
-            for t in DerivationType
-        ),
-    }
-    assert {str(v) for v in test_module.EntityExpand} == expected
-    assert len(expected) == 2 + 2 * len(DerivationType)
-    assert test_module.EntityExpand("generated_from_derivations:circuit_extraction").name == (
+class SpeciesTestRead(ExpandableSchema):
+    id: uuid.UUID
+    name: str
+    embedding: Annotated[list[float] | MISSING, Expandable()] = MISSING
+
+
+class StrainTestRead(Schema):
+    """Non-expandable relationship to a schema with an expandable column."""
+
+    id: uuid.UUID
+    species: SpeciesTestRead
+
+
+class StrainExpandableSpeciesTestRead(ExpandableSchema):
+    """Expandable relationship, with attr different from the field name."""
+
+    id: uuid.UUID
+    expandable_species: Annotated[SpeciesTestRead | MISSING, Expandable(attr="species")] = MISSING
+
+
+def _strain_query(strain_id):
+    return sa.select(Strain).where(Strain.id == strain_id)
+
+
+def test_allowed_expand_paths():
+    assert set(test_module.allowed_expand_paths(CircuitRead, Circuit)) == DERIVATION_VALUES
+    assert set(test_module.allowed_expand_paths(CellMorphologyRead, CellMorphology)) == (
+        DERIVATION_VALUES | {"measurement_annotation"}
+    )
+    assert test_module.allowed_expand_paths(StrainTestRead, Strain) == ("species.embedding",)
+    assert test_module.allowed_expand_paths(StrainExpandableSpeciesTestRead, Strain) == (
+        "expandable_species",
+        "expandable_species.embedding",
+    )
+
+
+def test_expand_enum():
+    enum = test_module.expand_enum(CircuitRead, Circuit)
+    assert enum.__name__ == "CircuitReadExpand"
+    assert {str(v) for v in enum} == DERIVATION_VALUES
+    assert enum("generated_from_derivations:circuit_extraction").name == (
         "generated_from_derivations__circuit_extraction"
     )
-    assert {str(v) for v in test_module.MeasurableEntityExpand} == expected | {
-        test_module.MEASUREMENT_ANNOTATION_EXPAND
-    }
+    enum = test_module.expand_enum(StrainExpandableSpeciesTestRead, Strain)
+    assert enum("expandable_species.embedding").name == "expandable_species___embedding"
 
 
-def test_build_expand_enum_extra_values():
-    enum = test_module._build_expand_enum("MyExpand", extra_values=["foo"])
-    assert enum.__name__ == "MyExpand"
-    assert "foo" in enum
-    assert "generated_from_derivations.used" not in enum
+def test_expand_enum_without_expandable_fields():
+    class NotExpandableRead(Schema):
+        id: uuid.UUID
+
+    with pytest.raises(TypeError, match="no expandable fields"):
+        test_module.expand_enum(NotExpandableRead, Strain)
+
+
+def test_expandable_relationship_to_entities_requires_loader():
+    class NestedRead(Schema):
+        id: uuid.UUID
+
+    class MorphologyRead(ExpandableSchema):
+        id: uuid.UUID
+        subject: Annotated[NestedRead | MISSING | None, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="require a loader"):
+        test_module.allowed_expand_paths(MorphologyRead, CellMorphology)
+
+
+def test_expandable_field_checks():
+    with pytest.raises(TypeError, match="must default to MISSING"):
+
+        class DefaultNone(ExpandableSchema):
+            summary: Annotated[dict | None, Expandable()] = None
+
+    with pytest.raises(TypeError, match="must not allow None"):
+
+        class ListWithNone(ExpandableSchema):
+            items: Annotated[list[int] | MISSING | None, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="must inherit from ExpandableSchema"):
+
+        class NotExpandableSchema(Schema):
+            summary: Annotated[dict | MISSING, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="qualifiers require a loader"):
+
+        class QualifiersWithoutLoader(ExpandableSchema):
+            summary: Annotated[dict | MISSING, Expandable(qualifiers=("a",))] = MISSING
 
 
 @pytest.mark.parametrize(
     ("expand", "expected"),
     [
-        (None, {}),
-        (set(), {}),
-        ({test_module.MEASUREMENT_ANNOTATION_EXPAND}, {}),
-        ({"generated_from_derivations"}, {GENERATED: None}),
-        ({"generated_from_derivations:circuit_extraction"}, {GENERATED: frozenset({EXTRACTION})}),
-        (
-            {
-                "generated_from_derivations:circuit_extraction",
-                "generated_from_derivations:circuit_rewiring",
-            },
-            {GENERATED: frozenset({EXTRACTION, REWIRING})},
-        ),
-        (
-            {"generated_from_derivations:circuit_extraction", "generated_from_derivations"},
-            {GENERATED: None},
-        ),
-        (
-            {"used_by_derivations:circuit_rewiring", "generated_from_derivations"},
-            {GENERATED: None, USED: frozenset({REWIRING})},
-        ),
+        ({"a"}, None),
+        ({"a:x"}, frozenset({"x"})),
+        ({"a:x", "a:y"}, frozenset({"x", "y"})),
+        ({"a:x", "a"}, None),
+        ({"a", "a:x"}, None),
     ],
 )
-def test_parse_derivation_expand(expand, expected):
-    assert test_module._parse_derivation_expand(expand) == expected
+def test_requested_qualifiers(expand, expected):
+    tree = test_module._build_tree(dict.fromkeys(sorted(expand)).keys())
+    assert tree.children["a"].requested_qualifiers() == expected
 
 
-def test_parse_derivation_expand_bare_wins_in_any_order():
-    # dicts preserve the insertion order, so both orders are exercised deterministically
-    for values in (
-        ["generated_from_derivations", "generated_from_derivations:circuit_extraction"],
-        ["generated_from_derivations:circuit_extraction", "generated_from_derivations"],
-    ):
-        result = test_module._parse_derivation_expand(dict.fromkeys(values).keys())
-        assert result == {GENERATED: None}
+def test_nested_column(db, strain_id):
+    db.expunge_all()
+    query = _strain_query(strain_id).options(joinedload(Strain.species), raiseload("*"))
+    strain = db.execute(query).unique().scalar_one()
+    assert "embedding" not in StrainTestRead.model_validate(strain).model_dump()["species"]
+
+    db.expunge_all()
+    query = test_module.apply_expand(query, Strain, StrainTestRead, {"species.embedding"})
+    strain = db.execute(query).unique().scalar_one()
+    data = StrainTestRead.model_validate(strain).model_dump()
+    assert len(data["species"]["embedding"]) == Species.SIZE
+
+
+def test_expandable_relationship(db, strain_id):
+    db.expunge_all()
+    query = _strain_query(strain_id).options(raiseload("*"))
+    strain = db.execute(query).unique().scalar_one()
+    data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
+    assert data.keys() == {"id"}
+
+    db.expunge_all()
+    expanded = test_module.apply_expand(
+        query, Strain, StrainExpandableSpeciesTestRead, {"expandable_species"}
+    )
+    strain = db.execute(expanded).unique().scalar_one()
+    data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
+    assert data["expandable_species"].keys() == {"id", "name"}
+
+    # a nested path implies its expandable ancestors
+    db.expunge_all()
+    expanded = test_module.apply_expand(
+        query, Strain, StrainExpandableSpeciesTestRead, {"expandable_species.embedding"}
+    )
+    strain = db.execute(expanded).unique().scalar_one()
+    data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
+    assert data["expandable_species"].keys() == {"id", "name", "embedding"}
+
+
+def test_not_expandable_relationship_not_loaded_still_raises(db, strain_id):
+    db.expunge_all()
+    strain = db.execute(_strain_query(strain_id).options(raiseload("*"))).scalar_one()
+    with pytest.raises(ValidationError, match="lazy='raise'"):
+        StrainTestRead.model_validate(strain)
+
+
+def test_invalid_expand_path():
+    with pytest.raises(ValueError, match=r"Invalid expand path: species\.name"):
+        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, {"species.name"})
+
+
+def test_unrequested_loaded_attrs(db, species_id):
+    db.expunge_all()
+    query = sa.select(Species).where(Species.id == species_id)
+    query = test_module.apply_expand(query, Species, SpeciesTestRead, {"embedding"})
+    species = db.execute(query).scalar_one()
+    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, set()) == ["embedding"]
+    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, {"embedding"}) == []
 
 
 def test_openapi_expand_param():
     schema = app.openapi()
-    assert set(schema["components"]["schemas"]["EntityExpand"]["enum"]) == {
-        str(v) for v in test_module.EntityExpand
-    }
-    params = {p["name"]: p for p in schema["paths"]["/circuit"]["get"]["parameters"]}
-    assert params["expand"]["description"] == test_module.EXPAND_DESCRIPTION
-    params = {p["name"]: p for p in schema["paths"]["/cell-morphology/{id_}"]["get"]["parameters"]}
-    assert params["expand"]["schema"]["anyOf"][0]["items"]["$ref"].endswith(
-        "/MeasurableEntityExpand"
+    components = schema["components"]["schemas"]
+    assert set(components["CircuitReadExpand"]["enum"]) == DERIVATION_VALUES
+    assert set(components["CellMorphologyReadExpand"]["enum"]) == (
+        DERIVATION_VALUES | {"measurement_annotation"}
     )
+    for path, method in [
+        ("/circuit", "get"),
+        ("/circuit", "post"),
+        ("/circuit/{id_}", "get"),
+        ("/circuit/{id_}", "patch"),
+    ]:
+        params = {p["name"]: p for p in schema["paths"][path][method]["parameters"]}
+        assert params["expand"]["description"] == test_module.EXPAND_DESCRIPTION
+        assert params["expand"]["schema"]["anyOf"][0]["items"]["$ref"].endswith(
+            "/CircuitReadExpand"
+        )
+    # the expandable fields are documented and not required
+    circuit = components["CircuitRead"]
+    assert circuit["properties"]["generated_from_derivations"]["type"] == "array"
+    assert "generated_from_derivations" not in circuit["required"]
+    morphology = components["CellMorphologyRead"]
+    assert "measurement_annotation" in morphology["properties"]
+    assert "measurement_annotation" not in morphology["required"]
+    assert "CellMorphologyAnnotationExpandedRead" not in components

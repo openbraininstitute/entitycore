@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -12,11 +13,12 @@ from app.db.model import (
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    ExpandDep,
+    ExpandPaths,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
@@ -27,7 +29,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.emodel import (
     EModelAdminUpdate,
@@ -37,6 +38,8 @@ from app.schemas.emodel import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+ExpandDep = Annotated[ExpandPaths, expand_query(EModelReadExpanded, EModel)]
 
 
 def _load(select: sa.Select[EModel]):
@@ -70,7 +73,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> EModelReadExpanded:
     return router_read_one(
         id_=id_,
@@ -86,7 +89,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> EModelReadExpanded:
     return router_read_one(
         db=db,
@@ -103,6 +106,7 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     emodel: EModelCreate,
+    expand: ExpandDep = frozenset(),
 ) -> EModelReadExpanded:
     return router_create_one(
         db=db,
@@ -111,6 +115,7 @@ def create_one(
         json_model=emodel,
         response_schema_class=EModelReadExpanded,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -119,6 +124,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> EModelReadExpanded:
     return router_update_one(
         id_=id_,
@@ -129,6 +135,7 @@ def update_one(
         response_schema_class=EModelReadExpanded,
         apply_operations=_load,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -137,6 +144,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> EModelReadExpanded:
     return router_update_one(
         id_=id_,
@@ -147,6 +155,7 @@ def admin_update_one(
         response_schema_class=EModelReadExpanded,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -159,7 +168,7 @@ def _read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[EModelReadExpanded]:
     facet_keys = filter_keys = [
@@ -206,7 +215,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[EModelReadExpanded]:
     return _read_many(
         user_context=user_context,
@@ -229,7 +238,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[EModelReadExpanded]:
     return _read_many(
         user_context=user_context,

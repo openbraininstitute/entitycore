@@ -81,7 +81,8 @@ def _get_facets(
     for facet_type, fields in name_to_facet_query_params.items():
         groupby_fields = {"type": sa.literal(facet_type), **fields}
         groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
-        groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
+        # literal_column renders inline ordinals (GROUP BY 1, 2, 3); sa.literal emits bound params
+        groupby_ids = [sa.literal_column(str(i + 1)) for i in range(len(groupby_columns))]
         facet_q = build_facet_query(facet_key=facet_type)
         # ensure that only the required columns are selected
         facet_q = (

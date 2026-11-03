@@ -1232,7 +1232,6 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
 
     Attributes:
         id (uuid.UUID): Primary key, referencing the scientific artifact ID.
-        recording_origin (ElectricalRecordingOrigin): in vivo, in vitro or in silico.
         sampling_frequency (float): Sampling frequency of the raw traces, in Hz.
         duration (float): Duration of the recording, in seconds.
 
@@ -1243,7 +1242,6 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     __tablename__ = EntityType.extracellular_recording.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-    recording_origin: Mapped[ElectricalRecordingOrigin]
     sampling_frequency: Mapped[float]
     duration: Mapped[float]
 

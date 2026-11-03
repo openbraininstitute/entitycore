@@ -3,7 +3,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import ExtracellularRecording
-from app.db.types import AssetLabel, ElectricalRecordingOrigin, EntityType
+from app.db.types import AssetLabel, EntityType
 
 from .utils import (
     PROJECT_ID,
@@ -52,7 +52,6 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "name": "my-name",
         "notice_text": None,
         "published_in": None,
-        "recording_origin": ElectricalRecordingOrigin.in_vivo,
         "sampling_frequency": 30000.0,
         "subject": ANY,
         "type": EntityType.extracellular_recording,
@@ -147,9 +146,9 @@ def test_upload_nwb(client, json_data):
 @pytest.fixture
 def models(db, json_data, user_id):
     values = [
-        (ElectricalRecordingOrigin.in_vivo, 30000.0, 600.0),
-        (ElectricalRecordingOrigin.in_vivo, 30000.0, 1200.0),
-        (ElectricalRecordingOrigin.in_silico, 20000.0, 10.0),
+        (30000.0, 600.0),
+        (30000.0, 1200.0),
+        (20000.0, 10.0),
     ]
     return add_all_db(
         db,
@@ -158,7 +157,6 @@ def models(db, json_data, user_id):
                 **json_data
                 | {
                     "name": f"recording-{i}",
-                    "recording_origin": origin,
                     "sampling_frequency": sampling_frequency,
                     "duration": duration,
                     "created_by_id": user_id,
@@ -166,7 +164,7 @@ def models(db, json_data, user_id):
                     "authorized_project_id": PROJECT_ID,
                 }
             )
-            for i, (origin, sampling_frequency, duration) in enumerate(values)
+            for i, (sampling_frequency, duration) in enumerate(values)
         ],
     )
 
@@ -177,7 +175,6 @@ def test_filtering_and_sorting(client, models):
         return [d["name"] for d in data]
 
     assert len(names({})) == len(models)
-    assert names({"recording_origin": "in_silico"}) == ["recording-2"]
     assert names({"sampling_frequency__gte": 25000.0, "order_by": "duration"}) == [
         "recording-0",
         "recording-1",

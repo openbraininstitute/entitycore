@@ -22,12 +22,11 @@ This is a first, minimal version for prototyping the pipeline. Probe metadata (p
 class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     __tablename__ = EntityType.extracellular_recording.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-    recording_origin: Mapped[ElectricalRecordingOrigin]  # in_vivo, in_vitro, in_silico
-    sampling_frequency: Mapped[float]                    # raw traces, Hz
-    duration: Mapped[float]                              # seconds
+    sampling_frequency: Mapped[float]  # raw traces, Hz
+    duration: Mapped[float]            # seconds
 ```
 
-The probe geometry stays in the NWB electrodes table, where the analysis tools read it. Standard entity routes at `/extracellular-recording`, with filters on the origin and ranges on `sampling_frequency` and `duration`.
+The probe geometry stays in the NWB electrodes table, where the analysis tools read it. Standard entity routes at `/extracellular-recording`, with range filters on `sampling_frequency` and `duration`.
 
 ### Assets
 

@@ -24,11 +24,6 @@ def upgrade() -> None:
     op.create_table(
         "extracellular_recording",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "recording_origin",
-            postgresql.ENUM(name="electricalrecordingorigin", create_type=False),
-            nullable=False,
-        ),
         sa.Column("sampling_frequency", sa.Float(), nullable=False),
         sa.Column("duration", sa.Float(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),

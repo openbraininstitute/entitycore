@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from app.db.model import ExtracellularRecording
-from app.db.types import ElectricalRecordingOrigin
 from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -12,8 +11,6 @@ class ExtracellularRecordingFilter(
     NameFilterMixin,
     ILikeSearchFilterMixin,
 ):
-    recording_origin: ElectricalRecordingOrigin | None = None
-    recording_origin__in: list[ElectricalRecordingOrigin] | None = None
     sampling_frequency: float | None = None
     sampling_frequency__lte: float | None = None
     sampling_frequency__gte: float | None = None

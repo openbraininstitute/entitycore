@@ -1307,7 +1307,6 @@ def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
         "subject_id": subject_id,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
-        "recording_origin": "in_vivo",
         "sampling_frequency": 30000.0,
         "duration": 600.0,
         "authorized_public": False,

@@ -2,7 +2,6 @@ from typing import Annotated
 
 from pydantic import Field
 
-from app.db.types import ElectricalRecordingOrigin
 from app.schemas.base import NameDescriptionMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
@@ -13,13 +12,6 @@ from app.schemas.utils import make_update_schema
 
 
 class ExtracellularRecordingBase(NameDescriptionMixin):
-    recording_origin: Annotated[
-        ElectricalRecordingOrigin,
-        Field(
-            title="Recording Origin",
-            description=f"Recording origin. One of: {sorted(ElectricalRecordingOrigin)}",
-        ),
-    ]
     sampling_frequency: Annotated[
         float,
         Field(

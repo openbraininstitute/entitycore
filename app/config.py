@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
     PAGINATION_MAX_PAGE_SIZE: int = 1000
 
-    DB_ENGINE: str = "postgresql+psycopg2"
+    DB_ENGINE: str = "postgresql+psycopg"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"  # ruff:ignore[hardcoded-password-string]
     DB_HOST: str = "db"

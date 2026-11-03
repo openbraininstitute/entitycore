@@ -10,17 +10,6 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM python:$PYTHON_BASE AS builder
 SHELL ["bash", "-e", "-x", "-o", "pipefail", "-c"]
 
-RUN <<EOT
-apt-get update -qy
-apt-get install -qyy \
-    -o APT::Install-Recommends=false \
-    -o APT::Install-Suggests=false \
-    gcc \
-    libc6-dev \
-    libpq-dev \
-    ca-certificates
-EOT
-
 COPY --from=uv /uv /usr/local/bin/uv
 
 ENV UV_LINK_MODE=copy \
@@ -38,14 +27,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # run stage
 FROM python:$PYTHON_BASE
 SHELL ["bash", "-e", "-x", "-o", "pipefail", "-c"]
-
-RUN <<EOT
-apt-get update -qy
-apt-get install -qyy \
-    -o APT::Install-Recommends=false \
-    -o APT::Install-Suggests=false \
-    libpq5
-EOT
 
 RUN <<EOT
 groupadd -r app

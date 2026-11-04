@@ -1,5 +1,6 @@
 # app/db/types.py
 
+import re
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
@@ -150,6 +151,8 @@ class EntityType(StrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     task_config = auto()
+    research_log = auto()
+    extracellular_recording = auto()
 
 
 class TaskResultType(StrEnum):
@@ -308,8 +311,7 @@ class DerivationType(StrEnum):
     Attributes:
         circuit_customization: Indicates that a circuit entity was derived from another circuit by
           customizing certain components. The optional ``label`` field specifies the type of
-          customization, such as ``synaptic_modification``, ``emodel_addition``,
-          ``emodel_modification``, ``population_modification``.
+          customization, as one of the values of ``CircuitCustomizationLabel``.
         circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from
          a circuit.
         circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
@@ -318,9 +320,18 @@ class DerivationType(StrEnum):
           (generated). The optional ``label`` field on the derivation carries the SONATA
           ``model_template`` entry, by convention ``hoc:<template_name>``
           (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
+        em_dense_reconstruction_dataset_cell_morphology: Indicates that a cell morphology
+          (generated) was reconstructed from an EM dense reconstruction dataset (used).
         circuit_simplification: Indicates that a circuit entity was derived by simplifying
           the biophysical complexity of another circuit while preserving network connectivity.
+        research_log_input: Indicates that an entity (used) was an input of the research session
+          described by a ResearchLog (generated).
+        research_log_output: Indicates that an entity (used) was produced during the research
+          session described by a ResearchLog (generated).
         unspecified: Indicates a derivation that does not require a specific type.
+
+    The entity types and labels allowed for each derivation type are defined in
+    ``DERIVATION_TYPE_RULES``.
     """
 
     circuit_customization = auto()
@@ -329,7 +340,91 @@ class DerivationType(StrEnum):
     emodel_circuit = auto()
     em_dense_reconstruction_dataset_cell_morphology = auto()
     circuit_simplification = auto()
+    research_log_input = auto()
+    research_log_output = auto()
     unspecified = auto()
+
+
+class CircuitCustomizationLabel(StrEnum):
+    """Labels of circuit_customization derivations, for the type of customization."""
+
+    synaptic_modification = auto()
+    emodel_addition = auto()
+    emodel_modification = auto()
+    population_modification = auto()
+
+
+class DerivationLabelRule(BaseModel):
+    """Labels allowed for a derivation type.
+
+    Attributes:
+        pattern: regular expression that the whole label must match.
+        description: description of the allowed labels, used in error messages.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    pattern: re.Pattern[str]
+    description: str
+
+
+class DerivationTypeRules(BaseModel):
+    """Entity types and labels allowed for a derivation type.
+
+    A value of None means that any entity type, or any label, is allowed.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    used: frozenset[EntityType] | None
+    generated: frozenset[EntityType] | None
+    label: DerivationLabelRule | None = None
+
+
+DERIVATION_TYPE_RULES: dict[DerivationType, DerivationTypeRules] = {
+    DerivationType.circuit_customization: DerivationTypeRules(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+        label=DerivationLabelRule(
+            pattern=re.compile("|".join(re.escape(label) for label in CircuitCustomizationLabel)),
+            description=f"one of {sorted(label.value for label in CircuitCustomizationLabel)}",
+        ),
+    ),
+    DerivationType.circuit_extraction: DerivationTypeRules(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.circuit_rewiring: DerivationTypeRules(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.circuit_simplification: DerivationTypeRules(
+        used=frozenset({EntityType.circuit}),
+        generated=frozenset({EntityType.circuit}),
+    ),
+    DerivationType.emodel_circuit: DerivationTypeRules(
+        used=frozenset({EntityType.emodel}),
+        generated=frozenset({EntityType.circuit}),
+        label=DerivationLabelRule(
+            pattern=re.compile(r"hoc:[A-Za-z0-9_]+"),
+            description="'hoc:<template_name>' (e.g. 'hoc:cADpyr_L5TPC')",
+        ),
+    ),
+    DerivationType.em_dense_reconstruction_dataset_cell_morphology: DerivationTypeRules(
+        used=frozenset({EntityType.em_dense_reconstruction_dataset}),
+        generated=frozenset({EntityType.cell_morphology}),
+    ),
+    DerivationType.research_log_input: DerivationTypeRules(
+        used=None,
+        generated=frozenset({EntityType.research_log}),
+    ),
+    DerivationType.research_log_output: DerivationTypeRules(
+        used=None,
+        generated=frozenset({EntityType.research_log}),
+    ),
+    # placeholder used by existing derivations, to be replaced by dedicated derivation types
+    DerivationType.unspecified: DerivationTypeRules(used=None, generated=None),
+}
 
 
 ResourceType = combine_str_enums(
@@ -471,6 +566,7 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
+    markdown = "text/markdown"
     other = "application/octet-stream"
 
 
@@ -520,6 +616,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    circuit_morphology_pack = auto()
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
@@ -538,6 +635,9 @@ class AssetLabel(StrEnum):
     efeature_extraction_cells = auto()
     efeature_extraction_protocols = auto()
     current_report = auto()
+    research_log_document = auto()
+    research_log_files = auto()
+    recording_summary = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -581,6 +681,10 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
+    ContentType.markdown: (
+        ".md",
+        ".markdown",
+    ),
     ContentType.other: (),
 }
 
@@ -767,6 +871,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 ),
             )
         ],
+        AssetLabel.circuit_morphology_pack: [
+            LabelRequirements(
+                content_type=ContentType.other,
+                is_directory=False,
+                description=(
+                    "Morphologies of the circuit's biophysical neurons, simplified at several "
+                    "levels of detail and cut into chunks of space, for a viewer to stream."
+                ),
+            )
+        ],
     },
     EntityType.electrical_cell_recording: {
         AssetLabel.nwb: [
@@ -775,7 +889,17 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Electrophysiological timeseries data.",
             ),
-        ]
+        ],
+        AssetLabel.recording_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description=(
+                    "Per-protocol current amplitudes (nA), keyed by stimulus name, and the "
+                    "rheobase, computed from the NWB file."
+                ),
+            ),
+        ],
     },
     EntityType.emodel: {
         AssetLabel.emodel_optimization_output: [
@@ -794,6 +918,15 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Electrical model NEURON template.",
             )
+        ],
+    },
+    EntityType.extracellular_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Extracellular voltage traces, with the electrodes table.",
+            ),
         ],
     },
     EntityType.ion_channel_model: {
@@ -1092,6 +1225,22 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             ),
         ],
     },
+    EntityType.research_log: {
+        AssetLabel.research_log_document: [
+            LabelRequirements(
+                content_type=ContentType.markdown,
+                is_directory=False,
+                description="Logbook of the research session, in markdown.",
+            )
+        ],
+        AssetLabel.research_log_files: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description="Optional directory with the files referenced by the logbook.",
+            )
+        ],
+    },
     EntityType.skeletonization_campaign: {
         AssetLabel.campaign_generation_config: [
             LabelRequirements(
@@ -1140,8 +1289,44 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         EntityType.simulation_result
     ],
     TaskResultType.em_synapse_mapping__result: None,
-    TaskResultType.aind_ephys_preprocessing__result: None,
-    TaskResultType.aind_ephys_spikesorting__result: None,
+    TaskResultType.aind_ephys_preprocessing__result: {
+        AssetLabel.task_result: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "AIND ephys preprocessing output: SpikeInterface binary folders of the "
+                    "preprocessed recordings, the files that reload them and motion estimates."
+                ),
+            )
+        ],
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Preprocessed extracellular recording in NWB format.",
+            )
+        ],
+    },
+    TaskResultType.aind_ephys_spikesorting__result: {
+        AssetLabel.task_result: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Output of AIND ephys spike sorting and the steps after it: SpikeInterface "
+                    "sortings, sorting analyzers and unit labels."
+                ),
+            )
+        ],
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Sorted units in NWB format.",
+            )
+        ],
+    },
     TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # ruff:ignore[line-too-long]
         EntityType.simulatable_extracellular_recording_array
     ],

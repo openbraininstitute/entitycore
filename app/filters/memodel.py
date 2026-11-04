@@ -18,8 +18,15 @@ from app.filters.common import (
     NestedMTypeClassFilter,
 )
 from app.filters.emodel import NestedEModelFilter
-from app.filters.entity import EntityFilterMixin
+from app.filters.entity import EntityFilterMixin, NestedDerivationFilter
 from app.filters.species import NestedSpeciesFilter, SpeciesFilterMixin
+
+
+class NestedMEModelMorphologyFilter(NestedCellMorphologyFilter):
+    generated_derivation: Annotated[
+        NestedDerivationFilter | None,
+        FilterDepends(with_prefix("morphology__generated_derivation", NestedDerivationFilter)),
+    ] = None
 
 
 class NestedMEModelFilter(
@@ -57,8 +64,8 @@ class MEModelFilter(
     CustomFilter,
 ):
     morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("morphology", NestedCellMorphologyFilter)),
+        NestedMEModelMorphologyFilter | None,
+        FilterDepends(with_prefix("morphology", NestedMEModelMorphologyFilter)),
     ] = None
     emodel: Annotated[
         NestedEModelFilter | None,

@@ -2,7 +2,7 @@
 
 ## Stack
 
-Python 3.12 | FastAPI | SQLAlchemy sync (psycopg2) | Alembic | Pydantic v2 | boto3 (S3) | JWT auth (Keycloak)
+Python 3.14 | FastAPI | SQLAlchemy sync (psycopg3) | Alembic | Pydantic v2 | boto3 (S3) | JWT auth (Keycloak)
 Package manager: uv | Linter: ruff | Type checker: pyright | Line length: 100
 
 ## Key Paths
@@ -58,6 +58,8 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 - `DELETE /<entity>/{id}` or `DELETE /admin/<entity>/{id}`
 
 ## Adding a New Entity
+
+For non-trivial designs, write a design record first (see `docs/design/README.md`).
 
 1. SQLAlchemy model → `app/db/model.py` (docstring with an "Assets:" section)
 2. Enum value → `app/db/types.py` (`EntityType`)

@@ -243,7 +243,7 @@ def _get_validated_clone_source_and_targets(
     user_context: UserContextDep,
     id_: uuid.UUID,
     target_project_ids: list[uuid.UUID],
-) -> tuple["AnalysisNotebookTemplate", list["AnalysisNotebookTemplate"]]:
+) -> tuple[AnalysisNotebookTemplate, list[AnalysisNotebookTemplate]]:
     """Fetch and validate source notebook and matching targets for clone/delete-clones operations.
 
     Raises 403 if the source is public, the source project is in the target list,

@@ -4,9 +4,6 @@
 
 - `uv`: https://docs.astral.sh/uv/getting-started/installation/
 - `docker` and `docker compose`: https://docs.docker.com/compose/install/
-- `postgresql` for building `psycopg2`:
-  - `brew install postgresql` on Mac
-  - `apt-get install gcc libc6-dev libpq-dev` on Linux (Ubuntu or Debian)
 
 ## Setup the virtualenv
 

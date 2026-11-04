@@ -1,9 +1,6 @@
 import uuid
-from enum import StrEnum, auto
 from functools import partial
-from typing import Annotated
 
-from fastapi import Query
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
@@ -17,6 +14,7 @@ from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWi
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
+    MeasurableEntityExpandDep,
     PaginationQuery,
     SearchDep,
 )
@@ -29,6 +27,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import MEASUREMENT_ANNOTATION_EXPAND, MeasurableEntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.em_cell_mesh import (
     EMCellMeshAnnotationExpandedRead,
@@ -40,14 +39,9 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
 
-class Expandable(StrEnum):
-    measurement_annotation = auto()
-    # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
-    generated_from_derivations = auto()
-    used_by_derivations = auto()
-
-
-def _load(q: Select[EMCellMesh], *, expand: set[Expandable] | None = None) -> Select[EMCellMesh]:
+def _load(
+    q: Select[EMCellMesh], *, expand: set[MeasurableEntityExpand] | None = None
+) -> Select[EMCellMesh]:
     """Return the query with the required options to load the data."""
     db_model_class = EMCellMesh
     query = q.options(
@@ -66,7 +60,7 @@ def _load(q: Select[EMCellMesh], *, expand: set[Expandable] | None = None) -> Se
         selectinload(db_model_class.assets),
         raiseload("*"),
     )
-    if expand and Expandable.measurement_annotation in expand:
+    if expand and MEASUREMENT_ANNOTATION_EXPAND in expand:
         query = query.options(
             joinedload(db_model_class.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
@@ -90,7 +84,7 @@ def _read_many(
     filter_model: EMCellMeshFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
-    expand: set[Expandable] | None,
+    expand: set[MeasurableEntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     facet_keys = [
@@ -115,7 +109,7 @@ def _read_many(
     )
     response_schema_class = (
         EMCellMeshAnnotationExpandedRead
-        if expand and Expandable.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else EMCellMeshRead
     )
     return router_read_many(
@@ -146,7 +140,7 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[Expandable] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
@@ -169,7 +163,7 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[Expandable] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
@@ -188,11 +182,11 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[Expandable] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
     response_schema_class = (
         EMCellMeshAnnotationExpandedRead
-        if expand and Expandable.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else EMCellMeshRead
     )
     apply_operations = partial(_load, expand=expand)
@@ -210,11 +204,11 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[Expandable] | None, Query()] = None,
+    expand: MeasurableEntityExpandDep = None,
 ) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
     response_schema_class = (
         EMCellMeshAnnotationExpandedRead
-        if expand and Expandable.measurement_annotation in expand
+        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
         else EMCellMeshRead
     )
     apply_operations = partial(_load, expand=expand)

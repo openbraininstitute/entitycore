@@ -83,6 +83,20 @@ def test__raise_on_label_requirement():
             [LabelRequirements(content_type=ContentType.jpg, is_directory=False)],
         )
 
+    # a content type with no suffix of its own takes any
+    for path in ("foo/bar/baz.mpack", "foo/bar/baz.png", "foo/bar/baz"):
+        asset = Mock(is_directory=False, content_type="application/octet-stream", path=path)
+        test_module._raise_on_label_requirement(
+            asset,
+            [LabelRequirements(content_type=ContentType.other, is_directory=False)],
+        )
+    asset = Mock(is_directory=False, content_type="application/json", path="foo/bar/baz.mpack")
+    with pytest.raises(ValueError, match="implies one of the following content-types"):
+        test_module._raise_on_label_requirement(
+            asset,
+            [LabelRequirements(content_type=ContentType.other, is_directory=False)],
+        )
+
 
 @pytest.mark.parametrize(
     ("input_path", "expected"),

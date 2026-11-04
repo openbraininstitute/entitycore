@@ -45,6 +45,7 @@ from app.db.model import (
     PlaceholderCellMorphologyProtocol,
     PlatformUser,
     Publication,
+    ResearchLog,
     Role,
     Simulation,
     SimulationCampaign,
@@ -1299,6 +1300,20 @@ def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_da
 
 
 @pytest.fixture
+def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "sampling_frequency": 30000.0,
+        "duration": 600.0,
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
 def ion_channel_json_data():
     return {
         "name": "KCa1.1",
@@ -1927,6 +1942,29 @@ def analysis_notebook_result(db, analysis_notebook_result_json_data, user_id):
         db,
         AnalysisNotebookResult(
             **analysis_notebook_result_json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def research_log_json_data():
+    return {
+        "name": "research-log",
+        "description": "research-log-description",
+    }
+
+
+@pytest.fixture
+def research_log(db, research_log_json_data, user_id):
+    return add_db(
+        db,
+        ResearchLog(
+            **research_log_json_data
             | {
                 "created_by_id": user_id,
                 "updated_by_id": user_id,

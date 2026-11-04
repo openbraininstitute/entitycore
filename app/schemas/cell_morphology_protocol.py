@@ -313,7 +313,10 @@ class CellMorphologyProtocolReadAdapter(Schema):
 class CellMorphologyProtocolUserUpdateAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolUpdate."""
 
-    _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)
+    # pyright cannot infer TypeForm from a bare Annotated value whose union members are
+    # runtime-built (make_update_schema); a `type`/TypeAlias declaration is rejected because
+    # those members aren't static types. Runtime behavior is correct.
+    _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)  # type: ignore[arg-type]
 
     @classmethod
     def model_validate(cls, obj: Any, *args, **kwargs) -> CellMorphologyProtocolUserUpdate:  # type: ignore[override]

@@ -448,6 +448,17 @@ def test_create_and_retrieve(
     assert data["measurement_annotation"]["id"] == measurement_annotation_id_2
     assert data["measurement_annotation"]["entity_id"] == data["id"] == morphology_id
 
+    # combined with a typed derivation expand
+    response = client.get(
+        f"{MORPHOLOGY_ROUTE}/{morphology_id}",
+        params={"expand": ["measurement_annotation", "generated_from_derivations:unspecified"]},
+    )
+    assert_response(response, expected_status_code=200)
+    data = response.json()
+    assert data["measurement_annotation"]["id"] == measurement_annotation_id_2
+    assert data["generated_from_derivations"] == []
+    assert data["used_by_derivations"] is None
+
     # filter the annotations
     query_params = {
         "measurement_kind__pref_label": measurement_labels[0],

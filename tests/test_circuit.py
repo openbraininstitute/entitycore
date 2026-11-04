@@ -559,6 +559,82 @@ def test_expand_derivations(db, client, root_circuit, circuit, user_id):
     assert len(parent["used_by_derivations"]) == 1
 
 
+def test_expand_derivations_by_type(
+    db, client, clients, root_circuit, circuit, public_circuit, user_id
+):
+    """`expand=<direction>:<derivation_type>` narrows the expanded list, not the rows."""
+    for used_id, derivation_type in [
+        (root_circuit.id, DerivationType.circuit_extraction),
+        (public_circuit.id, DerivationType.circuit_rewiring),
+    ]:
+        _add_derivation(
+            db,
+            used_id=used_id,
+            generated_id=circuit.id,
+            user_id=user_id,
+            derivation_type=derivation_type,
+        )
+
+    def derivation_types(entry, direction="generated_from_derivations"):
+        return sorted(d["derivation_type"] for d in entry[direction])
+
+    def read_one(*expand, route=ROUTE, http_client=client):
+        params = {"expand": list(expand)}
+        return assert_request(http_client.get, url=f"{route}/{circuit.id}", params=params).json()
+
+    extraction = "generated_from_derivations:circuit_extraction"
+    rewiring = "generated_from_derivations:circuit_rewiring"
+
+    data = read_one(extraction)
+    assert derivation_types(data) == ["circuit_extraction"]
+    assert data["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
+    assert data["used_by_derivations"] is None
+
+    assert derivation_types(read_one(extraction, rewiring)) == [
+        "circuit_extraction",
+        "circuit_rewiring",
+    ]
+    # a requested type without matches is an empty list, not null
+    assert (
+        read_one("generated_from_derivations:circuit_customization")["generated_from_derivations"]
+        == []
+    )
+    # the bare direction wins over the typed values
+    assert (
+        len(read_one(extraction, "generated_from_derivations")["generated_from_derivations"]) == 2
+    )
+    # each direction is narrowed independently
+    data = read_one(rewiring, "used_by_derivations")
+    assert derivation_types(data) == ["circuit_rewiring"]
+    assert data["used_by_derivations"] == []
+    # admin route
+    data = read_one(extraction, route=ADMIN_ROUTE, http_client=clients.admin)
+    assert derivation_types(data) == ["circuit_extraction"]
+
+    # read_many: the filter selects the rows, the typed expand narrows the loaded derivations
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"generated_derivation__derivation_type": "circuit_rewiring", "expand": extraction},
+    ).json()["data"]
+    assert [d["id"] for d in data] == [str(circuit.id)]
+    assert derivation_types(data[0]) == ["circuit_extraction"]
+    assert data[0]["used_by_derivations"] is None
+
+
+@pytest.mark.parametrize(
+    "expand",
+    [
+        "generated_from_derivations:unknown_type",
+        "generated_from_derivations.used",
+        "used_by_derivations:",
+        "measurement_annotation",
+    ],
+)
+def test_expand_invalid_values(client, expand):
+    assert_request(client.get, url=ROUTE, params={"expand": expand}, expected_status_code=422)
+
+
 def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, user_id):
     """Filtering and expanding compose: filtered rows carry the expanded columns."""
     _add_derivation(

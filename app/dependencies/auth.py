@@ -245,7 +245,7 @@ def user_verified(
     return user_context
 
 
-def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProjectId:
+def user_with_project_id(user_context: UserContextDep) -> UserContextWithProjectId:
     """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
     if not user_context.virtual_lab_id or not user_context.project_id:
         raise ApiError(
@@ -256,7 +256,7 @@ def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProje
     return UserContextWithProjectId.model_validate(user_context, from_attributes=True)
 
 
-def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
+def user_with_service_admin_role(user_context: UserContextDep) -> UserContext:
     """Ensure that the authenticated user has a service admin role."""
     if not user_context.is_service_admin:
         raise ApiError(
@@ -268,7 +268,7 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
 
 
 def user_with_service_admin_role_and_project_id(
-    user_context: "UserContextDep",
+    user_context: UserContextDep,
 ) -> UserContextWithProjectId:
     """Ensure that the authenticated user has an admin role and valid virtual_lab_id/project_id."""
     user_with_service_admin_role(user_context)

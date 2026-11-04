@@ -63,6 +63,20 @@ The return payload is the same as above, except the `data` only includes matches
 Its pagination data reflects the result of the filters.
 The facets cover the results of the full query, not just the pagination.
 
+## Expanding derivations
+
+Entity read endpoints return `generated_from_derivations` and `used_by_derivations` as `null` unless requested with `expand`:
+
+- `expand=generated_from_derivations` / `expand=used_by_derivations` load all the derivations in that direction.
+- `expand=<direction>:<derivation_type>` loads only that type. Repeat `expand` to combine types; a bare direction wins over typed values.
+- The qualifier after `:` is always the derivation type; `.` and `=` are reserved for future nested paths and keyed qualifiers.
+- The `generated_derivation__*` / `used_derivation__*` filters only select the entities, and never narrow the expanded lists.
+
+Ex: circuits extracted from another circuit, with only their extraction derivations:
+```
+GET /circuit?generated_derivation__derivation_type=circuit_extraction&expand=generated_from_derivations:circuit_extraction
+```
+
 ## Faceting
 
 Additional facet statistics are included on entity endpoints:
@@ -369,6 +383,25 @@ Users in the [service admin group](#service-admin-group) can read data from any 
 A resource without an authorized_project_id is called a global resource.
 
 Global resources and public entities can be updated only by service admins.
+
+# Response compression:
+Responses are compressed according to the `Accept-Encoding` request header, preferring `zstd`, then `gzip`, regardless of the q-values (except `q=0`, which disables an encoding).
+Only responses of at least 500 bytes with a text-like content type (for example `application/json` or `text/html`) are compressed.
+Compressed responses have the `Content-Encoding` header, and all the responses that could be compressed have `Vary: Accept-Encoding`.
+
+Browsers and most HTTP clients decode the responses automatically. Python clients based on `httpx` advertise `zstd` only if the optional zstd package is installed, otherwise they receive `gzip`.
+
+Compression can be disabled in the service with `COMPRESSION_ENABLED=false`.
+
+# Response caching:
+The following endpoints return a weak `ETag` and `Cache-Control: private, no-cache`:
+
+- `GET /brain-region-hierarchy/{id}/hierarchy`
+- `GET /brain-atlas/{atlas_id}/regions`
+
+Clients can store the response, and revalidate it by sending the `ETag` in the `If-None-Match` header: if the content didn't change, the service returns `304 Not Modified` without a body. Browsers do this automatically.
+
+The service caches these responses in memory: the hierarchies indefinitely, since they aren't updated, and the atlas regions for 1 hour. The atlas regions are cached once for all the projects, unless a project has private regions in the atlas. Restarting the service refreshes both caches immediately.
 
 
 

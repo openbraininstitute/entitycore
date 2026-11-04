@@ -18,7 +18,7 @@ def get_db(request: Request) -> Iterator[Session]:
     yield from _get_session(request)
 
 
-def _get_repo_group(db: "SessionDep") -> RepositoryGroup:
+def _get_repo_group(db: SessionDep) -> RepositoryGroup:
     """Return the repository group, to be used as a dependency."""
     return RepositoryGroup(db=db)
 

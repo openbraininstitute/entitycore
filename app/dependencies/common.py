@@ -12,7 +12,7 @@ from starlette.requests import Request
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
-from app.queries.expand import EntityExpand
+from app.queries.expand import EXPAND_DESCRIPTION, EntityExpand, MeasurableEntityExpand
 from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
 
@@ -81,7 +81,8 @@ def _get_facets(
     for facet_type, fields in name_to_facet_query_params.items():
         groupby_fields = {"type": sa.literal(facet_type), **fields}
         groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
-        groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
+        # literal_column renders inline ordinals (GROUP BY 1, 2, 3); sa.literal emits bound params
+        groupby_ids = [sa.literal_column(str(i + 1)) for i in range(len(groupby_columns))]
         facet_q = build_facet_query(facet_key=facet_type)
         # ensure that only the required columns are selected
         facet_q = (
@@ -127,7 +128,7 @@ class WithFacets(BaseModel):
 class Search[T: DeclarativeBase](BaseModel):
     search: str | None = None
 
-    def __call__(self, q: sa.Select[tuple[T]], vector_col: InstrumentedAttribute):
+    def __call__(self, q: sa.Select[T], vector_col: InstrumentedAttribute):
         if not self.search:
             return q
 
@@ -220,6 +221,7 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
-# `?expand=generated_from_derivations&expand=used_by_derivations` — available on every entity
-# read endpoint.
-ExpandDep = Annotated[set[EntityExpand] | None, Query()]
+# `expand` params of the entity read endpoints; the measurable ones add `measurement_annotation`.
+ExpandQuery = Query(description=EXPAND_DESCRIPTION)
+ExpandDep = Annotated[set[EntityExpand] | None, ExpandQuery]
+MeasurableEntityExpandDep = Annotated[set[MeasurableEntityExpand] | None, ExpandQuery]

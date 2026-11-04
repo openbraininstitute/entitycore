@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
-type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
+type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[T]], sa.Select[T]]
 
 
 type FacetQueryParamsMap = Mapping[str, FacetQueryParams]

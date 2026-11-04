@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
     PAGINATION_MAX_PAGE_SIZE: int = 1000
 
-    DB_ENGINE: str = "postgresql+psycopg2"
+    DB_ENGINE: str = "postgresql+psycopg"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"  # ruff:ignore[hardcoded-password-string]
     DB_HOST: str = "db"
@@ -102,6 +102,9 @@ class Settings(BaseSettings):
     GC_CONTROL_ENABLED: bool = True
     GC_GEN1_INTERVAL_SECONDS: float = 5.0
     GC_GEN2_INTERVAL_SECONDS: float = 600.0
+    COMPRESSION_ENABLED: bool = True
+    BRAIN_ATLAS_REGIONS_CACHE_MAXSIZE_BYTES: int = 64 * 1024 * 1024
+    BRAIN_ATLAS_REGIONS_CACHE_TTL_SECONDS: int = 3600
 
     OPENAI_API_KEY: SecretStr | None = None
 

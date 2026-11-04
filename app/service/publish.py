@@ -85,7 +85,7 @@ def _set_assets_visibility(
         .limit(max_assets)
     ).scalars()
     move_result = MoveAssetsResult()
-    for batch in batched(private_assets, BATCH_SIZE):
+    for batch in batched(private_assets, BATCH_SIZE, strict=False):
         path_mapping: dict[uuid.UUID, str] = {}
         L.info("Processing batch of {} assets [dry_run={}]", len(batch), dry_run)
         for asset in batch:

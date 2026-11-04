@@ -5,7 +5,7 @@ description = "entitycore"
 authors = [{ name = "Open Brain Institute" }]
 dependencies = [
     "alembic>=1.14.1",
-    "alembic-postgresql-enum>=1.10.0",
+    "alembic-postgresql-enum>=1.11.1",
     "alembic-utils>=0.8.6",
     "boto3>=1.36.3",
     "cachetools>=5.5.2",
@@ -16,7 +16,7 @@ dependencies = [
     "loguru>=0.7.3",
     "openai>=1.101.0",
     "pgvector>=0.4.1",
-    "psycopg2",
+    "psycopg[binary]",
     "pydantic>=2",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
@@ -24,9 +24,10 @@ dependencies = [
     "sentry-sdk>=2.65.0",
     "sqlalchemy",
     "starlette>=1.0.1",
+    "starlette-compress>=1.8.0",
     "uvicorn[standard]",
 ]
-requires-python = "==3.12.*"
+requires-python = "==3.14.*"
 readme = "README.md"
 license = "Apache-2.0"
 
@@ -56,7 +57,7 @@ required-version = ">=0.9.0"
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 include = [
     "pyproject.toml",
     "app/**/*.py",
@@ -101,6 +102,11 @@ ignore = [
     "commented-out-code", # Found commented-out code
     "mixed-case-variable-in-class-scope",   # Variable in class scope should not be mixedCase
     "lambda-assignment",   # Do not assign a `lambda` expression, use a `def`
+    # FastAPI, Pydantic and SQLAlchemy evaluate annotations at runtime: with py314 lazy
+    # annotations these rules would suggest TYPE_CHECKING-only imports that break the app
+    "typing-only-first-party-import",  # TC001
+    "typing-only-third-party-import",  # TC002
+    "typing-only-standard-library-import",  # TC003
 ]
 
 [tool.ruff.lint.isort]

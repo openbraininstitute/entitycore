@@ -16,6 +16,10 @@ class HeaderKey(StrEnum):
     process_time = "X-Process-Time"
     user_agent = "User-Agent"
     content_length = "Content-Length"
+    content_encoding = "Content-Encoding"
+    etag = "ETag"
+    cache_control = "Cache-Control"
+    if_none_match = "If-None-Match"
 
 
 class PaginationRequest(Schema):
@@ -52,7 +56,7 @@ class ListResponse[M: Schema](Schema):
     facets: Facets | None = None
 
 
-type Select[M: DeclarativeBase] = sa.Select[tuple[M]]
+type Select[M: DeclarativeBase] = sa.Select[M]
 
 
 # The URL's encoded string, using the punycode-encoded host for serialization to the db.

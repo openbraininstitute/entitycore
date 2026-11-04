@@ -232,9 +232,9 @@ def router_create_one[T: Schema, I: Identifiable](
 
 
 def _with_subquery[I: Identifiable](
-    data_query: sa.Select[tuple[I]],
+    data_query: sa.Select[I],
     db_model_class: type[I],
-) -> sa.Select[tuple[I]]:
+) -> sa.Select[I]:
     """Build and return a new data_query using a subquery.
 
     This is more performant when:
@@ -295,7 +295,7 @@ def _retrieve_rows[I: Identifiable](
     filter_model: CustomFilter[I],
     embedding: list[float] | None = None,
     expand: AbstractSet[str] | None = None,
-    filter_query: sa.Select[tuple[I]],
+    filter_query: sa.Select[I],
 ) -> Iterable[I]:
     """Execute the data query and return matching rows, or an empty list if page_size is 0."""
     if pagination_request.page_size <= 0:

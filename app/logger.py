@@ -54,21 +54,21 @@ class InterceptHandler(logging.Handler):
         )
 
 
-def json_formatter(record: "loguru.Record") -> str:
+def json_formatter(record: loguru.Record) -> str:
     """Format a log record including only a subset of fields.
 
     Return the string to be formatted, not the actual message to be logged.
     See https://loguru.readthedocs.io/en/stable/resources/recipes.html.
     """
 
-    def _format_exception(ex: "loguru.RecordException") -> dict[str, str | None]:
+    def _format_exception(ex: loguru.RecordException) -> dict[str, str | None]:
         return {
             "type": ex.type.__name__ if ex.type else None,
             "value": str(ex.value) if ex.value else None,
             "traceback": "".join(traceback.format_exception(ex.type, ex.value, ex.traceback)),
         }
 
-    def _serialize(rec: "loguru.Record") -> str:
+    def _serialize(rec: loguru.Record) -> str:
         subset = {
             "time": rec["time"].isoformat(),
             "level": rec["level"].name,
@@ -83,7 +83,7 @@ def json_formatter(record: "loguru.Record") -> str:
     return "{extra[serialized]}\n"
 
 
-def str_formatter(record: "loguru.Record") -> str:
+def str_formatter(record: loguru.Record) -> str:
     """Format a log record including the extra parameters if present.
 
     Return the string to be formatted, not the actual message to be logged.
@@ -99,7 +99,7 @@ def str_formatter(record: "loguru.Record") -> str:
 def configure_logging() -> int:
     """Configure logging."""
 
-    def patcher(record: "loguru.Record") -> None:
+    def patcher(record: loguru.Record) -> None:
         """Add request context (request_id, user_id) to all log records.
 
         This function is automatically applied to every log message across all modules,

@@ -8,9 +8,9 @@ from pydantic import MISSING, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
-from app.db.model import CellMorphology, Circuit, Species, Strain
+from app.db.model import CellMorphology, Circuit, Entity, Species, Strain
 from app.db.types import DerivationType
-from app.queries import expand as test_module
+from app.queries import expand as test_module, expand_loaders
 from app.schemas.base import ExpandableSchema, Schema
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.circuit import CircuitRead
@@ -90,7 +90,7 @@ def test_expandable_relationship_to_entities_requires_loader():
         id: uuid.UUID
         subject: Annotated[NestedRead | MISSING | None, Expandable()] = MISSING
 
-    with pytest.raises(TypeError, match="require a loader"):
+    with pytest.raises(TypeError, match="require a custom loader"):
         test_module.allowed_expand_paths(MorphologyRead, CellMorphology)
 
 
@@ -115,10 +115,20 @@ def test_expandable_field_checks():
         class NotExpandableSchema(Schema):
             summary: Annotated[dict | MISSING, Expandable()] = MISSING
 
-    with pytest.raises(TypeError, match="qualifiers require a loader"):
 
-        class QualifiersWithoutLoader(ExpandableSchema):
-            summary: Annotated[dict | MISSING, Expandable(qualifiers=("a",))] = MISSING
+def test_find_custom_expand():
+    custom = expand_loaders.find_custom_expand(Circuit, "derivations_as_generated")
+    assert custom is not None
+    assert custom.qualifiers == tuple(DerivationType)
+    assert expand_loaders.find_custom_expand(CellMorphology, "measurement_annotation") is not None
+    # the attribute name alone is not enough: the class must inherit from the parent
+    assert expand_loaders.find_custom_expand(Circuit, "measurement_annotation") is None
+    assert expand_loaders.find_custom_expand(Species, "derivations_as_generated") is None
+
+
+def test_custom_expand_unknown_attribute():
+    with pytest.raises(TypeError, match="Entity has no attribute 'unknown'"):
+        expand_loaders.CustomExpand(parent=Entity, attr="unknown", loader=lambda *_: [])
 
 
 @pytest.mark.parametrize(

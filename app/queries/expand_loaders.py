@@ -1,0 +1,163 @@
+"""Loading of the expandable fields (see `app.queries.expand`).
+
+Most expandable fields are loaded with a loader strategy (`undefer`, `selectinload`). The fields
+needing more, e.g. nested relationships of the related objects or qualifiers, have a custom loader
+registered in `CUSTOM_EXPANDS`.
+"""
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any, Literal, Protocol
+
+from sqlalchemy import orm
+
+from app.db.model import Entity, MeasurableEntityMixin
+from app.db.types import DerivationType
+
+type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
+
+
+def expand_load(parent: orm.Load | None, strategy: LoaderStrategy, attr: Any) -> orm.Load:
+    """Return the loader option `strategy` for attr, chained to parent (None at the root).
+
+    Strategies:
+        selectinload: relationships, loaded with a second query (preferred for lists).
+        joinedload: single-object relationships, loaded with a join in the same query.
+        defaultload: traverse a relationship keeping its loading strategy, to reach
+            nested attributes.
+        undefer: deferred columns.
+
+    See https://docs.sqlalchemy.org/en/21/orm/queryguide/relationships.html and
+    https://docs.sqlalchemy.org/en/21/orm/queryguide/columns.html.
+
+    Example:
+        >>> expand_load(None, "selectinload", Entity.assets)  # selectinload(Entity.assets)
+    """
+    if parent is None:
+        return getattr(orm, strategy)(attr)
+    return getattr(parent, strategy)(attr)
+
+
+class ExpandLoader(Protocol):
+    """Builds the loader options of an expandable field with a custom loader."""
+
+    def __call__(
+        self,
+        parent: orm.Load | None,
+        attr: orm.QueryableAttribute,
+        qualifiers: frozenset[str] | None,
+        /,
+    ) -> Sequence[orm.Load]:
+        """Return the loader options of the field.
+
+        Args:
+            parent: load of the parent object, or None at the root of the query.
+            attr: ORM attribute of the field.
+            qualifiers: requested qualifiers, or None when requested without qualifier.
+
+        Example:
+            >>> def load(parent, attr, qualifiers):
+            ...     return [expand_load(parent, "selectinload", attr)]
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CustomExpand:
+    """Custom loading of the expandable fields mapped to the ORM attribute `parent.attr`.
+
+    Attributes:
+        parent: ORM class, or mixin, of the attribute; it applies to its subclasses too.
+        attr: name of the ORM attribute.
+        loader: builder of the loader options.
+        qualifiers: values accepted after `:` in the expand values of the field.
+    """
+
+    parent: type
+    attr: str
+    loader: ExpandLoader
+    qualifiers: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Check that the ORM attribute exists, to detect typos at startup."""
+        # looked up in the class dicts: getattr would evaluate the declared attributes of mixins
+        if not any(self.attr in vars(cls) for cls in self.parent.__mro__):
+            msg = f"{self.parent.__name__} has no attribute {self.attr!r}"
+            raise TypeError(msg)
+
+
+def _derivation_loader(other_side: str) -> ExpandLoader:
+    """Return the loader of a derivation list, with the entity on the other side of each one.
+
+    The qualifiers are the derivation types to load.
+    """
+
+    def load(
+        parent: orm.Load | None, attr: orm.QueryableAttribute, qualifiers: frozenset[str] | None
+    ) -> list[orm.Load]:
+        derivation_class = attr.property.mapper.class_
+        if qualifiers is not None:
+            derivation_types = [DerivationType(q) for q in qualifiers]
+            attr = attr.and_(derivation_class.derivation_type.in_(derivation_types))
+        other_entity = getattr(derivation_class, other_side)
+        return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]
+
+    return load
+
+
+def _measurement_annotation_loader(
+    parent: orm.Load | None, attr: orm.QueryableAttribute, _qualifiers: frozenset[str] | None
+) -> list[orm.Load]:
+    """Load the measurement annotation of an entity, with its kinds, items and labels."""
+    annotation_class = attr.property.mapper.class_
+    kind_class = annotation_class.measurement_kinds.property.mapper.class_
+    load = expand_load(parent, "joinedload", attr)
+    # `entity_type` reads the annotated entity: at the root of the query it's the queried row
+    entity_load = (
+        load.contains_eager(annotation_class.entity)
+        if parent is None
+        else load.selectinload(annotation_class.entity)
+    )
+    return [
+        load.selectinload(annotation_class.measurement_kinds).options(
+            orm.selectinload(kind_class.measurement_items),
+            orm.selectinload(kind_class.measurement_label),
+        ),
+        entity_load,
+    ]
+
+
+CUSTOM_EXPANDS: tuple[CustomExpand, ...] = (
+    CustomExpand(
+        parent=Entity,
+        attr="derivations_as_generated",
+        loader=_derivation_loader("used"),
+        qualifiers=tuple(DerivationType),
+    ),
+    CustomExpand(
+        parent=Entity,
+        attr="derivations_as_used",
+        loader=_derivation_loader("generated"),
+        qualifiers=tuple(DerivationType),
+    ),
+    CustomExpand(
+        parent=MeasurableEntityMixin,
+        attr="measurement_annotation",
+        loader=_measurement_annotation_loader,
+    ),
+)
+
+
+def find_custom_expand(
+    model_class: type, attr: str, custom_expands: Sequence[CustomExpand] = CUSTOM_EXPANDS
+) -> CustomExpand | None:
+    """Return the custom loading of the ORM attribute `model_class.attr`, if any.
+
+    Example:
+        >>> find_custom_expand(Circuit, "derivations_as_used").qualifiers
+        ('circuit_customization', 'circuit_extraction', ...)
+    """
+    return next(
+        (c for c in custom_expands if c.attr == attr and issubclass(model_class, c.parent)),
+        None,
+    )

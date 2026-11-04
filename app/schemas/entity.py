@@ -4,12 +4,11 @@ from typing import Annotated
 from uuid import UUID
 
 from pydantic import MISSING, RootModel
-from sqlalchemy.orm import Load, QueryableAttribute
 
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import AuthorizationOptionalPublicMixin, ExpandableSchema, Schema
-from app.schemas.expand import Expandable, ExpandLoader, expand_load
+from app.schemas.expand import Expandable
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
@@ -54,45 +53,20 @@ class UsedDerivationRead(Schema):
     label: str | None = None
 
 
-def _derivation_loader(other_side: str) -> ExpandLoader:
-    """Return the loader of a derivation list, with the entity on the other side of each one."""
-
-    def load(
-        parent: Load | None, attr: QueryableAttribute, qualifiers: frozenset[str] | None
-    ) -> list[Load]:
-        derivation_class = attr.property.mapper.class_
-        if qualifiers is not None:
-            derivation_types = [DerivationType(q) for q in qualifiers]
-            attr = attr.and_(derivation_class.derivation_type.in_(derivation_types))
-        other_entity = getattr(derivation_class, other_side)
-        return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]
-
-    return load
-
-
 class DerivationReadMixin(ExpandableSchema):
     """On-demand derivation lists, available on every entity read (see the `expand` query param).
 
     A direction that is not expanded is omitted; an expanded direction without derivations is
     ``[]``. The qualifier selects the derivation types, e.g.
-    ``expand=generated_from_derivations:circuit_extraction``.
+    ``expand=generated_from_derivations:circuit_extraction``. Loaded by the custom loaders in
+    `app.queries.expand_loaders`.
     """
 
     generated_from_derivations: Annotated[
-        list[GeneratedDerivationRead] | MISSING,
-        Expandable(
-            attr="derivations_as_generated",
-            loader=_derivation_loader("used"),
-            qualifiers=tuple(DerivationType),
-        ),
+        list[GeneratedDerivationRead] | MISSING, Expandable(attr="derivations_as_generated")
     ] = MISSING
     used_by_derivations: Annotated[
-        list[UsedDerivationRead] | MISSING,
-        Expandable(
-            attr="derivations_as_used",
-            loader=_derivation_loader("generated"),
-            qualifiers=tuple(DerivationType),
-        ),
+        list[UsedDerivationRead] | MISSING, Expandable(attr="derivations_as_used")
     ] = MISSING
 
 

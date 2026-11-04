@@ -5,8 +5,9 @@ an optional ``:qualifier`` on the last segment, e.g. ``measurement_annotation``,
 ``generated_from_derivations:circuit_extraction``, or ``<relationship>.<field>``. A path implies
 its expandable ancestors. ``=`` is reserved for future keyed qualifiers (e.g. ``:label=...``).
 
-The fields are marked with `Expandable` in the read schemas (see `app.schemas.expand`). At
-startup, the schema and the mapper of the ORM model are walked in parallel to build a plan for
+The fields are marked with `Expandable` in the read schemas (see `app.schemas.expand`), and the
+fields needing more than a loader strategy have a custom loader (see `app.queries.expand_loaders`).
+At startup, the schema and the mapper of the ORM model are walked in parallel to build a plan for
 each allowed path (`_ExpandPlan`): how to load each segment, from the root of the query. The plans
 give both the allowed values (the `expand` enums) and, per request, the loader options of the
 requested paths, so the two can't disagree.
@@ -31,9 +32,10 @@ from sqlalchemy.orm import (
 )
 
 from app.db.model import Entity, Identifiable
+from app.queries.expand_loaders import ExpandLoader, LoaderStrategy, expand_load, find_custom_expand
 from app.queries.types import SupportsModelValidate
 from app.schemas.base import Schema
-from app.schemas.expand import ExpandableField, ExpandLoader, LoaderStrategy, expand_load
+from app.schemas.expand import ExpandableField
 
 QUALIFIER_SEPARATOR = ":"
 PATH_SEPARATOR = "."
@@ -140,8 +142,8 @@ def _expandable_strategy(path: str, prop: MapperProperty) -> LoaderStrategy:
     if isinstance(prop, ColumnProperty):
         return "undefer"
     if issubclass(prop.mapper.class_, Entity):
-        # the related entities must be filtered by authorization, by a loader
-        msg = f"{path}: expandable relationships to entities require a loader"
+        # the related entities must be filtered by authorization, by a custom loader
+        msg = f"{path}: expandable relationships to entities require a custom loader"
         raise TypeError(msg)
     return "selectinload"
 
@@ -164,14 +166,16 @@ def _walk(
                 msg = f"{path}: no ORM attribute {schema_field.attr!r} on {mapper.class_.__name__}"
                 raise TypeError(msg)
             attr = getattr(mapper.class_, schema_field.attr)
-            marker = schema_field.expandable.marker
-            if marker.loader:
+            if custom := find_custom_expand(mapper.class_, schema_field.attr):
                 # the custom loader decides what is loaded below the field: no nested paths
-                custom = _CustomLoad(attr=attr, loader=marker.loader)
-                yield path, _ExpandPlan(steps=steps, custom=custom, qualifiers=marker.qualifiers)
+                custom_load = _CustomLoad(attr=attr, loader=custom.loader)
+                yield (
+                    path,
+                    _ExpandPlan(steps=steps, custom=custom_load, qualifiers=custom.qualifiers),
+                )
                 continue
             step = _Step(attr=attr, strategy=_expandable_strategy(path, prop))
-            yield path, _ExpandPlan(steps=(*steps, step), qualifiers=marker.qualifiers)
+            yield path, _ExpandPlan(steps=(*steps, step))
             if not isinstance(prop, RelationshipProperty):
                 continue  # no nested paths below a column
         elif isinstance(prop, RelationshipProperty):

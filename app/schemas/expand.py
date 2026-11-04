@@ -1,56 +1,30 @@
 """Expandable fields of the read schemas: returned only when requested with `expand`.
 
-`ExpandableSchema` is in `app.schemas.base`, which uses this module; the paths, the allowed
-values and the loader options are built in `app.queries.expand`.
+`ExpandableSchema` is in `app.schemas.base`, which uses this module. How the fields are loaded,
+the allowed values and the loader options are defined in `app.queries.expand` and
+`app.queries.expand_loaders`.
 """
 
 import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol, Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 import sqlalchemy as sa
 from pydantic import MISSING, BaseModel
-from sqlalchemy import orm
-
-
-class ExpandLoader(Protocol):
-    """Builds the loader options of an expandable field (see `Expandable`)."""
-
-    def __call__(
-        self,
-        parent: orm.Load | None,
-        attr: orm.QueryableAttribute,
-        qualifiers: frozenset[str] | None,
-        /,
-    ) -> Sequence[orm.Load]:
-        """Return the loader options of the field.
-
-        Args:
-            parent: load of the parent object, or None at the root of the query.
-            attr: ORM attribute of the field.
-            qualifiers: requested qualifiers, or None when requested without qualifier.
-
-        Example:
-            >>> def load(parent, attr, qualifiers):
-            ...     return [expand_load(parent, "selectinload", attr)]
-        """
-        ...
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Expandable:
     """Marks a read-schema field as returned only when requested with `expand`.
 
-    The field must default to `MISSING`, and the schema must inherit from `ExpandableSchema`.
-    A field is returned when its ORM attribute is loaded: `apply_expand` in `app.queries.expand`
-    loads the requested ones.
+    The field must allow and default to `MISSING`, and the schema must inherit from
+    `ExpandableSchema`. A field is returned when its ORM attribute is loaded: `apply_expand` in
+    `app.queries.expand` loads the requested ones, with a loader strategy or with the custom
+    loader registered for the ORM attribute in `app.queries.expand_loaders`.
 
     Args:
         attr: ORM attribute name, when different from the field name.
-        loader: builder of the loader options, for relationships needing more than a
-            `selectinload` (e.g. nested relationships of the related object, or qualifiers).
-        qualifiers: values accepted after `:` (e.g. the derivation types); they require a loader.
 
     Example:
         >>> class SomeRead(ExpandableSchema):
@@ -58,8 +32,6 @@ class Expandable:
     """
 
     attr: str | None = None
-    loader: ExpandLoader | None = None
-    qualifiers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -68,34 +40,9 @@ class ExpandableField:
 
     name: str
     attr: str
-    marker: Expandable
 
 
-type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
-
-
-def expand_load(parent: orm.Load | None, strategy: LoaderStrategy, attr: Any) -> orm.Load:
-    """Return the loader option `strategy` for attr, chained to parent (None at the root).
-
-    Strategies:
-        selectinload: relationships, loaded with a second query (preferred for lists).
-        joinedload: single-object relationships, loaded with a join in the same query.
-        defaultload: traverse a relationship keeping its loading strategy, to reach
-            nested attributes.
-        undefer: deferred columns.
-
-    See https://docs.sqlalchemy.org/en/21/orm/queryguide/relationships.html and
-    https://docs.sqlalchemy.org/en/21/orm/queryguide/columns.html.
-
-    Example:
-        >>> expand_load(None, "selectinload", Entity.assets)  # selectinload(Entity.assets)
-    """
-    if parent is None:
-        return getattr(orm, strategy)(attr)
-    return getattr(parent, strategy)(attr)
-
-
-def expandable_marker(metadata: Sequence[Any]) -> Expandable | None:
+def _expandable_marker(metadata: Sequence[Any]) -> Expandable | None:
     """Return the `Expandable` marker in the metadata of a field, if any."""
     return next((m for m in metadata if isinstance(m, Expandable)), None)
 
@@ -107,9 +54,7 @@ def _union_args(annotation: Any) -> tuple[Any, ...]:
     return (annotation,)
 
 
-def _check_expandable_field(
-    cls: type, name: str, annotation: Any, marker: Expandable, default: Any
-) -> None:
+def _check_expandable_field(cls: type, name: str, annotation: Any, default: Any) -> None:
     prefix = f"{cls.__name__}.{name}"
     args = _union_args(annotation)
     if default is not MISSING or MISSING not in args:
@@ -117,9 +62,6 @@ def _check_expandable_field(
         raise TypeError(msg)
     if type(None) in args and any(get_origin(arg) in {list, Sequence} for arg in args):
         msg = f"{prefix}: expandable list fields must not allow None"
-        raise TypeError(msg)
-    if marker.qualifiers and marker.loader is None:
-        msg = f"{prefix}: qualifiers require a loader"
         raise TypeError(msg)
 
 
@@ -148,11 +90,9 @@ def collect_expandable_fields(cls: type[BaseModel]) -> dict[str, ExpandableField
     """Return the expandable fields of a schema class, after checking their declaration."""
     expandable_fields = {}
     for name, field in cls.model_fields.items():
-        if marker := expandable_marker(field.metadata):
-            _check_expandable_field(cls, name, field.annotation, marker, field.default)
-            expandable_fields[name] = ExpandableField(
-                name=name, attr=marker.attr or name, marker=marker
-            )
+        if marker := _expandable_marker(field.metadata):
+            _check_expandable_field(cls, name, field.annotation, field.default)
+            expandable_fields[name] = ExpandableField(name=name, attr=marker.attr or name)
     return expandable_fields
 
 

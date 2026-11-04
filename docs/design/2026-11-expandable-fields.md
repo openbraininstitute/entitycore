@@ -43,23 +43,20 @@ Fields are marked in the Read schema, which stays unique per entity. The SQLAlch
 An expandable field has the marker and the Pydantic `MISSING` sentinel as default. Pydantic omits fields whose value is `MISSING` from the output, so no custom serializer is needed.
 
 ```python
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Expandable:
     """Marks a read-schema field as returned only when requested with `expand`.
 
     Args:
         attr: ORM attribute name, when different from the field name.
-        loader: builder of the loader option, for special cases (e.g. qualifiers).
     """
 
     attr: str | None = None
-    loader: ExpandLoader | None = None
 
 
 class DerivationReadMixin(ExpandableSchema):
     generated_from_derivations: Annotated[
-        list[GeneratedDerivationRead] | MISSING,
-        Expandable(attr="derivations_as_generated", loader=derivation_loader),
+        list[GeneratedDerivationRead] | MISSING, Expandable(attr="derivations_as_generated")
     ] = MISSING
 
 
@@ -70,6 +67,8 @@ class SomeRead(ExpandableSchema, ...):
 `None` is part of the type only for single values (a nullable column or a single-object relationship). A list is `[]` when empty, so list fields are `list[X] | MISSING`.
 
 When a schema class is created, its expandable fields are collected, and three rules are checked: the default must be `MISSING`, a list field must not allow `None`, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
+
+The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, have a custom loader registered for their ORM attribute in `app/queries/expand_loaders.py`, with the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`.
 
 ### Loading
 
@@ -82,13 +81,13 @@ A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `
 | column (last segment only) | `undefer` |
 | relationship, intermediate, not expandable | `defaultload` (keeps the strategy chosen by the service) |
 | relationship, expandable | `selectinload` |
-| field with a custom `loader` | the option built by the loader (derivations: `selectinload` with the derivation types, `joinedload` of the other entity) |
+| field with a custom loader | the options built by the loader (derivations: `selectinload` with the derivation types, `joinedload` of the other entity) |
 
 The services keep ending their loader options with `raiseload("*")`, and the specific options added by `apply_expand` override it, as today for derivations. An intermediate segment must be a field the service always loads, or an expandable field; otherwise the request fails at serialization, which signals a missing load in the service.
 
 The `raiseload("*")` of the service only covers the attributes of the returned item. Below an expandable relationship loaded by `apply_expand`, a `raiseload("*")` is added too, so that the nested relationships of its Read schema raise instead of being lazy loaded once per object; they must be loaded by a custom loader (e.g. `measurement_annotation` loads its kinds, items and labels).
 
-First version restrictions: polymorphic relationships needing `of_type` (e.g. `Contribution.agent`) are not expandable through nested paths, a field with a custom loader is always the last segment of a path, and qualifiers are only accepted by fields whose loader supports them.
+First version restrictions: polymorphic relationships needing `of_type` (e.g. `Contribution.agent`) are not expandable through nested paths, a field with a custom loader is always the last segment of a path, and qualifiers are only accepted by fields with a custom loader.
 
 ### Create and update
 
@@ -150,8 +149,8 @@ Expanding a relationship to other entities must not return entities that the use
 
 Both are migrated in the same pull request as the mechanism, to check that it covers the existing cases.
 
-- Derivations: marked in `DerivationReadMixin` with `attr=` and a derivation loader; the two properties on `Entity` are removed.
-- `measurement_annotation`: marked in the morphology and EM cell mesh Read schemas; the `*AnnotationExpandedRead` schemas are removed.
+- Derivations: marked in `DerivationReadMixin` with `attr=`, and loaded by a custom loader; the two properties on `Entity` are removed.
+- `measurement_annotation`: marked in the morphology and EM cell mesh Read schemas, and loaded by a custom loader; the `*AnnotationExpandedRead` schemas are removed.
 
 ## Alternatives considered
 

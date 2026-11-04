@@ -25,6 +25,7 @@ from sqlalchemy.orm import (
     InstanceState,
     Load,
     Mapper,
+    MapperProperty,
     QueryableAttribute,
     RelationshipProperty,
 )
@@ -125,23 +126,15 @@ class _ExpandPlan:
     qualifiers: tuple[str, ...] = ()
 
 
-def _expandable_load(path: str, mapper: Mapper, schema_field: _Field) -> _Step | _CustomLoad:
-    """Return the loading of an expandable field, checking that it can be expanded."""
-    expandable = cast("ExpandableField", schema_field.expandable)
-    prop = mapper.attrs.get(schema_field.attr)
-    if prop is None:
-        msg = f"{path}: no ORM attribute {schema_field.attr!r} on {mapper.class_.__name__}"
-        raise TypeError(msg)
-    attr = getattr(mapper.class_, schema_field.attr)
-    if loader := expandable.marker.loader:
-        return _CustomLoad(attr=attr, loader=loader)
+def _expandable_strategy(path: str, prop: MapperProperty) -> LoaderStrategy:
+    """Return the strategy loading an expandable field without custom loader."""
     if isinstance(prop, ColumnProperty):
-        return _Step(attr=attr, strategy="undefer")
+        return "undefer"
     if issubclass(prop.mapper.class_, Entity):
         # the related entities must be filtered by authorization, by a loader
         msg = f"{path}: expandable relationships to entities require a loader"
         raise TypeError(msg)
-    return _Step(attr=attr, strategy="selectinload")
+    return "selectinload"
 
 
 def _walk(
@@ -158,14 +151,18 @@ def _walk(
         path = f"{prefix}{name}"
         prop = mapper.attrs.get(schema_field.attr)
         if schema_field.expandable:
-            qualifiers = schema_field.expandable.marker.qualifiers
-            load = _expandable_load(path, mapper, schema_field)
-            if isinstance(load, _CustomLoad):
+            if prop is None:
+                msg = f"{path}: no ORM attribute {schema_field.attr!r} on {mapper.class_.__name__}"
+                raise TypeError(msg)
+            attr = getattr(mapper.class_, schema_field.attr)
+            marker = schema_field.expandable.marker
+            if marker.loader:
                 # the custom loader decides what is loaded below the field: no nested paths
-                yield path, _ExpandPlan(steps=steps, custom=load, qualifiers=qualifiers)
+                custom = _CustomLoad(attr=attr, loader=marker.loader)
+                yield path, _ExpandPlan(steps=steps, custom=custom, qualifiers=marker.qualifiers)
                 continue
-            step = load
-            yield path, _ExpandPlan(steps=(*steps, step), qualifiers=qualifiers)
+            step = _Step(attr=attr, strategy=_expandable_strategy(path, prop))
+            yield path, _ExpandPlan(steps=(*steps, step), qualifiers=marker.qualifiers)
         elif isinstance(prop, RelationshipProperty):
             # traversed to reach nested expandable fields, keeping the strategy of the service
             step = _Step(attr=getattr(mapper.class_, schema_field.attr), strategy="defaultload")

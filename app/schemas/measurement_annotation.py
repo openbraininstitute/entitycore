@@ -8,8 +8,8 @@ from sqlalchemy.orm import Load, QueryableAttribute, selectinload
 
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
-from app.schemas.base import Schema
-from app.schemas.expand import Expandable, ExpandableSchema, expand_load
+from app.schemas.base import ExpandableSchema, Schema
+from app.schemas.expand import Expandable, expand_load
 from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 
 

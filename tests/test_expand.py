@@ -10,10 +10,10 @@ from app.application import app
 from app.db.model import CellMorphology, Circuit, Species, Strain
 from app.db.types import DerivationType
 from app.queries import expand as test_module
-from app.schemas.base import Schema
+from app.schemas.base import ExpandableSchema, Schema
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.circuit import CircuitRead
-from app.schemas.expand import Expandable, ExpandableSchema, expandable_fields
+from app.schemas.expand import Expandable
 
 DERIVATION_VALUES = {
     "generated_from_derivations",
@@ -93,21 +93,6 @@ def test_expandable_relationship_to_entities_requires_loader():
         test_module.allowed_expand_paths(MorphologyRead, CellMorphology)
 
 
-def test_expandable_fields_require_expandable_schema():
-    class NotExpandableSchema(Schema):
-        summary: Annotated[dict | MISSING, Expandable()] = MISSING
-
-    class ParentRead(Schema):
-        id: uuid.UUID
-        species: NotExpandableSchema
-
-    with pytest.raises(TypeError, match="must inherit from ExpandableSchema"):
-        expandable_fields(NotExpandableSchema)
-    # also detected when walking the nested schemas
-    with pytest.raises(TypeError, match="must inherit from ExpandableSchema"):
-        test_module.allowed_expand_paths(ParentRead, Strain)
-
-
 def test_expandable_field_checks():
     with pytest.raises(TypeError, match="must default to MISSING"):
 
@@ -118,6 +103,11 @@ def test_expandable_field_checks():
 
         class ListWithNone(ExpandableSchema):
             items: Annotated[list[int] | MISSING | None, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="must inherit from ExpandableSchema"):
+
+        class NotExpandableSchema(Schema):
+            summary: Annotated[dict | MISSING, Expandable()] = MISSING
 
     with pytest.raises(TypeError, match="qualifiers require a loader"):
 

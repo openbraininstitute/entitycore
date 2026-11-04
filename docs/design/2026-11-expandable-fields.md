@@ -69,7 +69,7 @@ class SomeRead(ExpandableSchema, ...):
 
 `None` is part of the type only for single values (a nullable column or a single-object relationship). A list is `[]` when empty, so list fields are `list[X] | MISSING`.
 
-The marker, `ExpandableSchema` and the loader options helpers are in `app/schemas/expand.py`, so the base `Schema` is unchanged. When an `ExpandableSchema` class is created, its expandable fields are collected and checked: the default must be `MISSING`, and a list field must not allow `None`. A class with expandable fields that doesn't inherit from `ExpandableSchema` is rejected when its schema is walked, at startup when the expand enums are built.
+When a schema class is created, its expandable fields are collected, and three rules are checked: the default must be `MISSING`, a list field must not allow `None`, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
 
 ### Loading
 

@@ -1,19 +1,17 @@
 """Expandable fields of the read schemas: returned only when requested with `expand`.
 
-The paths, the allowed values and the loader options are built in `app.queries.expand`.
+`ExpandableSchema` is in `app.schemas.base`, which uses this module; the paths, the allowed
+values and the loader options are built in `app.queries.expand`.
 """
 
 import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from functools import cache
-from typing import Annotated, Any, ClassVar, Protocol, Union, get_args, get_origin
+from typing import Annotated, Any, Protocol, Union, get_args, get_origin
 
 import sqlalchemy as sa
-from pydantic import MISSING, model_validator
+from pydantic import MISSING, BaseModel
 from sqlalchemy import orm
-
-from app.schemas.base import Schema
 
 
 class ExpandLoader(Protocol):
@@ -134,54 +132,28 @@ class _HideUnloaded:
         return getattr(self._instance, self._renamed.get(name, name))
 
 
-class ExpandableSchema(Schema):
-    """Base class of the schemas with expandable fields (see `Expandable`).
+def collect_expandable_fields(cls: type[BaseModel]) -> dict[str, ExpandableField]:
+    """Return the expandable fields of a schema class, after checking their declaration."""
+    expandable_fields = {}
+    for name, field in cls.model_fields.items():
+        if marker := expandable_marker(field.metadata):
+            _check_expandable_field(cls, name, field.annotation, marker, field.default)
+            expandable_fields[name] = ExpandableField(
+                name=name, attr=marker.attr or name, marker=marker
+            )
+    return expandable_fields
 
-    When validated from an ORM instance, an expandable field is set only if its attribute is
-    loaded, and it is omitted from the output otherwise. An attribute can also be loaded without
-    being requested, e.g. if the instance was already loaded in the same session.
+
+def validate_loaded(
+    expandable_fields: dict[str, ExpandableField], data: Any, handler: Callable[[Any], Any]
+) -> Any:
+    """Validate data with handler, skipping the unloaded expandable fields of an ORM instance.
+
+    Used by the wrap validator of `ExpandableSchema`; other inputs are validated as they are.
     """
-
-    # field name -> expandable field, collected at class creation
-    __expandable_fields__: ClassVar[dict[str, ExpandableField]] = {}
-
-    @classmethod
-    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:  # ruff:ignore[bad-dunder-method-name]
-        """Collect and check the expandable fields of the class."""
-        super().__pydantic_init_subclass__(**kwargs)
-        expandable_fields = {}
-        for name, field in cls.model_fields.items():
-            if marker := expandable_marker(field.metadata):
-                _check_expandable_field(cls, name, field.annotation, marker, field.default)
-                expandable_fields[name] = ExpandableField(
-                    name=name, attr=marker.attr or name, marker=marker
-                )
-        cls.__expandable_fields__ = expandable_fields
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def _skip_unloaded_expandable_fields(cls, data: Any, handler: Callable[[Any], Any]) -> Any:
-        expandable_fields = cls.__expandable_fields__
-        if not expandable_fields or (state := sa.inspect(data, raiseerr=False)) is None:
-            return handler(data)
-        unloaded = state.unloaded
-        hidden = frozenset(f.name for f in expandable_fields.values() if f.attr in unloaded)
-        renamed = {f.name: f.attr for f in expandable_fields.values() if f.name != f.attr}
-        return handler(_HideUnloaded(data, hidden, renamed))
-
-
-@cache
-def expandable_fields(schema_class: type[Schema]) -> dict[str, ExpandableField]:
-    """Return the expandable fields of a schema class.
-
-    Raises:
-        TypeError: if the class has expandable fields but doesn't inherit from ExpandableSchema.
-    """
-    if issubclass(schema_class, ExpandableSchema):
-        return schema_class.__expandable_fields__
-    if any(expandable_marker(f.metadata) for f in schema_class.model_fields.values()):
-        msg = (
-            f"{schema_class.__name__} has expandable fields and must inherit from ExpandableSchema"
-        )
-        raise TypeError(msg)
-    return {}
+    if not expandable_fields or (state := sa.inspect(data, raiseerr=False)) is None:
+        return handler(data)
+    unloaded = state.unloaded
+    hidden = frozenset(f.name for f in expandable_fields.values() if f.attr in unloaded)
+    renamed = {f.name: f.attr for f in expandable_fields.values() if f.name != f.attr}
+    return handler(_HideUnloaded(data, hidden, renamed))

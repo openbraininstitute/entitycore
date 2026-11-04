@@ -28,7 +28,7 @@ from sqlalchemy.orm import (
 
 from app.db.model import Entity, Identifiable
 from app.schemas.base import Schema
-from app.schemas.expand import ExpandableField, expand_load, expandable_fields
+from app.schemas.expand import ExpandableField, expand_load
 
 QUALIFIER_SEPARATOR = ":"
 PATH_SEPARATOR = "."
@@ -75,7 +75,7 @@ def _find_field(schema_classes: Sequence[type[Schema]], name: str) -> _Field | N
         field_info = schema_class.model_fields.get(name)
         if field_info is None:
             continue
-        expandable = expandable_fields(schema_class).get(name)
+        expandable = schema_class.__expandable_fields__.get(name)
         alias = field_info.validation_alias
         attr = expandable.attr if expandable else alias if isinstance(alias, str) else name
         return _Field(
@@ -268,7 +268,7 @@ def unrequested_loaded_attrs(
     attrs = {
         expandable.attr
         for schema_class in _schema_classes(schema)
-        for expandable in expandable_fields(schema_class).values()
+        for expandable in schema_class.__expandable_fields__.values()
         if expandable.name not in requested
     }
     return sorted(attrs - unloaded)

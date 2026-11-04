@@ -7,7 +7,7 @@ values and the loader options are built in `app.queries.expand`.
 import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Annotated, Any, Protocol, Union, get_args, get_origin
+from typing import Annotated, Any, Literal, Protocol, Union, get_args, get_origin
 
 import sqlalchemy as sa
 from pydantic import MISSING, BaseModel
@@ -71,8 +71,21 @@ class ExpandableField:
     marker: Expandable
 
 
-def expand_load(parent: orm.Load | None, strategy: str, attr: Any) -> orm.Load:
-    """Return the loader option `strategy` (e.g. `selectinload`) for attr, chained to parent.
+type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
+
+
+def expand_load(parent: orm.Load | None, strategy: LoaderStrategy, attr: Any) -> orm.Load:
+    """Return the loader option `strategy` for attr, chained to parent (None at the root).
+
+    Strategies:
+        selectinload: relationships, loaded with a second query (preferred for lists).
+        joinedload: single-object relationships, loaded with a join in the same query.
+        defaultload: traverse a relationship keeping its loading strategy, to reach
+            nested attributes.
+        undefer: deferred columns.
+
+    See https://docs.sqlalchemy.org/en/21/orm/queryguide/relationships.html and
+    https://docs.sqlalchemy.org/en/21/orm/queryguide/columns.html.
 
     Example:
         >>> expand_load(None, "selectinload", Entity.assets)  # selectinload(Entity.assets)

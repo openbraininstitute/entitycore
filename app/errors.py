@@ -7,7 +7,7 @@ from enum import StrEnum, auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueViolation
+from psycopg.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueViolation
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 

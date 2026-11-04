@@ -173,7 +173,7 @@ Both are migrated in the same pull request as the mechanism, to check that it co
 - `docs/API.md` ("Expanding derivations", renamed "Expanding optional fields") is updated to describe the generic parameter.
 - A field is serialized when its attribute is loaded, even if not requested, e.g. an object already loaded in the same session by a read. This is harmless and documented. Create and update avoid it for their own instance (see Create and update).
 - Every create and update route gets an `expand` parameter, user and admin.
-- `/openapi.json` grows from 1.55 MB to 1.69 MB. Most of it comes from the `expand` parameter, documented with its description on 146 operations instead of 74; the 37 expand enums, one per Read schema, take 39 KB in total, most with the same 20 values.
+- `/openapi.json` grows from 1.55 MB to 1.64 MB: the `expand` parameter is on 150 operations instead of 74, and the 38 expand enums, one per Read schema, take about 40 KB, most with the same 20 values. The parameter description is kept short, since it's repeated on every operation; the full rules are in `docs/API.md`.
 - The validator adds about 2% to the validation of the entity Read schemas, which all have expandable fields because of the derivations (see Prototype). Measured end to end on the implementation, the read endpoints take the same time as before and run the same SQL queries.
 - In Python code, an expandable field of a Read schema can be `MISSING`; code reading these fields must check it (`is MISSING`). This concerns entitycore only: clients see an absent key.
 - `pydantic>=2.14` is required (`MISSING` is stable from that version); the lock file already has 2.14.1.

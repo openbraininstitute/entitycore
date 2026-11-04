@@ -40,12 +40,8 @@ PATH_SEPARATOR = "."
 MAX_EXPAND_DEPTH = 3
 
 EXPAND_DESCRIPTION = (
-    "Optional fields to include, returned only when requested. "
-    "Use `<field>` for the item, `<relationship>.<field>` for nested objects, and "
-    "`<field>:<qualifier>` where supported: `generated_from_derivations:<derivation_type>` and "
-    "`used_by_derivations:<derivation_type>` load only that derivation type. "
-    "Repeat to combine; a field without qualifier includes all the qualifiers. "
-    "The `generated_derivation__*` / `used_derivation__*` filters don't affect the loaded lists."
+    "Optional fields to include. Repeat to request several; `<field>:<qualifier>` narrows a "
+    "field (e.g. a derivation type), and a field without qualifier includes all."
 )
 
 # the schema of a response: a Schema class or a type alias of a union of Schema classes

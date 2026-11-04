@@ -78,7 +78,6 @@ class _Field:
         nested: the Schema classes in the type of the field, to walk the nested paths.
     """
 
-    name: str
     attr: str
     expandable: ExpandableField | None
     nested: tuple[type[Schema], ...]
@@ -96,7 +95,6 @@ def _find_field(schema_classes: Sequence[type[Schema]], name: str) -> _Field:
     alias = field_info.validation_alias
     attr = expandable.attr if expandable else alias if isinstance(alias, str) else name
     return _Field(
-        name=name,
         attr=attr,
         expandable=expandable,
         nested=_schema_classes(field_info.annotation),

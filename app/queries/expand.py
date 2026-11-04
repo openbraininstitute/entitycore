@@ -98,27 +98,35 @@ def _find_field(schema_classes: Sequence[type[Schema]], name: str) -> _Field:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _Step:
-    """Loading of one segment of an expand path, with a strategy or a custom loader.
+    """Loading of one segment of an expand path with a loader strategy.
 
-    A custom loader is only on the last step. Below an expandable relationship (`selectinload`),
-    the nested relationships raise unless loaded explicitly, instead of being lazy loaded for each
-    object.
+    Below an expandable relationship (`selectinload`), the nested relationships raise unless
+    loaded explicitly, instead of being lazy loaded for each object.
     """
 
     attr: QueryableAttribute
-    load_with: LoaderStrategy | ExpandLoader
+    strategy: LoaderStrategy
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _CustomLoad:
+    """Loading of an expandable field by its custom loader, after the steps of its ancestors."""
+
+    attr: QueryableAttribute
+    loader: ExpandLoader
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _ExpandPlan:
     """Loading of an expand path, from the root of the query, and its accepted qualifiers."""
 
-    steps: tuple[_Step, ...]
+    steps: tuple[_Step, ...]  # the ancestors, and the field unless it has a custom loader
+    custom: _CustomLoad | None = None
     qualifiers: tuple[str, ...] = ()
 
 
-def _expandable_step(path: str, mapper: Mapper, schema_field: _Field) -> _Step:
-    """Return the step loading an expandable field, checking that it can be expanded."""
+def _expandable_load(path: str, mapper: Mapper, schema_field: _Field) -> _Step | _CustomLoad:
+    """Return the loading of an expandable field, checking that it can be expanded."""
     expandable = cast("ExpandableField", schema_field.expandable)
     prop = mapper.attrs.get(schema_field.attr)
     if prop is None:
@@ -126,14 +134,14 @@ def _expandable_step(path: str, mapper: Mapper, schema_field: _Field) -> _Step:
         raise TypeError(msg)
     attr = getattr(mapper.class_, schema_field.attr)
     if loader := expandable.marker.loader:
-        return _Step(attr=attr, load_with=loader)
+        return _CustomLoad(attr=attr, loader=loader)
     if isinstance(prop, ColumnProperty):
-        return _Step(attr=attr, load_with="undefer")
+        return _Step(attr=attr, strategy="undefer")
     if issubclass(prop.mapper.class_, Entity):
         # the related entities must be filtered by authorization, by a loader
         msg = f"{path}: expandable relationships to entities require a loader"
         raise TypeError(msg)
-    return _Step(attr=attr, load_with="selectinload")
+    return _Step(attr=attr, strategy="selectinload")
 
 
 def _walk(
@@ -150,15 +158,17 @@ def _walk(
         path = f"{prefix}{name}"
         prop = mapper.attrs.get(schema_field.attr)
         if schema_field.expandable:
-            marker = schema_field.expandable.marker
-            step = _expandable_step(path, mapper, schema_field)
-            yield path, _ExpandPlan(steps=(*steps, step), qualifiers=marker.qualifiers)
-            if marker.loader:
-                # a custom loader decides what is loaded below the field
+            qualifiers = schema_field.expandable.marker.qualifiers
+            load = _expandable_load(path, mapper, schema_field)
+            if isinstance(load, _CustomLoad):
+                # the custom loader decides what is loaded below the field: no nested paths
+                yield path, _ExpandPlan(steps=steps, custom=load, qualifiers=qualifiers)
                 continue
+            step = load
+            yield path, _ExpandPlan(steps=(*steps, step), qualifiers=qualifiers)
         elif isinstance(prop, RelationshipProperty):
             # traversed to reach nested expandable fields, keeping the strategy of the service
-            step = _Step(attr=getattr(mapper.class_, schema_field.attr), load_with="defaultload")
+            step = _Step(attr=getattr(mapper.class_, schema_field.attr), strategy="defaultload")
         else:
             continue
         if (
@@ -242,13 +252,13 @@ def _plan_options(plan: _ExpandPlan, qualifiers: frozenset[str] | None) -> Itera
     """Yield the loader options of a plan, chaining its steps from the root of the query."""
     load: Load | None = None
     for step in plan.steps:
-        if not isinstance(step.load_with, str):
-            yield from step.load_with(load, step.attr, qualifiers)
-            return
-        load = expand_load(load, step.load_with, step.attr)
-        if step.load_with == "selectinload":
+        load = expand_load(load, step.strategy, step.attr)
+        if step.strategy == "selectinload":
             yield load.raiseload("*")
-    yield cast("Load", load)  # a plan has at least one step
+    if plan.custom:
+        yield from plan.custom.loader(load, plan.custom.attr, qualifiers)
+    else:
+        yield cast("Load", load)  # without a custom loader, a plan has at least one step
 
 
 def apply_expand(

@@ -1,3 +1,4 @@
+import re
 import uuid
 from typing import Annotated
 
@@ -94,10 +95,15 @@ def test_expandable_relationship_to_entities_requires_loader():
 
 
 def test_expandable_field_checks():
-    with pytest.raises(TypeError, match="must default to MISSING"):
+    with pytest.raises(TypeError, match="must allow and default to MISSING"):
 
         class DefaultNone(ExpandableSchema):
             summary: Annotated[dict | None, Expandable()] = None
+
+    with pytest.raises(TypeError, match="must allow and default to MISSING"):
+
+        class TypeWithoutMissing(ExpandableSchema):
+            summary: Annotated[dict, Expandable()] = MISSING  # pyright: ignore[reportAssignmentType]
 
     with pytest.raises(TypeError, match="must not allow None"):
 
@@ -175,9 +181,32 @@ def test_not_expandable_relationship_not_loaded_still_raises(db, strain_id):
         StrainTestRead.model_validate(strain)
 
 
-def test_invalid_expand_path():
-    with pytest.raises(ValueError, match=r"Invalid expand path: species\.name"):
-        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, {"species.name"})
+@pytest.mark.parametrize(
+    ("expand", "path"),
+    [
+        ({"species.name"}, "species.name"),  # not expandable
+        ({"unknown"}, "unknown"),  # not a schema field
+        ({"species.unknown"}, "species.unknown"),
+        ({"species.embedding.x"}, "species.embedding"),  # below a column
+    ],
+)
+def test_invalid_expand_path(expand, path):
+    with pytest.raises(ValueError, match=f"Invalid expand path: {re.escape(path)}$"):
+        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, expand)
+
+
+def test_expandable_field_without_orm_attribute():
+    class StrainSummaryRead(ExpandableSchema):
+        id: uuid.UUID
+        summary: Annotated[dict | MISSING, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="summary: no ORM attribute 'summary' on Strain"):
+        test_module.allowed_expand_paths(StrainSummaryRead, Strain)
+
+
+def test_allowed_expand_paths_not_a_schema():
+    with pytest.raises(TypeError, match="is not a Schema"):
+        test_module.allowed_expand_paths(int, Strain)  # pyright: ignore[reportArgumentType]
 
 
 def test_unrequested_loaded_attrs(db, species_id):

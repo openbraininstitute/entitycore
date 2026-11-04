@@ -7,7 +7,7 @@ values and the loader options are built in `app.queries.expand`.
 import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Annotated, Any, Literal, Protocol, Union, get_args, get_origin
+from typing import Any, Literal, Protocol, Union, get_args, get_origin
 
 import sqlalchemy as sa
 from pydantic import MISSING, BaseModel
@@ -101,8 +101,7 @@ def expandable_marker(metadata: Sequence[Any]) -> Expandable | None:
 
 
 def _union_args(annotation: Any) -> tuple[Any, ...]:
-    while get_origin(annotation) is Annotated:
-        annotation = get_args(annotation)[0]
+    # Pydantic removes `Annotated` from the field annotations, keeping the metadata apart
     if get_origin(annotation) in {Union, types.UnionType}:
         return get_args(annotation)
     return (annotation,)
@@ -112,10 +111,10 @@ def _check_expandable_field(
     cls: type, name: str, annotation: Any, marker: Expandable, default: Any
 ) -> None:
     prefix = f"{cls.__name__}.{name}"
-    if default is not MISSING:
-        msg = f"{prefix}: expandable fields must default to MISSING"
-        raise TypeError(msg)
     args = _union_args(annotation)
+    if default is not MISSING or MISSING not in args:
+        msg = f"{prefix}: expandable fields must allow and default to MISSING"
+        raise TypeError(msg)
     if type(None) in args and any(get_origin(arg) in {list, Sequence} for arg in args):
         msg = f"{prefix}: expandable list fields must not allow None"
         raise TypeError(msg)

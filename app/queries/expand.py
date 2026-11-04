@@ -7,9 +7,9 @@ its expandable ancestors. ``=`` is reserved for future keyed qualifiers (e.g. ``
 
 The fields are marked with `Expandable` in the read schemas (see `app.schemas.expand`). At
 startup, the schema and the mapper of the ORM model are walked in parallel to build a plan for
-each allowed path: the loader options of each segment, from the root of the query. The plans give
-the allowed values (the `expand` enums) and the loader options added to the queries, so the two
-can't disagree.
+each allowed path (`_ExpandPlan`): how to load each segment, from the root of the query. The plans
+give both the allowed values (the `expand` enums) and, per request, the loader options of the
+requested paths, so the two can't disagree.
 """
 
 import types
@@ -70,7 +70,13 @@ def _schema_classes(annotation: Any) -> tuple[type[Schema], ...]:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _Field:
-    """A field of a schema, with its ORM attribute name and the nested schemas."""
+    """A field of a schema, as needed to walk it.
+
+    Attributes:
+        attr: name of the ORM attribute (from the marker, the validation alias, or the name).
+        expandable: the expandable field, or None if always returned.
+        nested: the Schema classes in the type of the field, to walk the nested paths.
+    """
 
     name: str
     attr: str
@@ -119,7 +125,12 @@ class _CustomLoad:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _ExpandPlan:
-    """Loading of an expand path, from the root of the query, and its accepted qualifiers."""
+    """Loading of an expand path, from the root of the query, and its accepted qualifiers.
+
+    Examples, with `CircuitRead` and with a nested deferred column `species.embedding`:
+        generated_from_derivations: steps=(), custom=<derivation loader>, qualifiers=<types>
+        species.embedding: steps=(defaultload(species), undefer(embedding)), custom=None
+    """
 
     steps: tuple[_Step, ...]  # the ancestors, and the field unless it has a custom loader
     custom: _CustomLoad | None = None

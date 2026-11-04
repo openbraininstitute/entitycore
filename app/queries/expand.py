@@ -172,14 +172,16 @@ def _walk(
                 continue
             step = _Step(attr=attr, strategy=_expandable_strategy(path, prop))
             yield path, _ExpandPlan(steps=(*steps, step), qualifiers=marker.qualifiers)
+            if not isinstance(prop, RelationshipProperty):
+                continue  # no nested paths below a column
         elif isinstance(prop, RelationshipProperty):
             # traversed to reach nested expandable fields, keeping the strategy of the service
             step = _Step(attr=getattr(mapper.class_, schema_field.attr), strategy="defaultload")
         else:
-            continue
+            continue  # neither expandable nor a relationship: nothing to offer
+        # walk the nested schema of the relationship, if any
         if (
-            isinstance(prop, RelationshipProperty)
-            and len(steps) + 1 < MAX_EXPAND_DEPTH
+            len(steps) + 1 < MAX_EXPAND_DEPTH
             # a union of schemas could declare different fields: its fields are not offered
             and len(schema_field.nested) == 1
             and schema_field.nested[0] not in seen  # cycle guard

@@ -10,6 +10,7 @@ from fastapi_filter.contrib.sqlalchemy.filter import (
     _orm_operator_transformer,  # ruff:ignore[import-private-name]
 )
 from pydantic import field_validator
+from pydantic.fields import FieldInfo
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
@@ -53,18 +54,11 @@ def nested_filter_type(annotation: Any) -> type[CustomFilter] | None:
     return None
 
 
-def nested_prefix(field_name: str, field_info: Any) -> str:
+def nested_prefix(field_name: str, field_info: FieldInfo) -> str:
     """Absolute query prefix for a nested filter field (``Prefix`` or field name)."""
-    for meta in getattr(field_info, "metadata", ()):
+    for meta in field_info.metadata:
         if isinstance(meta, Prefix):
             return meta.value
-
-    annotation = getattr(field_info, "annotation", field_info)
-    if get_origin(annotation) is Annotated:
-        for meta in get_args(annotation)[1:]:
-            if isinstance(meta, Prefix):
-                return meta.value
-
     return field_name
 
 

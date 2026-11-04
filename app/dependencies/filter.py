@@ -55,7 +55,12 @@ def _as_query_field(
     return annotation, info
 
 
-def _flatten_fields(filter_model: type[CustomFilter], *, prefix: str = "") -> dict[str, Any]:
+def _flatten_fields(
+    filter_model: type[CustomFilter],
+    *,
+    prefix: str = "",
+    fields: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Expand nested ``CustomFilter`` fields into flat query fields.
 
     Nested filters use an absolute prefix: the field name, or ``Prefix(...)``.
@@ -65,21 +70,25 @@ def _flatten_fields(filter_model: type[CustomFilter], *, prefix: str = "") -> di
         getattr(filter_model, "Constants", None), "ordering_model_fields", None
     )
     ordering_field = filter_model.Constants.ordering_field_name
-    fields: dict[str, Any] = {}
+    if fields is None:
+        fields = {}
 
     for name, field in filter_model.model_fields.items():
         nested = nested_filter_type(field.annotation)
         if nested is not None:
             abs_prefix = nested_prefix(name, field)
-            fields.update(_flatten_fields(nested, prefix=f"{abs_prefix}{NESTED_SEPARATOR}"))
+            _flatten_fields(nested, prefix=f"{abs_prefix}{NESTED_SEPARATOR}", fields=fields)
             continue
 
         if prefix and name == ordering_field:
             continue
 
         flat = f"{prefix}{name}"
+        if flat in fields:
+            msg = f"Duplicate query parameter {flat!r} in {filter_model.__name__}"
+            raise ValueError(msg)
         fields[flat] = _as_query_field(
-            name if not prefix else flat,
+            name,
             field.annotation,
             field,
             ordering_fields=None if prefix else ordering_fields,

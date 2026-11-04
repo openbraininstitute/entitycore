@@ -24,6 +24,7 @@ class IdFilterMixin:
 class AuthorizedFilterMixin:
     authorized_public: bool | None = None
     authorized_project_id: uuid.UUID | None = None
+    authorized_project_id__neq: uuid.UUID | None = None
 
 
 class NameFilterMixin:

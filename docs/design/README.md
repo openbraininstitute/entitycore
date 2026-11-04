@@ -19,3 +19,4 @@ entitycore is a public repository: keep records self-contained and don't link in
 |---|---|
 | [ResearchLog entity](2026-10-research-log-entity.md) | Accepted |
 | [Expandable fields in read responses](2026-11-expandable-fields.md) | Draft |
+| [ExtracellularRecording entity](2026-11-extracellular-recording-entity.md) | Draft |

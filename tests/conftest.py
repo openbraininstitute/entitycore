@@ -1300,6 +1300,20 @@ def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_da
 
 
 @pytest.fixture
+def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "sampling_frequency": 30000.0,
+        "duration": 600.0,
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
 def ion_channel_json_data():
     return {
         "name": "KCa1.1",

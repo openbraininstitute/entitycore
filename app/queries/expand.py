@@ -182,7 +182,7 @@ def _walk(
         # walk the nested schema of the relationship, if any
         if (
             len(steps) + 1 < MAX_EXPAND_DEPTH
-            # a union of schemas could declare different fields: its fields are not offered
+            # not walked: the members of a union of schemas can declare different fields
             and len(schema_field.nested) == 1
             and schema_field.nested[0] not in seen  # cycle guard
         ):

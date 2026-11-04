@@ -152,6 +152,7 @@ class EntityType(StrEnum):
     skeletonization_campaign = auto()
     task_config = auto()
     research_log = auto()
+    extracellular_recording = auto()
 
 
 class TaskResultType(StrEnum):
@@ -917,6 +918,15 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Electrical model NEURON template.",
             )
+        ],
+    },
+    EntityType.extracellular_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Extracellular voltage traces, with the electrodes table.",
+            ),
         ],
     },
     EntityType.ion_channel_model: {

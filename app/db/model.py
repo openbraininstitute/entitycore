@@ -1227,6 +1227,27 @@ class IonChannelRecording(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
+class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
+    """Extracellular recording with one or more probes or electrode arrays, e.g. Neuropixels.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the scientific artifact ID.
+        sampling_frequency (float): Sampling frequency of the raw traces, in Hz.
+        duration (float): Duration of the recording, in seconds.
+
+    Assets:
+        - an NWB file with label `nwb`, with the voltage traces and the electrodes table.
+    """
+
+    __tablename__ = EntityType.extracellular_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    sampling_frequency: Mapped[float]
+    duration: Mapped[float]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_synaptome.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

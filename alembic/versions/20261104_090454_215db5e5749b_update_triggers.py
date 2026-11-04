@@ -1,20 +1,24 @@
 """Update triggers
 
-Revision ID: 8b3d0e5c2f61
-Revises: 4e2b9c1f7a3d
-Create Date: 2026-11-03 14:00:05.000000
+Revision ID: 215db5e5749b
+Revises: 3aabdf50436c
+Create Date: 2026-11-04 09:04:54.991918
 
 """
 
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 from alembic_utils.pg_trigger import PGTrigger
+from sqlalchemy import text as sql_text
 
+from sqlalchemy import Text
+import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "8b3d0e5c2f61"
-down_revision: Union[str, None] = "4e2b9c1f7a3d"
+revision: str = "215db5e5749b"
+down_revision: Union[str, None] = "3aabdf50436c"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

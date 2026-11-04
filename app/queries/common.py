@@ -299,7 +299,7 @@ def _retrieve_rows[I: Identifiable](
     filter_model: CustomFilter[I],
     embedding: list[float] | None = None,
     expand: AbstractSet[str] | None = None,
-    response_schema_class: object = None,
+    response_schema_class: SupportsModelValidate,
     filter_query: sa.Select[I],
 ) -> Iterable[I]:
     """Execute the data query and return matching rows, or an empty list if page_size is 0."""

@@ -124,16 +124,17 @@ def test_expandable_field_checks():
 @pytest.mark.parametrize(
     ("expand", "expected"),
     [
-        ({"a"}, None),
-        ({"a:x"}, frozenset({"x"})),
-        ({"a:x", "a:y"}, frozenset({"x", "y"})),
-        ({"a:x", "a"}, None),
-        ({"a", "a:x"}, None),
+        ({"a"}, {"a": None}),
+        ({"a:x"}, {"a": frozenset({"x"})}),
+        ({"a:x", "a:y"}, {"a": frozenset({"x", "y"})}),
+        (["a:x", "a"], {"a": None}),
+        (["a", "a:x"], {"a": None}),
+        ({"a:x", "b.c"}, {"a": frozenset({"x"}), "b.c": None}),
     ],
 )
 def test_requested_qualifiers(expand, expected):
-    tree = test_module._build_tree(dict.fromkeys(sorted(expand)).keys())
-    assert tree.children["a"].requested_qualifiers() == expected
+    # dict keys keep the order, to check that a value without qualifier wins in any order
+    assert test_module._requested_qualifiers(dict.fromkeys(expand).keys()) == expected
 
 
 def test_nested_column(db, strain_id):
@@ -173,6 +174,18 @@ def test_expandable_relationship(db, strain_id):
     data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
     assert data["expandable_species"].keys() == {"id", "name", "embedding"}
 
+    # the options of an ancestor and of a nested path are merged
+    db.expunge_all()
+    expanded = test_module.apply_expand(
+        query,
+        Strain,
+        StrainExpandableSpeciesTestRead,
+        {"expandable_species", "expandable_species.embedding"},
+    )
+    strain = db.execute(expanded).unique().scalar_one()
+    data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
+    assert data["expandable_species"].keys() == {"id", "name", "embedding"}
+
 
 def test_not_expandable_relationship_not_loaded_still_raises(db, strain_id):
     db.expunge_all()
@@ -182,17 +195,18 @@ def test_not_expandable_relationship_not_loaded_still_raises(db, strain_id):
 
 
 @pytest.mark.parametrize(
-    ("expand", "path"),
+    "path",
     [
-        ({"species.name"}, "species.name"),  # not expandable
-        ({"unknown"}, "unknown"),  # not a schema field
-        ({"species.unknown"}, "species.unknown"),
-        ({"species.embedding.x"}, "species.embedding"),  # below a column
+        "species.name",  # not expandable
+        "unknown",  # not a schema field
+        "species.unknown",
+        "species.embedding.x",  # below a column
+        "species",  # not expandable relationship, only traversed
     ],
 )
-def test_invalid_expand_path(expand, path):
+def test_invalid_expand_path(path):
     with pytest.raises(ValueError, match=f"Invalid expand path: {re.escape(path)}$"):
-        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, expand)
+        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, {path})
 
 
 def test_expandable_field_without_orm_attribute():

@@ -8,14 +8,8 @@ from sqlalchemy.orm import Load, QueryableAttribute
 
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationOptionalPublicMixin,
-    Expandable,
-    ExpandableSchema,
-    ExpandLoader,
-    Schema,
-    expand_load,
-)
+from app.schemas.base import AuthorizationOptionalPublicMixin, Schema
+from app.schemas.expand import Expandable, ExpandableSchema, ExpandLoader, expand_load
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 

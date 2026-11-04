@@ -27,7 +27,8 @@ from sqlalchemy.orm import (
 )
 
 from app.db.model import Entity, Identifiable
-from app.schemas.base import ExpandableField, Schema, expand_load
+from app.schemas.base import Schema
+from app.schemas.expand import ExpandableField, expand_load, expandable_fields
 
 QUALIFIER_SEPARATOR = ":"
 PATH_SEPARATOR = "."
@@ -61,7 +62,7 @@ def _schema_classes(annotation: Any) -> tuple[type[Schema], ...]:
     return ()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _Field:
     name: str
     attr: str
@@ -74,10 +75,15 @@ def _find_field(schema_classes: Sequence[type[Schema]], name: str) -> _Field | N
         field_info = schema_class.model_fields.get(name)
         if field_info is None:
             continue
-        expandable = schema_class.__expandable_fields__.get(name)
+        expandable = expandable_fields(schema_class).get(name)
         alias = field_info.validation_alias
         attr = expandable.attr if expandable else alias if isinstance(alias, str) else name
-        return _Field(name, attr, expandable, _schema_classes(field_info.annotation))
+        return _Field(
+            name=name,
+            attr=attr,
+            expandable=expandable,
+            nested=_schema_classes(field_info.annotation),
+        )
     return None
 
 
@@ -160,7 +166,7 @@ def expand_enum(schema: SchemaSpec, db_model_class: type[Identifiable]) -> type[
     return cast("type[StrEnum]", StrEnum(name, [(_member_name(v), v) for v in values]))
 
 
-@dataclass
+@dataclass(kw_only=True)
 class _Node:
     """Requested expand paths, as a tree of field names."""
 
@@ -262,7 +268,7 @@ def unrequested_loaded_attrs(
     attrs = {
         expandable.attr
         for schema_class in _schema_classes(schema)
-        for expandable in schema_class.__expandable_fields__.values()
+        for expandable in expandable_fields(schema_class).values()
         if expandable.name not in requested
     }
     return sorted(attrs - unloaded)

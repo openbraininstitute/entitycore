@@ -263,3 +263,36 @@ def test_allowed_asset_upload_per_task_result_type(
     assert response.status_code == 422
     assert response.json()["error_code"] == "ASSET_INVALID_SCHEMA"
     assert any("is not allowed for entity type" in detail for detail in response.json()["details"])
+
+
+@pytest.mark.parametrize(
+    "task_result_type",
+    [
+        TaskResultType.aind_ephys_preprocessing__result,
+        TaskResultType.aind_ephys_spikesorting__result,
+    ],
+)
+def test_aind_ephys_result_directory_upload(client, task_result_json_data, task_result_type):
+    entity_id = assert_request(
+        client.post,
+        url=ROUTE,
+        json=task_result_json_data | {"task_result_type": task_result_type},
+    ).json()["id"]
+
+    data = assert_request(
+        client.post,
+        url=f"{ROUTE}/{entity_id}/assets/directory/upload",
+        json={
+            "files": ["preprocessed_recording/traces_cached_seg0.raw", "binary_recording.json"],
+            "meta": None,
+            "label": AssetLabel.task_result,
+            "directory_name": "output",
+        },
+    ).json()
+
+    assert data["asset"]["is_directory"] is True
+    assert data["asset"]["label"] == AssetLabel.task_result
+    assert set(data["files"]) == {
+        "preprocessed_recording/traces_cached_seg0.raw",
+        "binary_recording.json",
+    }

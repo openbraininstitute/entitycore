@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import SkeletonizationConfig
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -37,6 +35,3 @@ class SkeletonizationConfigFilter(
 SkeletonizationConfigFilterDep = Annotated[
     SkeletonizationConfigFilter, FilterDepends(SkeletonizationConfigFilter)
 ]
-NestedSkeletonizationConfigFilterDep = FilterDepends(
-    with_prefix("skeletonization_config", NestedSkeletonizationConfigFilter)
-)

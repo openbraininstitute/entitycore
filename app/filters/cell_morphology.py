@@ -6,7 +6,6 @@ from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology_protocol import (
     NestedCellMorphologyProtocolFilter,
-    NestedCellMorphologyProtocolFilterDep,
 )
 from app.filters.common import (
     IdFilterMixin,
@@ -45,9 +44,7 @@ class CellMorphologyFilter(
     ILikeSearchFilterMixin,
     CellMorphologyFilterBase,
 ):
-    cell_morphology_protocol: Annotated[
-        NestedCellMorphologyProtocolFilter | None, NestedCellMorphologyProtocolFilterDep
-    ] = None
+    cell_morphology_protocol: NestedCellMorphologyProtocolFilter | None = None
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CellMorphologyFilterBase.Constants):

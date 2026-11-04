@@ -1,11 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
-
-from fastapi_filter import with_prefix
 
 from app.db.types import ActivityStatus, ExecutorType
-from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     AuthorizedFilterMixin,
     CreationFilterMixin,
@@ -13,9 +9,6 @@ from app.filters.common import (
 )
 from app.filters.entity import NestedEntityFilter
 from app.filters.platform_user import CreatorFilterMixin
-
-NestedUsedFilterDep = FilterDepends(with_prefix("used", NestedEntityFilter))
-NestedGeneratedFilterDep = FilterDepends(with_prefix("generated", NestedEntityFilter))
 
 
 class ActivityFilterMixin(
@@ -28,8 +21,8 @@ class ActivityFilterMixin(
     end_time: datetime | None = None
     status: ActivityStatus | None = None
 
-    used: Annotated[NestedEntityFilter | None, NestedUsedFilterDep] = None
-    generated: Annotated[NestedEntityFilter | None, NestedGeneratedFilterDep] = None
+    used: NestedEntityFilter | None = None
+    generated: NestedEntityFilter | None = None
 
 
 class ExecutionActivityFilterMixin:

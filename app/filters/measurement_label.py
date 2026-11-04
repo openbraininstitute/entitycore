@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import MeasurementLabel
 from app.db.utils import MeasurableEntityType
 from app.dependencies.filter import FilterDepends
@@ -44,6 +42,3 @@ class MeasurementLabelFilter(
 
 
 MeasurementLabelFilterDep = Annotated[MeasurementLabelFilter, FilterDepends(MeasurementLabelFilter)]
-NestedMeasurementLabelFilterDep = FilterDepends(
-    with_prefix("measurement_label", NestedMeasurementLabelFilter)
-)

@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import ScientificArtifact
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -48,6 +46,3 @@ class ScientificArtifactFilter(
 ScientificArtifactFilterDep = Annotated[
     ScientificArtifactFilter, FilterDepends(ScientificArtifactFilter)
 ]
-NestedScientificArtifactFilterDep = FilterDepends(
-    with_prefix("scientific_artifact", NestedScientificArtifactFilter)
-)

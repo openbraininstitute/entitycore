@@ -6,10 +6,9 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
-from app.filters.publication import NestedPublicationFilter, NestedPublicationFilterDep
+from app.filters.publication import NestedPublicationFilter
 from app.filters.scientific_artifact import (
     NestedScientificArtifactFilter,
-    NestedScientificArtifactFilterDep,
 )
 
 
@@ -22,15 +21,9 @@ class ScientificArtifactPublicationLinkFilter(
 
     publication_type: PublicationType | None = None
 
-    publication: Annotated[
-        NestedPublicationFilter | None,
-        NestedPublicationFilterDep,
-    ] = None
+    publication: NestedPublicationFilter | None = None
 
-    scientific_artifact: Annotated[
-        NestedScientificArtifactFilter | None,
-        NestedScientificArtifactFilterDep,
-    ] = None
+    scientific_artifact: NestedScientificArtifactFilter | None = None
 
     class Constants(CustomFilter.Constants):
         model = ScientificArtifactPublicationLink

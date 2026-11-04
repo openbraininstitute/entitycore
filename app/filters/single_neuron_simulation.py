@@ -9,7 +9,7 @@ from app.filters.common import (
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
-from app.filters.memodel import NestedMEModelFilter, NestedMEModelFilterDep
+from app.filters.memodel import NestedMEModelFilter
 
 
 class SingleNeuronSimulationFilter(
@@ -19,7 +19,7 @@ class SingleNeuronSimulationFilter(
     NameFilterMixin,
     ILikeSearchFilterMixin,
 ):
-    me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None
+    me_model: NestedMEModelFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

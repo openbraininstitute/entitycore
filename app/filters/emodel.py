@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import EModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -44,15 +42,9 @@ class EModelFilter(
     score__lte: float | None = None
     score__gte: float | None = None
 
-    exemplar_morphology: Annotated[
-        NestedCellMorphologyFilter | None,
-        FilterDepends(with_prefix("exemplar_morphology", NestedCellMorphologyFilter)),
-    ] = None
+    exemplar_morphology: NestedCellMorphologyFilter | None = None
 
-    ion_channel_model: Annotated[
-        NestedIonChannelModelFilter | None,
-        FilterDepends(with_prefix("ion_channel_model", NestedIonChannelModelFilter)),
-    ] = None
+    ion_channel_model: NestedIonChannelModelFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
@@ -79,5 +71,3 @@ class EModelFilter(
 
 # Dependencies
 EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]
-# Nested dependencies
-NestedEModelFilterDep = FilterDepends(with_prefix("emodel", NestedEModelFilter))

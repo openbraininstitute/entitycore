@@ -1,13 +1,10 @@
 import uuid
-from typing import Annotated
 
 from fastapi import Query
-from fastapi_filter import with_prefix
 from pydantic import Field
 from sqlalchemy import Select
 
 from app.db.model import PlatformUser
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, PrefLabelMixin
 from app.queries.alias_registry import Aliases
@@ -31,10 +28,6 @@ class NestedPlatformUserFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         return super().filter(query, aliases, **kwargs)
 
 
-NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", NestedPlatformUserFilter))
-NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", NestedPlatformUserFilter))
-
-
 class CreatorFilterMixin:
-    created_by: Annotated[NestedPlatformUserFilter | None, NestedCreatedByFilterDep] = None
-    updated_by: Annotated[NestedPlatformUserFilter | None, NestedUpdatedByFilterDep] = None
+    created_by: NestedPlatformUserFilter | None = None
+    updated_by: NestedPlatformUserFilter | None = None

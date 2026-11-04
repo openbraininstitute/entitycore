@@ -151,7 +151,7 @@ def _walk(
     mapper: Mapper,
     prefix: str,
     steps: tuple[_Step, ...],
-    seen: tuple[type[Schema], ...],
+    seen: frozenset[type[Schema]],
 ) -> Iterator[tuple[str, _ExpandPlan]]:
     """Yield the allowed paths below prefix, with their plans."""
     names = dict.fromkeys(name for c in schema_classes for name in c.model_fields)
@@ -186,7 +186,7 @@ def _walk(
         ):
             nested = schema_field.nested
             yield from _walk(
-                nested, prop.mapper, f"{path}{PATH_SEPARATOR}", (*steps, step), seen + nested
+                nested, prop.mapper, f"{path}{PATH_SEPARATOR}", (*steps, step), seen | set(nested)
             )
 
 
@@ -200,7 +200,7 @@ def _expand_plans(
         msg = f"{schema} is not a Schema"
         raise TypeError(msg)
     mapper = sa.inspect(db_model_class)
-    return dict(_walk(schema_classes, mapper, "", (), schema_classes))
+    return dict(_walk(schema_classes, mapper, "", (), frozenset(schema_classes)))
 
 
 @cache

@@ -1279,8 +1279,44 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         EntityType.simulation_result
     ],
     TaskResultType.em_synapse_mapping__result: None,
-    TaskResultType.aind_ephys_preprocessing__result: None,
-    TaskResultType.aind_ephys_spikesorting__result: None,
+    TaskResultType.aind_ephys_preprocessing__result: {
+        AssetLabel.task_result: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "AIND ephys preprocessing output: SpikeInterface binary folders of the "
+                    "preprocessed recordings, the files that reload them and motion estimates."
+                ),
+            )
+        ],
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Preprocessed extracellular recording in NWB format.",
+            )
+        ],
+    },
+    TaskResultType.aind_ephys_spikesorting__result: {
+        AssetLabel.task_result: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Output of AIND ephys spike sorting and the steps after it: SpikeInterface "
+                    "sortings, sorting analyzers and unit labels."
+                ),
+            )
+        ],
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Sorted units in NWB format.",
+            )
+        ],
+    },
     TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # ruff:ignore[line-too-long]
         EntityType.simulatable_extracellular_recording_array
     ],

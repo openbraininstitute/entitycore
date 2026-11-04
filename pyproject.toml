@@ -16,7 +16,7 @@ dependencies = [
     "loguru>=0.7.3",
     "openai>=1.101.0",
     "pgvector>=0.4.1",
-    "psycopg2",
+    "psycopg[binary]",
     "pydantic>=2",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",

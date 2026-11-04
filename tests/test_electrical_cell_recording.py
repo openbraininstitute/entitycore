@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from unittest.mock import ANY
 
@@ -12,7 +13,12 @@ from app.db.model import (
     Species,
     Subject,
 )
-from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType, EntityType
+from app.db.types import (
+    AssetLabel,
+    ElectricalRecordingOrigin,
+    ElectricalRecordingType,
+    EntityType,
+)
 
 from .utils import (
     PROJECT_ID,
@@ -29,6 +35,7 @@ from .utils import (
     create_brain_region,
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
+    upload_entity_asset,
 )
 
 ROUTE = "/electrical-cell-recording"
@@ -69,6 +76,33 @@ def test_update_one(clients, electrical_cell_recording_json_data):
             "temperature": 10.0,
         },
     )
+
+
+def test_upload_recording_summary(client, electrical_cell_recording_json_data):
+    recording_id = create_electrical_cell_recording_id(client, electrical_cell_recording_json_data)
+    summary = {"version": 1, "protocols": {"IDRest": {"amp": [0.1, 0.2]}}, "rheobase": 0.1}
+
+    upload_entity_asset(
+        client,
+        EntityType.electrical_cell_recording,
+        recording_id,
+        files={"file": ("summary.json", json.dumps(summary).encode(), "application/json")},
+        label=AssetLabel.recording_summary,
+    )
+    data = assert_request(client.get, url=f"{ROUTE}/{recording_id}").json()
+    assert [(a["label"], a["content_type"]) for a in data["assets"]] == [
+        (AssetLabel.recording_summary, "application/json")
+    ]
+
+    response = upload_entity_asset(
+        client,
+        EntityType.electrical_cell_recording,
+        recording_id,
+        files={"file": ("summary.txt", b"not json", "text/plain")},
+        label=AssetLabel.recording_summary,
+        expected_status=None,
+    )
+    assert response.status_code == 422
 
 
 def test_user_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):

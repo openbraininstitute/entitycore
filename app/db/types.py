@@ -636,6 +636,7 @@ class AssetLabel(StrEnum):
     current_report = auto()
     research_log_document = auto()
     research_log_files = auto()
+    recording_summary = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -887,7 +888,17 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 is_directory=False,
                 description="Electrophysiological timeseries data.",
             ),
-        ]
+        ],
+        AssetLabel.recording_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description=(
+                    "Per-protocol current amplitudes (nA), keyed by stimulus name, and the "
+                    "rheobase, computed from the NWB file."
+                ),
+            ),
+        ],
     },
     EntityType.emodel: {
         AssetLabel.emodel_optimization_output: [

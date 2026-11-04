@@ -181,6 +181,7 @@ Both are migrated in the same pull request as the mechanism, to check that it co
 
 ## Follow-ups
 
+- entitycore: limit the derivation-type qualifiers of each `expand` enum to the types allowed for the entity type by `DERIVATION_TYPE_RULES`, so that values that can never match return 422 (separate PR).
 - entitysdk: support `expand` values, including dot paths, in the read and search methods.
 - Frontend: handle absent derivation fields like `null`.
 - Clients building long `id__in` lists (entitysdk, obi-one): split them into chunks.

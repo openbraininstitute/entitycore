@@ -38,7 +38,6 @@ ReadSchema = SkeletonizationConfigRead
 CreateSchema = SkeletonizationConfigCreate
 UserUpdateSchema = SkeletonizationConfigUserUpdate
 AdminUpdateSchema = SkeletonizationConfigAdminUpdate
-FilterDep = FilterDep[SkeletonizationConfigFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]
@@ -149,7 +148,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,

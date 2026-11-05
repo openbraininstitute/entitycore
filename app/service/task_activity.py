@@ -35,7 +35,6 @@ ReadSchema = TaskActivityRead
 CreateSchema = TaskActivityCreate
 UserUpdateSchema = TaskActivityUserUpdate
 AdminUpdateSchema = TaskActivityAdminUpdate
-FilterDep = FilterDep[TaskActivityFilter]
 
 
 def _load(query: sa.Select):
@@ -97,7 +96,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[TaskActivityFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -138,7 +137,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[TaskActivityFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ReadSchema]:
@@ -157,7 +156,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[TaskActivityFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ReadSchema]:

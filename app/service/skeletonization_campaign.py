@@ -38,7 +38,6 @@ ReadSchema = SkeletonizationCampaignRead
 CreateSchema = SkeletonizationCampaignCreate
 UserUpdateSchema = SkeletonizationCampaignUserUpdate
 AdminUpdateSchema = SkeletonizationCampaignAdminUpdate
-FilterDep = FilterDep[SkeletonizationCampaignFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]
@@ -151,7 +150,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationCampaignFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -192,7 +191,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationCampaignFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -213,7 +212,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationCampaignFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),

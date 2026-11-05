@@ -1,18 +1,18 @@
 """Loading of the expandable fields (see `app.queries.expand`).
 
 Most expandable fields are loaded with a loader strategy (`undefer`, `selectinload`). The fields
-needing more, e.g. nested relationships of the related objects or qualifiers, have a custom loader
-registered in `CUSTOM_EXPANDS`.
+needing more, e.g. nested relationships of the related objects or qualifiers, name a custom loader
+in their `Expandable` marker, defined in `CUSTOM_LOADERS`.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 from sqlalchemy import orm
 
-from app.db.model import Entity, MeasurableEntityMixin
 from app.db.types import DerivationType
+from app.schemas.expand import ExpandLoaderName
 
 type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
 
@@ -63,27 +63,16 @@ class ExpandLoader(Protocol):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CustomExpand:
-    """Custom loading of the expandable fields mapped to the ORM attribute `parent.attr`.
+class CustomLoader:
+    """Custom loading of the expandable fields naming it in their `Expandable` marker.
 
     Attributes:
-        parent: ORM class, or mixin, of the attribute; it applies to its subclasses too.
-        attr: name of the ORM attribute.
-        loader: builder of the loader options.
+        load: builder of the loader options.
         qualifiers: values accepted after `:` in the expand values of the field.
     """
 
-    parent: type
-    attr: str
-    loader: ExpandLoader
+    load: ExpandLoader
     qualifiers: tuple[str, ...] = ()
-
-    def __post_init__(self) -> None:
-        """Check that the ORM attribute exists, to detect typos at startup."""
-        # looked up in the class dicts: getattr would evaluate the declared attributes of mixins
-        if not any(self.attr in vars(cls) for cls in self.parent.__mro__):
-            msg = f"{self.parent.__name__} has no attribute {self.attr!r}"
-            raise TypeError(msg)
 
 
 def _derivation_loader(other_side: str) -> ExpandLoader:
@@ -127,37 +116,12 @@ def _measurement_annotation_loader(
     ]
 
 
-CUSTOM_EXPANDS: tuple[CustomExpand, ...] = (
-    CustomExpand(
-        parent=Entity,
-        attr="derivations_as_generated",
-        loader=_derivation_loader("used"),
-        qualifiers=tuple(DerivationType),
+CUSTOM_LOADERS: Mapping[ExpandLoaderName, CustomLoader] = {
+    "generated_derivations": CustomLoader(
+        load=_derivation_loader("used"), qualifiers=tuple(DerivationType)
     ),
-    CustomExpand(
-        parent=Entity,
-        attr="derivations_as_used",
-        loader=_derivation_loader("generated"),
-        qualifiers=tuple(DerivationType),
+    "used_derivations": CustomLoader(
+        load=_derivation_loader("generated"), qualifiers=tuple(DerivationType)
     ),
-    CustomExpand(
-        parent=MeasurableEntityMixin,
-        attr="measurement_annotation",
-        loader=_measurement_annotation_loader,
-    ),
-)
-
-
-def find_custom_expand(
-    model_class: type, attr: str, custom_expands: Sequence[CustomExpand] = CUSTOM_EXPANDS
-) -> CustomExpand | None:
-    """Return the custom loading of the ORM attribute `model_class.attr`, if any.
-
-    Example:
-        >>> find_custom_expand(Circuit, "derivations_as_used").qualifiers
-        ('circuit_customization', 'circuit_extraction', ...)
-    """
-    return next(
-        (c for c in custom_expands if c.attr == attr and issubclass(model_class, c.parent)),
-        None,
-    )
+    "measurement_annotation": CustomLoader(load=_measurement_annotation_loader),
+}

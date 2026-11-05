@@ -1,6 +1,6 @@
 import re
 import uuid
-from typing import Annotated
+from typing import Annotated, get_args
 
 import pytest
 import sqlalchemy as sa
@@ -8,13 +8,13 @@ from pydantic import MISSING, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
-from app.db.model import CellMorphology, Circuit, Entity, Species, Strain
+from app.db.model import CellMorphology, Circuit, Species, Strain
 from app.db.types import DerivationType
 from app.queries import expand as test_module, expand_loaders
 from app.schemas.base import ExpandableSchema, Schema
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.circuit import CircuitRead
-from app.schemas.expand import Expandable
+from app.schemas.expand import Expandable, ExpandLoaderName
 
 DERIVATION_VALUES = {
     "generated_from_derivations",
@@ -116,19 +116,36 @@ def test_expandable_field_checks():
             summary: Annotated[dict | MISSING, Expandable()] = MISSING
 
 
-def test_find_custom_expand():
-    custom = expand_loaders.find_custom_expand(Circuit, "derivations_as_generated")
-    assert custom is not None
-    assert custom.qualifiers == tuple(DerivationType)
-    assert expand_loaders.find_custom_expand(CellMorphology, "measurement_annotation") is not None
-    # the attribute name alone is not enough: the class must inherit from the parent
-    assert expand_loaders.find_custom_expand(Circuit, "measurement_annotation") is None
-    assert expand_loaders.find_custom_expand(Species, "derivations_as_generated") is None
+def test_collected_loader_names():
+    fields = CircuitRead.__expandable_fields__
+    assert fields["generated_from_derivations"].loader == "generated_derivations"
+    assert fields["used_by_derivations"].loader == "used_derivations"
+    assert SpeciesTestRead.__expandable_fields__["embedding"].loader is None
 
 
-def test_custom_expand_unknown_attribute():
-    with pytest.raises(TypeError, match="Entity has no attribute 'unknown'"):
-        expand_loaders.CustomExpand(parent=Entity, attr="unknown", loader=lambda *_: [])
+def test_custom_loaders():
+    loaders = expand_loaders.CUSTOM_LOADERS
+    assert loaders["generated_derivations"].qualifiers == tuple(DerivationType)
+    assert loaders["used_derivations"].qualifiers == tuple(DerivationType)
+    assert loaders["measurement_annotation"].qualifiers == ()
+
+
+def _schema_subclasses(cls):
+    for subclass in cls.__subclasses__():
+        yield subclass
+        yield from _schema_subclasses(subclass)
+
+
+def test_custom_loaders_in_sync():
+    # the app is imported above, so all the schemas are defined
+    used = {
+        f.loader
+        for cls in _schema_subclasses(Schema)
+        for f in cls.__expandable_fields__.values()
+        if f.loader is not None
+    }
+    names = set(get_args(ExpandLoaderName.__value__))
+    assert set(expand_loaders.CUSTOM_LOADERS) == names == used
 
 
 @pytest.mark.parametrize(

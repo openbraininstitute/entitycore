@@ -44,14 +44,11 @@ class MeasurementAnnotationRead(MeasurementAnnotationBase, NestedIdentifiableRea
 
 
 class MeasurementAnnotationReadMixin(ExpandableSchema):
-    """Measurement annotation of a measurable entity, returned with `expand`.
+    """Measurement annotation of a measurable entity, returned with `expand`."""
 
-    Loaded by the custom loader in `app.queries.expand_loaders`.
-    """
-
-    measurement_annotation: Annotated[MeasurementAnnotationRead | MISSING | None, Expandable()] = (
-        MISSING
-    )
+    measurement_annotation: Annotated[
+        MeasurementAnnotationRead | MISSING | None, Expandable(loader="measurement_annotation")
+    ] = MISSING
 
 
 class MeasurementAnnotationCreate(MeasurementAnnotationBase, IdentifiableCreate):

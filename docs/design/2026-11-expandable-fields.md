@@ -68,7 +68,7 @@ class SomeRead(ExpandableSchema, ...):
 
 When a schema class is created, its expandable fields are collected, and three rules are checked: the default must be `MISSING`, a list field must not allow `None`, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
 
-The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, have a custom loader registered for their ORM attribute in `app/queries/expand_loaders.py`, with the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`.
+The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, name a custom loader in their marker (`Expandable(loader="generated_derivations")`). The names are a `Literal` type (`ExpandLoaderName` in `app/schemas/expand.py`), and `CUSTOM_LOADERS` in `app/queries/expand_loaders.py` maps each name to the loader and the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`. Pyright checks the names on both sides, and a test checks that the names, the dict keys and the names used by the fields are the same.
 
 ### Loading
 
@@ -163,6 +163,8 @@ Both are migrated in the same pull request as the mechanism, to check that it co
 - **Allowed values as validated strings instead of enums.** Avoids large enums if nested paths multiply with qualifiers, at the cost of custom 422 errors and a hand-written OpenAPI description. Kept as a fallback if the enums get too large.
 - **A placeholder when a related object is not expanded**, either the id in place of the object (as in the Stripe API) or a separate `<name>_id` field. The first gives the key two types (a string or an object) for typed clients and OpenAPI; the second adds a second representation of the same relationship. A field whose id is always needed stays non-expandable and always loaded.
 - **Never returning expandable fields in create and update responses**, by expiring them before validation. Simpler, but the same Read schema would then follow different rules depending on the endpoint. The Stripe API also accepts `expand` on create and update requests.
+- **Custom loaders in the schema marker**, as callables. The schemas would contain SQLAlchemy loading code, and moving it to `app/queries` would create an import cycle.
+- **A registry of custom loaders matched by ORM class and attribute name.** The match is implicit: the field doesn't show it has a custom loader, and a loader for a single class would depend on the order of the registry.
 - **Other parameter names.** `include` in JSON:API selects related resources to add as separate documents, not fields; `fields` in JSON:API restricts the default fields, the opposite direction, and could be added later independently; GraphQL would be a full query language, not justified here. `expand` is already public and has the same meaning as in the Stripe API.
 
 ## Consequences

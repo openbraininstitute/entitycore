@@ -8,10 +8,15 @@ the allowed values and the loader options are defined in `app.queries.expand` an
 import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Literal, Union, get_args, get_origin
 
 import sqlalchemy as sa
 from pydantic import MISSING, BaseModel
+
+# names of the custom loaders, defined in `app.queries.expand_loaders.CUSTOM_LOADERS`
+type ExpandLoaderName = Literal[
+    "generated_derivations", "used_derivations", "measurement_annotation"
+]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -20,11 +25,12 @@ class Expandable:
 
     The field must allow and default to `MISSING`, and the schema must inherit from
     `ExpandableSchema`. A field is returned when its ORM attribute is loaded: `apply_expand` in
-    `app.queries.expand` loads the requested ones, with a loader strategy or with the custom
-    loader registered for the ORM attribute in `app.queries.expand_loaders`.
+    `app.queries.expand` loads the requested ones, with a loader strategy or, when `loader` is
+    set, with the custom loader of that name in `app.queries.expand_loaders.CUSTOM_LOADERS`.
 
     Args:
         attr: ORM attribute name, when different from the field name.
+        loader: name of the custom loader, for fields needing more than a loader strategy.
 
     Example:
         >>> class SomeRead(ExpandableSchema):
@@ -32,6 +38,7 @@ class Expandable:
     """
 
     attr: str | None = None
+    loader: ExpandLoaderName | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -40,6 +47,7 @@ class ExpandableField:
 
     name: str
     attr: str
+    loader: ExpandLoaderName | None = None
 
 
 def _expandable_marker(metadata: Sequence[Any]) -> Expandable | None:
@@ -92,7 +100,9 @@ def collect_expandable_fields(cls: type[BaseModel]) -> dict[str, ExpandableField
     for name, field in cls.model_fields.items():
         if marker := _expandable_marker(field.metadata):
             _check_expandable_field(cls, name, field.annotation, field.default)
-            expandable_fields[name] = ExpandableField(name=name, attr=marker.attr or name)
+            expandable_fields[name] = ExpandableField(
+                name=name, attr=marker.attr or name, loader=marker.loader
+            )
     return expandable_fields
 
 

@@ -58,15 +58,16 @@ class DerivationReadMixin(ExpandableSchema):
 
     A direction that is not expanded is omitted; an expanded direction without derivations is
     ``[]``. The qualifier selects the derivation types, e.g.
-    ``expand=generated_from_derivations:circuit_extraction``. Loaded by the custom loaders in
-    `app.queries.expand_loaders`.
+    ``expand=generated_from_derivations:circuit_extraction``.
     """
 
     generated_from_derivations: Annotated[
-        list[GeneratedDerivationRead] | MISSING, Expandable(attr="derivations_as_generated")
+        list[GeneratedDerivationRead] | MISSING,
+        Expandable(attr="derivations_as_generated", loader="generated_derivations"),
     ] = MISSING
     used_by_derivations: Annotated[
-        list[UsedDerivationRead] | MISSING, Expandable(attr="derivations_as_used")
+        list[UsedDerivationRead] | MISSING,
+        Expandable(attr="derivations_as_used", loader="used_derivations"),
     ] = MISSING
 
 

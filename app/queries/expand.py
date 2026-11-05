@@ -6,7 +6,7 @@ an optional ``:qualifier`` on the last segment, e.g. ``measurement_annotation``,
 its expandable ancestors. ``=`` is reserved for future keyed qualifiers (e.g. ``:label=...``).
 
 The fields are marked with `Expandable` in the read schemas (see `app.schemas.expand`), and the
-fields needing more than a loader strategy have a custom loader (see `app.queries.expand_loaders`).
+fields needing more than a loader strategy name a custom loader of `app.queries.expand_loaders`.
 At startup, the schema and the mapper of the ORM model are walked in parallel to build a plan for
 each allowed path (`_ExpandPlan`): how to load each segment, from the root of the query. The plans
 give both the allowed values (the `expand` enums) and, per request, the loader options of the
@@ -32,7 +32,7 @@ from sqlalchemy.orm import (
 )
 
 from app.db.model import Entity, Identifiable
-from app.queries.expand_loaders import ExpandLoader, LoaderStrategy, expand_load, find_custom_expand
+from app.queries.expand_loaders import CUSTOM_LOADERS, ExpandLoader, LoaderStrategy, expand_load
 from app.queries.types import SupportsModelValidate
 from app.schemas.base import Schema
 from app.schemas.expand import ExpandableField
@@ -161,14 +161,15 @@ def _walk(
         schema_field = _find_field(schema_classes, name)
         path = f"{prefix}{name}"
         prop = mapper.attrs.get(schema_field.attr)
-        if schema_field.expandable:
+        if expandable := schema_field.expandable:
             if prop is None:
                 msg = f"{path}: no ORM attribute {schema_field.attr!r} on {mapper.class_.__name__}"
                 raise TypeError(msg)
             attr = getattr(mapper.class_, schema_field.attr)
-            if custom := find_custom_expand(mapper.class_, schema_field.attr):
+            if expandable.loader is not None:
+                custom = CUSTOM_LOADERS[expandable.loader]
                 # the custom loader decides what is loaded below the field: no nested paths
-                custom_load = _CustomLoad(attr=attr, loader=custom.loader)
+                custom_load = _CustomLoad(attr=attr, loader=custom.load)
                 yield (
                     path,
                     _ExpandPlan(steps=steps, custom=custom_load, qualifiers=custom.qualifiers),

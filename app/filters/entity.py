@@ -1,9 +1,7 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import Derivation, Entity
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import AuthorizedFilterMixin, CreationFilterMixin, IdFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
@@ -37,9 +35,6 @@ class BasicEntityFilter(CustomFilter):
     class Constants(CustomFilter.Constants):
         model = Entity
         ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
-
-
-BasicEntityFilterDep = Annotated[BasicEntityFilter, FilterDepends(BasicEntityFilter)]
 
 
 class NestedEntityFilter(CustomFilter, IdFilterMixin):

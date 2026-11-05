@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import CellMorphology
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology_protocol import NestedCellMorphologyProtocolFilter
@@ -63,7 +60,3 @@ class CellMorphologyFilter(
             "updated_by__pref_label",
             "cell_morphology_protocol__generation_type",
         ]
-
-
-# Dependencies
-CellMorphologyFilterDep = Annotated[CellMorphologyFilter, FilterDepends(CellMorphologyFilter)]

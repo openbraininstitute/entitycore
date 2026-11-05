@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import IonChannelModelingCampaign
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -18,8 +15,3 @@ class IonChannelModelingCampaignFilter(
     class Constants(CustomFilter.Constants):
         model = IonChannelModelingCampaign
         ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
-
-
-IonChannelModelingCampaignFilterDep = Annotated[
-    IonChannelModelingCampaignFilter, FilterDepends(IonChannelModelingCampaignFilter)
-]

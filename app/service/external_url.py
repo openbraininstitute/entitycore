@@ -11,7 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.external_url import ExternalUrlFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.external_url import ExternalUrlFilter
 from app.queries.common import (
     router_admin_delete_one,
     router_create_one,
@@ -72,7 +73,7 @@ def create_one(
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ExternalUrlFilterDep,
+    filter_model: FilterDep[ExternalUrlFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ExternalUrlRead]:

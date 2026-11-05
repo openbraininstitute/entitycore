@@ -4,9 +4,7 @@ from typing import Annotated
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import (
-    SkeletonizationConfig,
-)
+from app.db.model import SkeletonizationConfig
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandPaths,
@@ -16,7 +14,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_config import SkeletonizationConfigFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.skeletonization_config import SkeletonizationConfigFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -39,7 +38,6 @@ ReadSchema = SkeletonizationConfigRead
 CreateSchema = SkeletonizationConfigCreate
 UserUpdateSchema = SkeletonizationConfigUserUpdate
 AdminUpdateSchema = SkeletonizationConfigAdminUpdate
-FilterDep = SkeletonizationConfigFilterDep
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]
@@ -150,7 +148,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -191,7 +189,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SkeletonizationConfigFilterDep,
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -212,7 +210,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SkeletonizationConfigFilterDep,
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),

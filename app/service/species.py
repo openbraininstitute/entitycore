@@ -8,7 +8,8 @@ from app.db.model import Species
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.species import SpeciesFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.species import SpeciesFilter
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.species import SpeciesAdminUpdate, SpeciesCreate, SpeciesRead
@@ -70,7 +71,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    species_filter: SpeciesFilterDep,
+    species_filter: FilterDep[SpeciesFilter],
     semantic_search: str | None = None,
 ) -> ListResponse[SpeciesRead]:
     embedding = None

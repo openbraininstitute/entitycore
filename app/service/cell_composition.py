@@ -11,7 +11,8 @@ from app.db.model import (
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandPaths, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
-from app.filters.cell_composition import CellCompositionFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.cell_composition import CellCompositionFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -154,7 +155,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellCompositionFilterDep,
+    filter_model: FilterDep[CellCompositionFilter],
     with_search: SearchDep,
     expand: ExpandPaths,
     check_authorized_project: bool,
@@ -193,7 +194,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellCompositionFilterDep,
+    filter_model: FilterDep[CellCompositionFilter],
     with_search: SearchDep,
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellCompositionRead]:
@@ -212,7 +213,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellCompositionFilterDep,
+    filter_model: FilterDep[CellCompositionFilter],
     with_search: SearchDep,
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellCompositionRead]:

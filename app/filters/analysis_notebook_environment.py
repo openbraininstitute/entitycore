@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import AnalysisNotebookEnvironment
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -21,8 +18,3 @@ class AnalysisNotebookEnvironmentFilter(EntityFilterMixin, CustomFilter):
             "creation_date",
             "update_date",
         ]
-
-
-AnalysisNotebookEnvironmentFilterDep = Annotated[
-    AnalysisNotebookEnvironmentFilter, FilterDepends(AnalysisNotebookEnvironmentFilter)
-]

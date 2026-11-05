@@ -13,8 +13,9 @@ from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, expand_query
 from app.dependencies.db import SessionDep
+from app.dependencies.filter import FilterDep
 from app.errors import ensure_valid_schema
-from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
+from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -104,7 +105,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellMorphologyProtocolFilterDep,
+    filter_model: FilterDep[CellMorphologyProtocolFilter],
     with_facets: FacetsDep,
     expand: ExpandPaths,
     check_authorized_project: bool,
@@ -146,7 +147,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellMorphologyProtocolFilterDep,
+    filter_model: FilterDep[CellMorphologyProtocolFilter],
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellMorphologyProtocolRead]:
@@ -165,7 +166,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: CellMorphologyProtocolFilterDep,
+    filter_model: FilterDep[CellMorphologyProtocolFilter],
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellMorphologyProtocolRead]:

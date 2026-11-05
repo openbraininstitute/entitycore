@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import BrainAtlas, BrainAtlasRegion
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -34,7 +32,3 @@ class BrainAtlasRegionFilter(EntityFilterMixin, CustomFilter):
     class Constants(CustomFilter.Constants):
         model = BrainAtlasRegion
         ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
-
-
-BrainAtlasFilterDep = Annotated[BrainAtlasFilter, FilterDepends(BrainAtlasFilter)]
-BrainAtlasRegionFilterDep = Annotated[BrainAtlasRegionFilter, FilterDepends(BrainAtlasRegionFilter)]

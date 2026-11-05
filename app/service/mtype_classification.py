@@ -16,7 +16,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.classification import MTypeClassificationFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.classification import MTypeClassificationFilter
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
@@ -102,7 +103,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: MTypeClassificationFilterDep,
+    filter_model: FilterDep[MTypeClassificationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -139,7 +140,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: MTypeClassificationFilterDep,
+    filter_model: FilterDep[MTypeClassificationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MTypeClassificationRead]:
@@ -158,7 +159,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: MTypeClassificationFilterDep,
+    filter_model: FilterDep[MTypeClassificationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MTypeClassificationRead]:

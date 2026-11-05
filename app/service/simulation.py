@@ -4,9 +4,7 @@ from typing import Annotated
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import (
-    Simulation,
-)
+from app.db.model import Simulation
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandPaths,
@@ -16,7 +14,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.simulation import SimulationFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.simulation import SimulationFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -143,7 +142,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationFilterDep,
+    filter_model: FilterDep[SimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -185,7 +184,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationFilterDep,
+    filter_model: FilterDep[SimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -206,7 +205,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationFilterDep,
+    filter_model: FilterDep[SimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),

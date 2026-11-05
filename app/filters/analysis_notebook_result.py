@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import AnalysisNotebookResult
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
@@ -28,8 +25,3 @@ class AnalysisNotebookResultFilter(
             "update_date",
             "name",
         ]
-
-
-AnalysisNotebookResultFilterDep = Annotated[
-    AnalysisNotebookResultFilter, FilterDepends(AnalysisNotebookResultFilter)
-]

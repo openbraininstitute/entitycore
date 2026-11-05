@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import CellMorphologyProtocol
 from app.db.types import CellMorphologyGenerationType, CellMorphologyProtocolDesign
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -48,9 +45,3 @@ class CellMorphologyProtocolFilter(
             "update_date",
             "generation_type",
         ]
-
-
-# Dependencies
-CellMorphologyProtocolFilterDep = Annotated[
-    CellMorphologyProtocolFilter, FilterDepends(CellMorphologyProtocolFilter)
-]

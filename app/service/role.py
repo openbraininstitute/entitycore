@@ -4,7 +4,8 @@ from app.db.model import Role
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.role import RoleFilterDep
+from app.dependencies.filter import FilterDep
+from app.filters.role import RoleFilter
 from app.queries.common import (
     router_admin_delete_one,
     router_create_one,
@@ -18,7 +19,7 @@ from app.schemas.types import ListResponse
 
 
 def read_many(
-    db: SessionDep, pagination_request: PaginationQuery, filter_model: RoleFilterDep
+    db: SessionDep, pagination_request: PaginationQuery, filter_model: FilterDep[RoleFilter]
 ) -> ListResponse[RoleRead]:
     return router_read_many(
         db=db,

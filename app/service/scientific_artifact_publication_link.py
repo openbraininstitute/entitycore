@@ -3,9 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.auth import (
-    constrain_to_readable_entities_by_project,
-)
+from app.db.auth import constrain_to_readable_entities_by_project
 from app.db.model import (
     Publication,
     ScientificArtifact,
@@ -18,9 +16,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.scientific_artifact_publication_link import (
-    ScientificArtifactPublicationLinkFilterDep,
-)
+from app.dependencies.filter import FilterDep
+from app.filters.scientific_artifact_publication_link import ScientificArtifactPublicationLinkFilter
 from app.queries.alias_registry import build_aliases, merge_aliases
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
@@ -101,7 +98,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ScientificArtifactPublicationLinkFilterDep,
+    filter_model: FilterDep[ScientificArtifactPublicationLinkFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -165,7 +162,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     pagination_request: PaginationQuery,
-    filter_model: ScientificArtifactPublicationLinkFilterDep,
+    filter_model: FilterDep[ScientificArtifactPublicationLinkFilter],
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
     return _read_many(
         user_context=user_context,
@@ -184,7 +181,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     pagination_request: PaginationQuery,
-    filter_model: ScientificArtifactPublicationLinkFilterDep,
+    filter_model: FilterDep[ScientificArtifactPublicationLinkFilter],
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
     return _read_many(
         user_context=user_context,

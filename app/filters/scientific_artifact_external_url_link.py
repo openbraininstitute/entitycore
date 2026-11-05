@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import ScientificArtifactExternalUrlLink
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.external_url import NestedExternalUrlFilter
@@ -26,8 +23,3 @@ class ScientificArtifactExternalUrlLinkFilter(
             "creation_date",
             "update_date",
         ]
-
-
-ScientificArtifactExternalUrlLinkFilterDep = Annotated[
-    ScientificArtifactExternalUrlLinkFilter, FilterDepends(ScientificArtifactExternalUrlLinkFilter)
-]

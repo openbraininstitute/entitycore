@@ -1,9 +1,7 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import Circuit
 from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -82,6 +80,3 @@ class CircuitFilter(
             "updated_by__pref_label",
             "contribution__pref_label",
         ]
-
-
-CircuitFilterDep = Annotated[CircuitFilter, FilterDepends(CircuitFilter)]

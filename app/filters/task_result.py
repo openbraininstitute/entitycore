@@ -1,9 +1,7 @@
 # app/filters/task_result
-from typing import Annotated
 
 from app.db.model import TaskResult
 from app.db.types import TaskResultType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     ILikeSearchFilterMixin,
@@ -20,6 +18,3 @@ class TaskResultFilter(EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixi
     class Constants(CustomFilter.Constants):
         model = TaskResult
         ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
-
-
-TaskResultFilterDep = Annotated[TaskResultFilter, FilterDepends(TaskResultFilter)]

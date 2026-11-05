@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import Person
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, PrefLabelMixin
 from app.filters.platform_user import CreatorFilterMixin
@@ -34,6 +32,3 @@ class PersonFilter(NestedPersonFilter, CreatorFilterMixin, CustomFilter):
             "given_name",
             "family_name",
         ]
-
-
-PersonFilterDep = Annotated[PersonFilter, FilterDepends(PersonFilter)]

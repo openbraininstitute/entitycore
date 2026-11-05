@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import Consortium
-from app.dependencies.filter import FilterDepends
 from app.filters.common import AgentFilter
 from app.filters.platform_user import CreatorFilterMixin
 
@@ -19,6 +16,3 @@ class ConsortiumFilter(AgentFilter, CreatorFilterMixin):
             "pref_label",
             "alternative_name",
         ]
-
-
-ConsortiumFilterDep = Annotated[ConsortiumFilter, FilterDepends(ConsortiumFilter)]

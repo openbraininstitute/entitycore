@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from app.db.model import SingleNeuronSynaptome
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter, Prefix
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
@@ -47,9 +46,3 @@ class SingleNeuronSynaptomeFilter(
             "me_model__etype__pref_label",
             "me_model__mtype__pref_label",
         ]
-
-
-# Dependencies
-SingleNeuronSynaptomeFilterDep = Annotated[
-    SingleNeuronSynaptomeFilter, FilterDepends(SingleNeuronSynaptomeFilter)
-]

@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import Organization
-from app.dependencies.filter import FilterDepends
 from app.filters.common import AgentFilter
 from app.filters.platform_user import CreatorFilterMixin
 from app.utils.pydantic_validators import ROR_ID
@@ -23,6 +20,3 @@ class OrganizationFilter(AgentFilter, CreatorFilterMixin):
             "pref_label",
             "alternative_name",
         ]
-
-
-OrganizationFilterDep = Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)]

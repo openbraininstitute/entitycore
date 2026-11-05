@@ -1,12 +1,9 @@
-from typing import Annotated
-
 from app.db.model import (
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
     Measurement,
 )
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.common import (
@@ -59,11 +56,6 @@ class ExperimentalNeuronDensityFilter(
         ]
 
 
-ExperimentalNeuronDensityFilterDep = Annotated[
-    ExperimentalNeuronDensityFilter, FilterDepends(ExperimentalNeuronDensityFilter)
-]
-
-
 class ExperimentalBoutonDensityFilter(
     DensityFilterBase,
     MTypeClassFilterMixin,
@@ -91,11 +83,6 @@ class ExperimentalBoutonDensityFilter(
         ]
 
 
-ExperimentalBoutonDensityFilterDep = Annotated[
-    ExperimentalBoutonDensityFilter, FilterDepends(ExperimentalBoutonDensityFilter)
-]
-
-
 class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
 ):
@@ -121,8 +108,3 @@ class ExperimentalSynapsesPerConnectionFilter(
             "pre_mtype__pref_label",
             "post_mtype__pref_label",
         ]
-
-
-ExperimentalSynapsesPerConnectionFilterDep = Annotated[
-    ExperimentalSynapsesPerConnectionFilter, FilterDepends(ExperimentalSynapsesPerConnectionFilter)
-]

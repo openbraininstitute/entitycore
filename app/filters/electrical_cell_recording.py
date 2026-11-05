@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import ElectricalCellRecording
 from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType
-from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     ETypeClassFilterMixin,
     ILikeSearchFilterMixin,
@@ -35,8 +32,3 @@ class ElectricalCellRecordingFilter(
             "brain_region__name",
             "etype__pref_label",
         ]
-
-
-ElectricalCellRecordingFilterDep = Annotated[
-    ElectricalCellRecordingFilter, FilterDepends(ElectricalCellRecordingFilter)
-]

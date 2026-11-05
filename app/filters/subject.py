@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import Annotated
 
 from app.db.model import Subject
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter, Prefix
 from app.filters.common import (
     IdFilterMixin,
@@ -38,9 +37,6 @@ class SubjectFilter(
     class Constants(CustomFilter.Constants):
         model = Subject
         ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
-
-
-SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
 
 
 class SubjectFilterMixin:

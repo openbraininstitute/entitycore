@@ -1,8 +1,6 @@
 from datetime import datetime
-from typing import Annotated
 
 from app.db.model import ScientificArtifact
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import IdFilterMixin
@@ -39,8 +37,3 @@ class ScientificArtifactFilter(
             "experiment_date",
             "published_in",
         ]
-
-
-ScientificArtifactFilterDep = Annotated[
-    ScientificArtifactFilter, FilterDepends(ScientificArtifactFilter)
-]

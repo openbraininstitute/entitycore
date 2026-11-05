@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import ScientificArtifactPublicationLink
 from app.db.types import PublicationType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
@@ -29,8 +26,3 @@ class ScientificArtifactPublicationLinkFilter(
             "creation_date",
             "update_date",
         ]
-
-
-ScientificArtifactPublicationLinkFilterDep = Annotated[
-    ScientificArtifactPublicationLinkFilter, FilterDepends(ScientificArtifactPublicationLinkFilter)
-]

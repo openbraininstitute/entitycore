@@ -11,9 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_config_generation import (
-    SkeletonizationConfigGenerationFilterDep,
-)
+from app.dependencies.filter import FilterDep
+from app.filters.skeletonization_config_generation import SkeletonizationConfigGenerationFilter
 from app.queries.common import (
     router_create_activity_one,
     router_read_many,
@@ -36,7 +35,6 @@ ReadSchema = SkeletonizationConfigGenerationRead
 CreateSchema = SkeletonizationConfigGenerationCreate
 UserUpdateSchema = SkeletonizationConfigGenerationUserUpdate
 AdminUpdateSchema = SkeletonizationConfigGenerationAdminUpdate
-FilterDep = SkeletonizationConfigGenerationFilterDep
 
 
 def _load(query: sa.Select):
@@ -98,7 +96,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationConfigGenerationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -139,7 +137,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationConfigGenerationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ReadSchema]:
@@ -158,7 +156,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDep,
+    filter_model: FilterDep[SkeletonizationConfigGenerationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ReadSchema]:

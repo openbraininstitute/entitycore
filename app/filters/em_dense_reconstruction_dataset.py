@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import EMDenseReconstructionDataset
-from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import NestedScientificArtifactFilter, ScientificArtifactFilter
 
@@ -28,9 +25,3 @@ class EMDenseReconstructionDatasetFilter(
             "update_date",
             "name",
         ]
-
-
-# Dependencies
-EMDenseReconstructionDatasetFilterDep = Annotated[
-    EMDenseReconstructionDatasetFilter, FilterDepends(EMDenseReconstructionDatasetFilter)
-]

@@ -1,9 +1,8 @@
 import uuid
-from typing import Annotated, Literal
+from typing import Literal
 
 from app.db.model import Entity, SimulationCampaign
 from app.db.types import EntityType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
@@ -47,8 +46,3 @@ class SimulationCampaignFilter(
             "updated_by__pref_label",
             "contribution__pref_label",
         ]
-
-
-SimulationCampaignFilterDep = Annotated[
-    SimulationCampaignFilter, FilterDepends(SimulationCampaignFilter)
-]

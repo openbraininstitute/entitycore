@@ -11,8 +11,9 @@ from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep
+from app.dependencies.filter import FilterDep
 from app.dependencies.s3 import StorageClientFactoryDep
-from app.filters.asset import AssetFilterDep
+from app.filters.asset import AssetFilter
 from app.schemas.asset import (
     AssetAndPresignedURLS,
     AssetRead,
@@ -42,7 +43,7 @@ def get_entity_assets(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     pagination_request: PaginationQuery,
-    filter_model: AssetFilterDep,
+    filter_model: FilterDep[AssetFilter],
 ) -> ListResponse[AssetRead]:
     """Retrieve a paginated list of assets associated with a specific entity.
 

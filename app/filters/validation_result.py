@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import ValidationResult
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -28,6 +26,3 @@ class ValidationResultFilter(
     class Constants(CustomFilter.Constants):
         model = ValidationResult
         ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
-
-
-ValidationResultFilterDep = Annotated[ValidationResultFilter, FilterDepends(ValidationResultFilter)]

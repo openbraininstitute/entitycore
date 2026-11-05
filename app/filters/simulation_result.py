@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import SimulationResult
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
@@ -27,6 +25,3 @@ class SimulationResultFilter(
     class Constants(CustomFilter.Constants):
         model = SimulationResult
         ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
-
-
-SimulationResultFilterDep = Annotated[SimulationResultFilter, FilterDepends(SimulationResultFilter)]

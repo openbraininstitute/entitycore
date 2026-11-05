@@ -1,9 +1,8 @@
-"""CustomFilter base and nested-prefix helpers."""
-
 from collections import defaultdict
+from dataclasses import dataclass
 from operator import attrgetter
 from types import UnionType
-from typing import Annotated, Any, NamedTuple, cast, get_args, get_origin
+from typing import Annotated, Any, cast, get_args, get_origin
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import (
@@ -22,12 +21,11 @@ ILIKE_SEARCH_FIELDS = ["name", "description"]
 ILIKE_SEARCH_FIELD_NAME = "ilike_search"
 
 
-class Prefix(NamedTuple):
-    """Absolute query-param prefix for a nested filter field.
+@dataclass(frozen=True, slots=True)
+class Prefix:
+    """Query param prefix of a nested filter field, when it must differ from the field name.
 
-    Default prefix is the field name. Use this when the public path must differ::
-
-        species: Annotated[NestedSpeciesFilter | None, Prefix("subject__species")] = None
+    Example: `species: Annotated[NestedSpeciesFilter | None, Prefix("subject__species")] = None`
     """
 
     value: str
@@ -38,11 +36,10 @@ def _is_filter_type(annotation: Any) -> bool:
 
 
 def nested_filter_type(annotation: Any) -> type[CustomFilter] | None:
-    """Return the ``CustomFilter`` subclass in ``T`` or ``T | None``, or None if there isn't one.
+    """Return the `CustomFilter` subclass in `T` or `T | None`, if any.
 
     Raises:
-        TypeError: If ``Annotated`` wraps the filter inside the union, because pydantic then
-            drops its metadata, e.g. ``Prefix``. Use ``Annotated[T | None, ...]`` instead.
+        TypeError: If `Annotated` wraps only the filter, because pydantic then drops `Prefix`.
     """
     if get_origin(annotation) is UnionType:
         args = [a for a in get_args(annotation) if a is not type(None)]
@@ -56,7 +53,6 @@ def nested_filter_type(annotation: Any) -> type[CustomFilter] | None:
 
 
 def nested_prefix(field_name: str, field_info: FieldInfo) -> str:
-    """Absolute query prefix for a nested filter field (``Prefix`` or field name)."""
     for meta in field_info.metadata:
         if isinstance(meta, Prefix):
             return meta.value
@@ -64,7 +60,7 @@ def nested_prefix(field_name: str, field_info: FieldInfo) -> str:
 
 
 class CustomFilter[T: DeclarativeBase](Filter):
-    """SQLAlchemy filter with nested paths, aliases, and ordering restrictions."""
+    """Custom common filter."""
 
     class Constants(Filter.Constants):
         ordering_model_fields: list[str]

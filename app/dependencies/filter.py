@@ -1,5 +1,3 @@
-"""FastAPI dependency that flattens nested filters into prefixed query params."""
-
 from copy import deepcopy
 from typing import Any, get_args, get_origin
 
@@ -17,7 +15,10 @@ from app.filters.base import (
 
 
 def _order_by_schema_extra(fields: list[str]) -> dict[str, Any]:
-    """Return a json_schema_extra dict that injects all valid order_by values as enum."""
+    """Return a json_schema_extra dict that injects all valid order_by values as enum.
+
+    Each field is expanded to unprefixed (ascending), `+` (ascending), and `-` (descending).
+    """
     return {
         "items": {
             "type": "string",
@@ -35,7 +36,7 @@ def _is_list_type(annotation: Any) -> bool:
 def _as_query_field(
     field: FieldInfo, json_schema_extra: dict[str, Any] | None = None
 ) -> tuple[Any, FieldInfo]:
-    """Ensure list fields use ``Query`` so FastAPI treats them as query params."""
+    """Wrap list defaults in `Query`, otherwise FastAPI reads list fields from the body."""
     info = deepcopy(field)
     if _is_list_type(field.annotation) and type(info.default) is not params.Query:
         info.default = Query(default=info.default, json_schema_extra=json_schema_extra)
@@ -48,10 +49,9 @@ def _flatten_fields(
     prefix: str = "",
     fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Expand nested ``CustomFilter`` fields into flat query fields.
+    """Expand nested filters into flat query fields prefixed by their field name or `Prefix`.
 
-    Nested filters use an absolute prefix: the field name, or ``Prefix(...)``.
-    Parent prefixes are not accumulated (matches former nested FilterDepends/with_prefix).
+    Parent prefixes are not accumulated.
     """
     ordering_fields: list[str] | None = getattr(
         filter_model.Constants, "ordering_model_fields", None
@@ -87,7 +87,6 @@ def _flatten_fields(
 def _unflatten(
     filter_model: type[CustomFilter], data: dict[str, Any], *, prefix: str = ""
 ) -> CustomFilter:
-    """Rebuild a nested ``CustomFilter`` tree from flat ``{prefix}__field`` data."""
     ordering_field = filter_model.Constants.ordering_field_name
     kwargs: dict[str, Any] = {}
 
@@ -109,15 +108,9 @@ def _unflatten(
 
 
 def FilterDepends(filter_model: type[CustomFilter], *, by_alias: bool = False, **_) -> Any:
-    """Parse query params into ``filter_model``, nesting by field name / ``Prefix``.
+    """Return a FastAPI dependency that parses query parameters into a filter model instance.
 
-    Nested filters become prefixed params automatically::
-
-        exemplar_morphology: NestedCellMorphologyFilter | None = None
-        # → ?exemplar_morphology__name=...
-
-    Nested prefixes are absolute (field name), not accumulated. Override with
-    ``Annotated[..., Prefix("subject__species")]`` when needed.
+    Nested filters are exposed as flat query params prefixed by their field name or `Prefix`.
     """
     fields = _flatten_fields(filter_model)
     GeneratedFilter = create_model(  # ruff:ignore[non-lowercase-variable-in-function]

@@ -21,7 +21,7 @@ ILIKE_SEARCH_FIELDS = ["name", "description"]
 ILIKE_SEARCH_FIELD_NAME = "ilike_search"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_args=True)
 class Prefix:
     """Query param prefix of a nested filter field, when it must differ from the field name.
 

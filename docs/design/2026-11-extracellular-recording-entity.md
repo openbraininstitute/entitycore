@@ -1,6 +1,6 @@
 # ExtracellularRecording entity
 
-- Status: Draft
+- Status: Implemented
 - Date: 2026-11-03
 - Author: @james-isbister
 - Issues:

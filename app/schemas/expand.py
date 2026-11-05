@@ -13,8 +13,7 @@ from typing import Any, Literal, Union, get_args, get_origin
 import sqlalchemy as sa
 from pydantic import MISSING, BaseModel
 
-# names of the custom loaders, defined in `app.queries.expand_loaders.CUSTOM_LOADERS`, named after
-# the field they were written for
+# custom loaders in `app.queries.expand_loaders.CUSTOM_LOADERS`, named after their field
 type ExpandLoaderName = Literal[
     "generated_from_derivations",
     "used_by_derivations",

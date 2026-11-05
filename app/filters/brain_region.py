@@ -1,12 +1,10 @@
 import uuid
 from enum import StrEnum, auto
-from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
 
 from app.db.model import BrainRegion
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, NameFilterMixin
 from app.filters.species import SpeciesFilterMixin
@@ -88,9 +86,6 @@ class BrainRegionFilter(SpeciesFilterMixin, NestedBrainRegionFilter):
 
     class Constants(NestedBrainRegionFilter.Constants):
         ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
-
-
-BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]
 
 
 class BrainRegionFilterMixin:

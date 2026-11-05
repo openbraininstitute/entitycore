@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import IonChannelModel
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
@@ -58,7 +55,3 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
             "created_by__pref_label",
             "updated_by__pref_label",
         ]
-
-
-# Dependencies
-IonChannelModelFilterDep = Annotated[IonChannelModelFilter, FilterDepends(IonChannelModelFilter)]

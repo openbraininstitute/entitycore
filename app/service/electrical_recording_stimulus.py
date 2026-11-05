@@ -17,7 +17,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.electrical_recording_stimulus import ElectricalRecordingStimulusFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.electrical_recording_stimulus import ElectricalRecordingStimulusFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -127,7 +128,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalRecordingStimulusFilterDep,
+    filter_model: FilterDepends[ElectricalRecordingStimulusFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -173,7 +174,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalRecordingStimulusFilterDep,
+    filter_model: FilterDepends[ElectricalRecordingStimulusFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -194,7 +195,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalRecordingStimulusFilterDep,
+    filter_model: FilterDepends[ElectricalRecordingStimulusFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),

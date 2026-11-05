@@ -11,7 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.simulation_execution import SimulationExecutionFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.simulation_execution import SimulationExecutionFilter
 from app.queries.common import (
     router_create_activity_one,
     router_read_many,
@@ -89,7 +90,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationExecutionFilterDep,
+    filter_model: FilterDepends[SimulationExecutionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -130,7 +131,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationExecutionFilterDep,
+    filter_model: FilterDepends[SimulationExecutionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[SimulationExecutionRead]:
@@ -149,7 +150,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SimulationExecutionFilterDep,
+    filter_model: FilterDepends[SimulationExecutionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[SimulationExecutionRead]:

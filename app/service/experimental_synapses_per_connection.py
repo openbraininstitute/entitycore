@@ -24,7 +24,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.density import ExperimentalSynapsesPerConnectionFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.density import ExperimentalSynapsesPerConnectionFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -75,7 +76,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ExperimentalSynapsesPerConnectionFilterDep,
+    filter_model: FilterDepends[ExperimentalSynapsesPerConnectionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -123,7 +124,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ExperimentalSynapsesPerConnectionFilterDep,
+    filter_model: FilterDepends[ExperimentalSynapsesPerConnectionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -146,7 +147,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ExperimentalSynapsesPerConnectionFilterDep,
+    filter_model: FilterDepends[ExperimentalSynapsesPerConnectionFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

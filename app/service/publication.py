@@ -11,7 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.publication import PublicationFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.publication import PublicationFilter
 from app.queries.common import (
     router_admin_delete_one,
     router_create_one,
@@ -73,7 +74,7 @@ def create_one(
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: PublicationFilterDep,
+    filter_model: FilterDepends[PublicationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[PublicationRead]:

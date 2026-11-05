@@ -1,10 +1,8 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import MeasurementAnnotation, MeasurementItem, MeasurementKind
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin
 
@@ -47,11 +45,6 @@ class MeasurementAnnotationFilter(NestedMeasurementAnnotationFilter):
 
     class Constants(NestedMeasurementAnnotationFilter.Constants):
         ordering_model_fields = ["creation_date", "update_date"]  # ruff:ignore[mutable-class-default]
-
-
-MeasurementAnnotationFilterDep = Annotated[
-    MeasurementAnnotationFilter, FilterDepends(MeasurementAnnotationFilter)
-]
 
 
 class MeasurableFilterMixin:

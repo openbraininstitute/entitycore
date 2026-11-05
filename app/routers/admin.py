@@ -9,9 +9,10 @@ from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
+from app.dependencies.filter import FilterDepends
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
-from app.filters.asset import AssetFilterDep
+from app.filters.asset import AssetFilter
 from app.schemas.asset import (
     AssetRead,
     AssetReadWithUploadMeta,
@@ -29,9 +30,7 @@ from app.service import (
     publish as publish_service,
 )
 from app.types import EntityRoute
-from app.utils.routers import (
-    entity_route_to_type,
-)
+from app.utils.routers import entity_route_to_type
 
 router = APIRouter(
     prefix="/admin",
@@ -46,7 +45,7 @@ def get_entity_assets(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     pagination_request: PaginationQuery,
-    filter_model: AssetFilterDep,
+    filter_model: FilterDepends[AssetFilter],
 ) -> ListResponse[AssetRead]:
     """Retrieve a paginated list of assets associated with a specific entity."""
     return admin_service.get_entity_assets(

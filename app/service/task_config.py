@@ -4,9 +4,7 @@ from typing import Annotated
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import (
-    TaskConfig,
-)
+from app.db.model import TaskConfig
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     ExpandPaths,
@@ -16,7 +14,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.task_config import TaskConfigFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.task_config import TaskConfigFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -39,7 +38,7 @@ ReadSchema = TaskConfigRead
 CreateSchema = TaskConfigCreate
 UserUpdateSchema = TaskConfigUserUpdate
 AdminUpdateSchema = TaskConfigAdminUpdate
-FilterDep = TaskConfigFilterDep
+FilterDep = FilterDepends[TaskConfigFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]

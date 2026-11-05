@@ -16,8 +16,9 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
+from app.dependencies.filter import FilterDepends
 from app.errors import ApiError, ApiErrorCode
-from app.filters.ion_channel_model import IonChannelModelFilterDep
+from app.filters.ion_channel_model import IonChannelModelFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -66,7 +67,7 @@ def _read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     with_search: SearchDep,
-    filter_model: IonChannelModelFilterDep,
+    filter_model: FilterDepends[IonChannelModelFilter],
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -108,7 +109,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: IonChannelModelFilterDep,
+    filter_model: FilterDepends[IonChannelModelFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -131,7 +132,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: IonChannelModelFilterDep,
+    filter_model: FilterDepends[IonChannelModelFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import IonChannelRecording
 from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType
-from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.ion_channel import NestedIonChannelFilter
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -39,8 +36,3 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILike
             "temperature",
             "cell_line",
         ]
-
-
-IonChannelRecordingFilterDep = Annotated[
-    IonChannelRecordingFilter, FilterDepends(IonChannelRecordingFilter)
-]

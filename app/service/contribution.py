@@ -15,8 +15,9 @@ from app.db.model import Contribution, Entity
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.dependencies.filter import FilterDepends
 from app.errors import ApiError, ApiErrorCode, ensure_result
-from app.filters.contribution import ContributionFilterDep
+from app.filters.contribution import ContributionFilter
 from app.logger import L
 from app.queries import crud
 from app.queries.factory import query_params_factory
@@ -46,7 +47,7 @@ def _read_many(
     *,
     user_context: UserContextDep,
     db: SessionDep,
-    filter_model: ContributionFilterDep,
+    filter_model: FilterDepends[ContributionFilter],
     pagination_request: PaginationQuery,
     check_authorized_project: bool,
 ) -> ListResponse[ContributionRead]:
@@ -92,7 +93,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ContributionFilterDep,
+    filter_model: FilterDepends[ContributionFilter],
 ) -> ListResponse[ContributionRead]:
     return _read_many(
         user_context=user_context,
@@ -107,7 +108,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ContributionFilterDep,
+    filter_model: FilterDepends[ContributionFilter],
 ) -> ListResponse[ContributionRead]:
     return _read_many(
         user_context=user_context,

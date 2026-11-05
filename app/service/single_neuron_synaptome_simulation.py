@@ -19,9 +19,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.single_neuron_synaptome_simulation import (
-    SingleNeuronSynaptomeSimulationFilterDep,
-)
+from app.dependencies.filter import FilterDepends
+from app.filters.single_neuron_synaptome_simulation import SingleNeuronSynaptomeSimulationFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -159,7 +158,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSynaptomeSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSynaptomeSimulationFilter],
     with_search: SearchDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
@@ -206,7 +205,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSynaptomeSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSynaptomeSimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -229,7 +228,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSynaptomeSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSynaptomeSimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

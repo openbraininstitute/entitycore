@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from fastapi import Depends, Query, params
 from fastapi.exceptions import RequestValidationError
@@ -107,8 +107,8 @@ def _unflatten(
     return filter_model(**kwargs)
 
 
-def FilterDepends(filter_model: type[CustomFilter], *, by_alias: bool = False, **_) -> Any:
-    """Return a FastAPI dependency that parses query parameters into a filter model instance.
+def _filter_depends(filter_model: type[CustomFilter], *, by_alias: bool = False) -> Any:
+    """Return a FastAPI Depends that parses query parameters into a filter model instance.
 
     Nested filters are exposed as flat query params prefixed by their field name or `Prefix`.
     """
@@ -130,3 +130,17 @@ def FilterDepends(filter_model: type[CustomFilter], *, by_alias: bool = False, *
                 raise RequestValidationError(e.errors()) from e
 
     return Depends(FilterWrapper)
+
+
+if TYPE_CHECKING:
+    # Pyright does not follow __class_getitem__ → Annotated; this stub makes
+    # FilterDepends[MyFilter] type as Annotated[MyFilter, Depends()].
+    type FilterDepends[F: CustomFilter] = Annotated[F, Depends()]
+else:
+
+    class FilterDepends:
+        """Use as ``FilterDepends[MyFilter]`` (= ``Annotated[MyFilter, Depends(...)]``)."""
+
+        def __class_getitem__(cls, filter_model: type[CustomFilter]) -> Any:
+            """Build Annotated[filter_model, Depends(...)]."""
+            return Annotated[filter_model, _filter_depends(filter_model)]

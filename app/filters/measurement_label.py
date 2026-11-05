@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import MeasurementLabel
 from app.db.utils import MeasurableEntityType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
@@ -39,6 +36,3 @@ class MeasurementLabelFilter(
             "update_date",
             "pref_label",
         ]
-
-
-MeasurementLabelFilterDep = Annotated[MeasurementLabelFilter, FilterDepends(MeasurementLabelFilter)]

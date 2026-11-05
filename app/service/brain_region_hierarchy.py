@@ -11,7 +11,8 @@ from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilter
 from app.queries.factory import query_params_factory
 from app.schemas.brain_region_hierarchy import (
     BrainRegionHierarchyAdminUpdate,
@@ -36,7 +37,7 @@ def _load(query: sa.Select):
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_region_name_filter: BrainRegionHierarchyFilterDep,
+    brain_region_name_filter: FilterDepends[BrainRegionHierarchyFilter],
     facets: FacetsDep,
 ) -> ListResponse[BrainRegionHierarchyRead]:
     db_model_class = BrainRegionHierarchy

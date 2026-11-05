@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import Derivation
 from app.db.types import DerivationType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
@@ -29,6 +26,3 @@ class DerivationFilter(IdFilterMixin, CreationFilterMixin, CreatorFilterMixin, C
             "used__id",
             "generated__id",
         ]
-
-
-DerivationFilterDep = Annotated[DerivationFilter, FilterDepends(DerivationFilter)]

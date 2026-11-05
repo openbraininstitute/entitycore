@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import ETypeClassification, MTypeClassification
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.platform_user import CreatorFilterMixin
 
@@ -33,11 +31,3 @@ class ETypeClassificationFilter(CreatorFilterMixin, CustomFilter):
             "creation_date",
             "update_date",
         ]
-
-
-MTypeClassificationFilterDep = Annotated[
-    MTypeClassificationFilter, FilterDepends(MTypeClassificationFilter)
-]
-ETypeClassificationFilterDep = Annotated[
-    ETypeClassificationFilter, FilterDepends(ETypeClassificationFilter)
-]

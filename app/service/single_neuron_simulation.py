@@ -15,7 +15,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.single_neuron_simulation import SingleNeuronSimulationFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.single_neuron_simulation import SingleNeuronSimulationFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -147,7 +148,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSimulationFilter],
     with_search: SearchDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
@@ -194,7 +195,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -217,7 +218,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: SingleNeuronSimulationFilterDep,
+    filter_model: FilterDepends[SingleNeuronSimulationFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

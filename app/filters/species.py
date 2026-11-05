@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import Species, Strain
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin, IdFilterMixin, NameFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
@@ -23,9 +20,6 @@ class SpeciesFilter(CreationFilterMixin, CreatorFilterMixin, NestedSpeciesFilter
         ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
-SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
-
-
 class NestedStrainFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     class Constants(CustomFilter.Constants):
         model = Strain
@@ -38,9 +32,6 @@ class StrainFilter(CreationFilterMixin, CreatorFilterMixin, NestedStrainFilter):
 
     class Constants(NestedStrainFilter.Constants):
         ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
-
-
-StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
 
 
 class SpeciesFilterMixin:

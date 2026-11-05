@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import EMCellMesh
 from app.db.types import EMCellMeshType
-from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, MTypeClassFilterMixin, NameFilterMixin
 from app.filters.em_dense_reconstruction_dataset import NestedEMDenseReconstructionDatasetFilter
 from app.filters.measurement_annotation import MeasurableFilterMixin
@@ -47,7 +44,3 @@ class EMCellMeshFilter(
             "created_by__pref_label",
             "updated_by__pref_label",
         ]
-
-
-# Dependencies
-EMCellMeshFilterDep = Annotated[EMCellMeshFilter, FilterDepends(EMCellMeshFilter)]

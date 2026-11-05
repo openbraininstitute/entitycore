@@ -11,7 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.task_activity import TaskActivityFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.task_activity import TaskActivityFilter
 from app.queries.common import (
     router_create_activity_one,
     router_read_many,
@@ -34,7 +35,7 @@ ReadSchema = TaskActivityRead
 CreateSchema = TaskActivityCreate
 UserUpdateSchema = TaskActivityUserUpdate
 AdminUpdateSchema = TaskActivityAdminUpdate
-FilterDep = TaskActivityFilterDep
+FilterDep = FilterDepends[TaskActivityFilter]
 
 
 def _load(query: sa.Select):

@@ -14,7 +14,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.validation_result import ValidationResultFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.validation_result import ValidationResultFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -144,7 +145,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ValidationResultFilterDep,
+    filter_model: FilterDepends[ValidationResultFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -183,7 +184,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ValidationResultFilterDep,
+    filter_model: FilterDepends[ValidationResultFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -204,7 +205,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ValidationResultFilterDep,
+    filter_model: FilterDepends[ValidationResultFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),

@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import ExtracellularRecording
-from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
@@ -31,8 +28,3 @@ class ExtracellularRecordingFilter(
             "sampling_frequency",
             "duration",
         ]
-
-
-ExtracellularRecordingFilterDep = Annotated[
-    ExtracellularRecordingFilter, FilterDepends(ExtracellularRecordingFilter)
-]

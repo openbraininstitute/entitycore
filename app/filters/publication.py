@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import Publication
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin, IdFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
@@ -37,6 +34,3 @@ class PublicationFilter(
             "publication_year",
             "title",
         ]
-
-
-PublicationFilterDep = Annotated[PublicationFilter, FilterDepends(PublicationFilter)]

@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import SkeletonizationCampaign
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
@@ -18,8 +15,3 @@ class SkeletonizationCampaignFilter(
     class Constants(CustomFilter.Constants):
         model = SkeletonizationCampaign
         ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
-
-
-SkeletonizationCampaignFilterDep = Annotated[
-    SkeletonizationCampaignFilter, FilterDepends(SkeletonizationCampaignFilter)
-]

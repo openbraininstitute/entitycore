@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import EModel
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology import NestedCellMorphologyFilter
@@ -67,7 +64,3 @@ class EModelFilter(
             "updated_by__pref_label",
             "contribution__pref_label",
         ]
-
-
-# Dependencies
-EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]

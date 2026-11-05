@@ -19,7 +19,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.electrical_cell_recording import ElectricalCellRecordingFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.electrical_cell_recording import ElectricalCellRecordingFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -118,7 +119,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalCellRecordingFilterDep,
+    filter_model: FilterDepends[ElectricalCellRecordingFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -164,7 +165,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalCellRecordingFilterDep,
+    filter_model: FilterDepends[ElectricalCellRecordingFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -187,7 +188,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: ElectricalCellRecordingFilterDep,
+    filter_model: FilterDepends[ElectricalCellRecordingFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

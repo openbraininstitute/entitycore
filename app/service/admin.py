@@ -9,9 +9,10 @@ from app.db.types import AssetLabel, EntityType, StorageType
 from app.db.utils import ENTITY_TYPE_TO_CLASS, RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.dependencies.filter import FilterDepends
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientProtocol
 from app.errors import ApiErrorCode, ensure_result
-from app.filters.asset import AssetFilterDep
+from app.filters.asset import AssetFilter
 from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
 from app.repository.group import RepositoryGroup
@@ -39,9 +40,7 @@ from app.service.asset import (
 )
 from app.types import EntityRoute, ResourceRoute
 from app.utils.routers import entity_route_to_type, route_to_type
-from app.utils.s3 import (
-    StorageClientFactory,
-)
+from app.utils.s3 import StorageClientFactory
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
 
@@ -101,7 +100,7 @@ def get_entity_assets(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     pagination_request: PaginationQuery,
-    filter_model: AssetFilterDep,
+    filter_model: FilterDepends[AssetFilter],
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     db_model_class = Asset

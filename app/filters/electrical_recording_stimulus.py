@@ -1,9 +1,7 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import ElectricalRecordingStimulus
 from app.db.types import ElectricalRecordingStimulusShape, ElectricalRecordingStimulusType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     ILikeSearchFilterMixin,
@@ -32,8 +30,3 @@ class ElectricalRecordingStimulusFilter(
             "shape",
             "injection_type",
         ]
-
-
-ElectricalRecordingStimulusFilterDep = Annotated[
-    ElectricalRecordingStimulusFilter, FilterDepends(ElectricalRecordingStimulusFilter)
-]

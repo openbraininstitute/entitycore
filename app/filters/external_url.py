@@ -1,8 +1,5 @@
-from typing import Annotated
-
 from app.db.model import ExternalUrl
 from app.db.types import ExternalSource
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
@@ -41,6 +38,3 @@ class ExternalUrlFilter(
             "url",
             "name",
         ]
-
-
-ExternalUrlFilterDep = Annotated[ExternalUrlFilter, FilterDepends(ExternalUrlFilter)]

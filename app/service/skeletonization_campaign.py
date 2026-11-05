@@ -14,7 +14,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_campaign import SkeletonizationCampaignFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.skeletonization_campaign import SkeletonizationCampaignFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -37,7 +38,7 @@ ReadSchema = SkeletonizationCampaignRead
 CreateSchema = SkeletonizationCampaignCreate
 UserUpdateSchema = SkeletonizationCampaignUserUpdate
 AdminUpdateSchema = SkeletonizationCampaignAdminUpdate
-FilterDep = SkeletonizationCampaignFilterDep
+FilterDep = FilterDepends[SkeletonizationCampaignFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]

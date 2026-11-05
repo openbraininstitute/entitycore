@@ -20,7 +20,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.brain_atlas import BrainAtlasFilter, BrainAtlasRegionFilter
 from app.queries.factory import query_params_factory
 from app.schemas.brain_atlas import (
     BrainAtlasAdminUpdate,
@@ -62,7 +63,7 @@ def _read_many_region_json(
     _query_params: tuple,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_atlas_region_filter: BrainAtlasRegionFilterDep,
+    brain_atlas_region_filter: FilterDepends[BrainAtlasRegionFilter],
 ) -> CachedJson:
     result = app.queries.common.router_read_many(
         db=db,
@@ -122,7 +123,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: BrainAtlasFilterDep,
+    filter_model: FilterDepends[BrainAtlasFilter],
     expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
@@ -161,7 +162,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: BrainAtlasFilterDep,
+    filter_model: FilterDepends[BrainAtlasFilter],
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
@@ -178,7 +179,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: BrainAtlasFilterDep,
+    filter_model: FilterDepends[BrainAtlasFilter],
     expand: ExpandDep = frozenset(),
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
@@ -298,7 +299,7 @@ def read_many_region(
     atlas_id: uuid.UUID,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_atlas_region_filter: BrainAtlasRegionFilterDep,
+    brain_atlas_region_filter: FilterDepends[BrainAtlasRegionFilter],
 ) -> Response:
     # Projects without private regions share the cached public regions.
     has_private_regions = _has_private_regions(

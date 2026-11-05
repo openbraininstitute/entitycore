@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
 from app.db.model import Simulation
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
@@ -41,6 +39,3 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
             "updated_by__pref_label",
             "contribution__pref_label",
         ]
-
-
-SimulationFilterDep = Annotated[SimulationFilter, FilterDepends(SimulationFilter)]

@@ -11,9 +11,8 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_config_generation import (
-    SkeletonizationConfigGenerationFilterDep,
-)
+from app.dependencies.filter import FilterDepends
+from app.filters.skeletonization_config_generation import SkeletonizationConfigGenerationFilter
 from app.queries.common import (
     router_create_activity_one,
     router_read_many,
@@ -36,7 +35,7 @@ ReadSchema = SkeletonizationConfigGenerationRead
 CreateSchema = SkeletonizationConfigGenerationCreate
 UserUpdateSchema = SkeletonizationConfigGenerationUserUpdate
 AdminUpdateSchema = SkeletonizationConfigGenerationAdminUpdate
-FilterDep = SkeletonizationConfigGenerationFilterDep
+FilterDep = FilterDepends[SkeletonizationConfigGenerationFilter]
 
 
 def _load(query: sa.Select):

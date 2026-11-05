@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import SingleNeuronSimulation
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
@@ -33,9 +30,3 @@ class SingleNeuronSimulationFilter(
             "brain_region__acronym",
             "created_by__pref_label",
         ]
-
-
-# Dependencies
-SingleNeuronSimulationFilterDep = Annotated[
-    SingleNeuronSimulationFilter, FilterDepends(SingleNeuronSimulationFilter)
-]

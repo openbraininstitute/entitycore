@@ -2,7 +2,6 @@ from typing import Annotated
 
 from app.db.model import MEModel
 from app.db.types import ValidationStatus
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter, Prefix
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology import NestedCellMorphologyFilter
@@ -68,7 +67,3 @@ class MEModelFilter(
             "mtype__pref_label",
             "etype__pref_label",
         ]
-
-
-# Dependencies
-MEModelFilterDep = Annotated[MEModelFilter, FilterDepends(MEModelFilter)]

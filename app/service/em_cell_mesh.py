@@ -18,7 +18,8 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.filters.em_cell_mesh import EMCellMeshFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.em_cell_mesh import EMCellMeshFilter
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -65,7 +66,7 @@ def _read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     with_search: SearchDep,
-    filter_model: EMCellMeshFilterDep,
+    filter_model: FilterDepends[EMCellMeshFilter],
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -115,7 +116,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: EMCellMeshFilterDep,
+    filter_model: FilterDepends[EMCellMeshFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
@@ -138,7 +139,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: EMCellMeshFilterDep,
+    filter_model: FilterDepends[EMCellMeshFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

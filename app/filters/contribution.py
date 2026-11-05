@@ -1,7 +1,4 @@
-from typing import Annotated
-
 from app.db.model import Contribution
-from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
@@ -22,9 +19,6 @@ class ContributionFilter(IdFilterMixin, CreationFilterMixin, CreatorFilterMixin,
     class Constants(CustomFilter.Constants):
         model = Contribution
         ordering_model_fields = ["creation_date"]  # ruff:ignore[mutable-class-default]
-
-
-ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]
 
 
 class ContributionFilterMixin:

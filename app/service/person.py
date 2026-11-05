@@ -7,7 +7,8 @@ from app.db.model import Person
 from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.person import PersonFilterDep
+from app.dependencies.filter import FilterDepends
+from app.filters.person import PersonFilter
 from app.queries.common import (
     router_admin_delete_one,
     router_create_one,
@@ -33,7 +34,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    person_filter: PersonFilterDep,
+    person_filter: FilterDepends[PersonFilter],
 ) -> ListResponse[PersonRead]:
 
     filter_keys = [

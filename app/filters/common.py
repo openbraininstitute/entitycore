@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
 
 from fastapi import Query
 from pydantic import Field
@@ -11,7 +10,6 @@ from app.db.model import (
     MTypeClass,
 )
 from app.db.types import AgentType
-from app.dependencies.filter import FilterDepends
 from app.filters.base import ILIKE_SEARCH_FIELD_NAME, ILIKE_SEARCH_FIELDS, CustomFilter
 
 
@@ -122,12 +120,6 @@ class CreationFilterMixin:
     creation_date__gte: datetime | None = None
     update_date__lte: datetime | None = None
     update_date__gte: datetime | None = None
-
-
-# Dependencies
-MTypeClassFilterDep = Annotated[MTypeClassFilter, FilterDepends(MTypeClassFilter)]
-ETypeClassFilterDep = Annotated[ETypeClassFilter, FilterDepends(ETypeClassFilter)]
-AgentFilterDep = Annotated[AgentFilter, FilterDepends(AgentFilter)]
 
 
 class MTypeClassFilterMixin:

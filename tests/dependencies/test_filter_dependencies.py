@@ -79,12 +79,16 @@ def test_nested_filter_type_rejects_annotated_inside_union():
 def test_nested_prefix_uses_prefix_metadata_or_field_name():
     class _Parent(CustomFilter):
         prefixed: Annotated[_InnerFilter | None, Prefix("custom")] = None
+        after_other_metadata: Annotated[_InnerFilter | None, "doc", Prefix("custom")] = None
         plain: _InnerFilter | None = None
 
         class Constants(CustomFilter.Constants):
             model = Species
 
     assert nested_prefix("prefixed", _Parent.model_fields["prefixed"]) == "custom"
+    assert nested_prefix("after_other_metadata", _Parent.model_fields["after_other_metadata"]) == (
+        "custom"
+    )
     assert nested_prefix("plain", _Parent.model_fields["plain"]) == "plain"
 
 

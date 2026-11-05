@@ -6,9 +6,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.ion_channel import NestedIonChannelFilter
 from app.filters.scientific_artifact import ScientificArtifactFilter
-from app.filters.validation_result import (
-    NestedValidationResultFilter,
-)
+from app.filters.validation_result import NestedValidationResultFilter
 
 
 class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSearchFilterMixin):

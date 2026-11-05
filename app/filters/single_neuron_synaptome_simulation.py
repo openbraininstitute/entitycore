@@ -9,9 +9,7 @@ from app.filters.common import (
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
-from app.filters.single_neuron_synaptome import (
-    NestedSingleNeuronSynaptomeFilter,
-)
+from app.filters.single_neuron_synaptome import NestedSingleNeuronSynaptomeFilter
 
 
 class SingleNeuronSynaptomeSimulationFilter(

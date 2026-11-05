@@ -7,9 +7,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
 from app.filters.platform_user import CreatorFilterMixin
 from app.filters.publication import NestedPublicationFilter
-from app.filters.scientific_artifact import (
-    NestedScientificArtifactFilter,
-)
+from app.filters.scientific_artifact import NestedScientificArtifactFilter
 
 
 class ScientificArtifactPublicationLinkFilter(

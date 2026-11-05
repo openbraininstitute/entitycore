@@ -4,9 +4,7 @@ from app.db.model import CellMorphology
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
-from app.filters.cell_morphology_protocol import (
-    NestedCellMorphologyProtocolFilter,
-)
+from app.filters.cell_morphology_protocol import NestedCellMorphologyProtocolFilter
 from app.filters.common import (
     IdFilterMixin,
     ILikeSearchFilterMixin,

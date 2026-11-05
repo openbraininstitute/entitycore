@@ -5,9 +5,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
-from app.filters.skeletonization_config import (
-    NestedSkeletonizationConfigFilter,
-)
+from app.filters.skeletonization_config import NestedSkeletonizationConfigFilter
 
 
 class SkeletonizationCampaignFilter(

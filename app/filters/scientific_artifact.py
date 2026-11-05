@@ -5,9 +5,7 @@ from app.db.model import ScientificArtifact
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
-from app.filters.common import (
-    IdFilterMixin,
-)
+from app.filters.common import IdFilterMixin
 from app.filters.entity import EntityFilterMixin
 from app.filters.subject import SubjectFilterMixin
 

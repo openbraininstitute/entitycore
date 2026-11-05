@@ -38,9 +38,7 @@ def _as_query_field(
     """Ensure list fields use ``Query`` so FastAPI treats them as query params."""
     info = deepcopy(field)
     if _is_list_type(field.annotation) and type(info.default) is not params.Query:
-        default = info.get_default(call_default_factory=True)
-        info.default_factory = None
-        info.default = Query(default=default, json_schema_extra=json_schema_extra)
+        info.default = Query(default=info.default, json_schema_extra=json_schema_extra)
     return field.annotation, info
 
 
@@ -56,7 +54,7 @@ def _flatten_fields(
     Parent prefixes are not accumulated (matches former nested FilterDepends/with_prefix).
     """
     ordering_fields: list[str] | None = getattr(
-        getattr(filter_model, "Constants", None), "ordering_model_fields", None
+        filter_model.Constants, "ordering_model_fields", None
     )
     ordering_field = filter_model.Constants.ordering_field_name
     if fields is None:

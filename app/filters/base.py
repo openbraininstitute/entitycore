@@ -215,13 +215,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 path_parts: list[str] = []
 
                 for part in parts:
-                    try:
-                        annotation = filter_cls.model_fields[part].annotation
-                    except KeyError:
-                        msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
-                        raise ValueError(msg) from None
-
-                    nested_cls = nested_filter_type(annotation)
+                    part_field = filter_cls.model_fields.get(part)
+                    nested_cls = nested_filter_type(part_field.annotation) if part_field else None
                     if nested_cls is None:
                         msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
                         raise ValueError(msg)

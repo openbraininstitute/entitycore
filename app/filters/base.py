@@ -1,12 +1,15 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from operator import attrgetter
-from typing import cast
+from types import UnionType
+from typing import Annotated, Any, cast, get_args, get_origin
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import (
     _orm_operator_transformer,  # ruff:ignore[import-private-name]
 )
 from pydantic import field_validator
+from pydantic.fields import FieldInfo
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
@@ -16,6 +19,44 @@ from app.utils.pattern import convert_to_ilike_pattern
 NESTED_SEPARATOR = "__"
 ILIKE_SEARCH_FIELDS = ["name", "description"]
 ILIKE_SEARCH_FIELD_NAME = "ilike_search"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Prefix:
+    """Query param prefix of a nested filter field, when it must differ from the field name.
+
+    Example: `Annotated[NestedSpeciesFilter | None, Prefix(value="subject__species")]`
+    """
+
+    value: str
+
+
+def _is_filter_type(annotation: Any) -> bool:
+    return isinstance(annotation, type) and issubclass(annotation, CustomFilter)
+
+
+def nested_filter_type(annotation: Any) -> type[CustomFilter] | None:
+    """Return the `CustomFilter` subclass in `T` or `T | None`, if any.
+
+    Raises:
+        TypeError: If `Annotated` wraps only the filter, because pydantic then drops `Prefix`.
+    """
+    if get_origin(annotation) is UnionType:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        if len(args) != 1:
+            return None
+        annotation = args[0]
+        if get_origin(annotation) is Annotated and _is_filter_type(get_args(annotation)[0]):
+            msg = f"Wrap the whole union in Annotated, not only the filter: {annotation!r}"
+            raise TypeError(msg)
+    return annotation if _is_filter_type(annotation) else None
+
+
+def nested_prefix(field_name: str, field_info: FieldInfo) -> str:
+    for meta in field_info.metadata:
+        if isinstance(meta, Prefix):
+            return meta.value
+    return field_name
 
 
 class CustomFilter[T: DeclarativeBase](Filter):
@@ -166,15 +207,18 @@ class CustomFilter[T: DeclarativeBase](Filter):
             if NESTED_SEPARATOR in field_name:
                 original_field_name = field_name
                 *parts, field_name = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]
-                nested_filter = self
+                filter_cls: type[CustomFilter] = type(self)
                 path_parts: list[str] = []
 
                 for part in parts:
-                    nested_filter = getattr(nested_filter, part, None)
-                    if not isinstance(nested_filter, CustomFilter):
+                    part_field = filter_cls.model_fields.get(part)
+                    nested_cls = nested_filter_type(part_field.annotation) if part_field else None
+                    if nested_cls is None:
                         msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
-                        raise ValueError(msg)  # ruff:ignore[type-check-without-type-error]
-                    model = nested_filter.Constants.model
+                        raise ValueError(msg)
+
+                    filter_cls = nested_cls
+                    model = filter_cls.Constants.model
                     path_parts.append(part)
 
                     if aliases and (alias_dict := aliases.get(model)):

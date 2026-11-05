@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import TaskConfig
 from app.db.types import TaskConfigType
 from app.dependencies.filter import FilterDepends
@@ -20,18 +18,10 @@ class NestedTaskConfigFilter(TaskConfigFilterBase):
         model = TaskConfig
 
 
-NestedTaskConfigGeneratorFilterDep = FilterDepends(
-    with_prefix("task_config_generator", NestedTaskConfigFilter)
-)
-
-
 class TaskConfigFilter(EntityFilterMixin, TaskConfigFilterBase, ILikeSearchFilterMixin):
     task_config_generator_id: uuid.UUID | None = None
     task_config_generator_id__in: list[uuid.UUID] | None = None
-    task_config_generator: Annotated[
-        NestedTaskConfigFilter | None,
-        NestedTaskConfigGeneratorFilterDep,
-    ] = None
+    task_config_generator: NestedTaskConfigFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

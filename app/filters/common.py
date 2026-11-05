@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import Query
-from fastapi_filter import with_prefix
 from pydantic import Field
 
 from app.db.model import (
@@ -130,15 +129,10 @@ MTypeClassFilterDep = Annotated[MTypeClassFilter, FilterDepends(MTypeClassFilter
 ETypeClassFilterDep = Annotated[ETypeClassFilter, FilterDepends(ETypeClassFilter)]
 AgentFilterDep = Annotated[AgentFilter, FilterDepends(AgentFilter)]
 
-# Nested dependencies
-NestedMTypeClassFilterDep = FilterDepends(with_prefix("mtype", NestedMTypeClassFilter))
-NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", NestedETypeClassFilter))
-NestedAgentFilterDep = FilterDepends(with_prefix("agent", NestedAgentFilter))
-
 
 class MTypeClassFilterMixin:
-    mtype: Annotated[NestedMTypeClassFilter | None, NestedMTypeClassFilterDep] = None
+    mtype: NestedMTypeClassFilter | None = None
 
 
 class ETypeClassFilterMixin:
-    etype: Annotated[NestedETypeClassFilter | None, NestedETypeClassFilterDep] = None
+    etype: NestedETypeClassFilter | None = None

@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import SimulationResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -32,6 +30,3 @@ class SimulationResultFilter(
 
 
 SimulationResultFilterDep = Annotated[SimulationResultFilter, FilterDepends(SimulationResultFilter)]
-NestedSimulationResultFilterDep = FilterDepends(
-    with_prefix("simulation", NestedSimulationResultFilter)
-)

@@ -9,10 +9,7 @@ from app.filters.common import (
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
-from app.filters.single_neuron_synaptome import (
-    NestedSingleNeuronSynaptomeFilter,
-    NestedSingleNeuronSynaptomeFilterDep,
-)
+from app.filters.single_neuron_synaptome import NestedSingleNeuronSynaptomeFilter
 
 
 class SingleNeuronSynaptomeSimulationFilter(
@@ -22,9 +19,7 @@ class SingleNeuronSynaptomeSimulationFilter(
     NameFilterMixin,
     ILikeSearchFilterMixin,
 ):
-    synaptome: Annotated[
-        NestedSingleNeuronSynaptomeFilter | None, NestedSingleNeuronSynaptomeFilterDep
-    ] = None
+    synaptome: NestedSingleNeuronSynaptomeFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

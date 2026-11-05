@@ -5,19 +5,13 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
-from app.filters.skeletonization_config import (
-    NestedSkeletonizationConfigFilter,
-    NestedSkeletonizationConfigFilterDep,
-)
+from app.filters.skeletonization_config import NestedSkeletonizationConfigFilter
 
 
 class SkeletonizationCampaignFilter(
     CustomFilter, EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
 ):
-    skeletonization_config: Annotated[
-        NestedSkeletonizationConfigFilter | None,
-        NestedSkeletonizationConfigFilterDep,
-    ] = None
+    skeletonization_config: NestedSkeletonizationConfigFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

@@ -1,10 +1,8 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import SingleNeuronSynaptome
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, Prefix
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
     IdFilterMixin,
@@ -12,7 +10,7 @@ from app.filters.common import (
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
-from app.filters.memodel import NestedMEModelFilter, NestedMEModelFilterDep
+from app.filters.memodel import NestedMEModelFilter
 
 
 class NestedSingleNeuronSynaptomeFilter(
@@ -20,10 +18,7 @@ class NestedSingleNeuronSynaptomeFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    me_model: Annotated[
-        NestedMEModelFilter | None,
-        FilterDepends(with_prefix("synaptome__me_model", NestedMEModelFilter)),
-    ] = None
+    me_model: Annotated[NestedMEModelFilter | None, Prefix(value="synaptome__me_model")] = None
 
     class Constants(CustomFilter.Constants):
         model = SingleNeuronSynaptome
@@ -36,7 +31,7 @@ class SingleNeuronSynaptomeFilter(
     ILikeSearchFilterMixin,
     CustomFilter,
 ):
-    me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None
+    me_model: NestedMEModelFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
@@ -58,7 +53,3 @@ class SingleNeuronSynaptomeFilter(
 SingleNeuronSynaptomeFilterDep = Annotated[
     SingleNeuronSynaptomeFilter, FilterDepends(SingleNeuronSynaptomeFilter)
 ]
-# Nested dependencies
-NestedSingleNeuronSynaptomeFilterDep = FilterDepends(
-    with_prefix("synaptome", NestedSingleNeuronSynaptomeFilter)
-)

@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Publication
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -42,4 +40,3 @@ class PublicationFilter(
 
 
 PublicationFilterDep = Annotated[PublicationFilter, FilterDepends(PublicationFilter)]
-NestedPublicationFilterDep = FilterDepends(with_prefix("publication", NestedPublicationFilter))

@@ -14,7 +14,7 @@ requested paths, so the two can't disagree.
 """
 
 import types
-from collections.abc import Iterator, Mapping, Sequence, Set as AbstractSet
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import cache
@@ -49,6 +49,9 @@ EXPAND_DESCRIPTION = (
 
 # the schema of a response: a Schema class or a type alias of a union of Schema classes
 type SchemaSpec = type[Schema] | TypeAliasType
+
+# the requested expand values, already validated (see `expand_query` in `app.dependencies.common`)
+ExpandPaths = frozenset[str]
 
 
 def _schema_classes(annotation: Any) -> tuple[type[Schema], ...]:
@@ -243,7 +246,7 @@ def expand_enum(schema: SchemaSpec, db_model_class: type[Identifiable]) -> type[
     return cast("type[StrEnum]", StrEnum(name, [(_member_name(v), v) for v in values]))
 
 
-def _requested_qualifiers(expand: AbstractSet[str]) -> dict[str, frozenset[str] | None]:
+def _requested_qualifiers(expand: Iterable[str]) -> dict[str, frozenset[str] | None]:
     """Group the expand values by path: the requested qualifiers, or None for all of them.
 
     A value without qualifier wins over the values with qualifiers of the same path.
@@ -275,7 +278,7 @@ def apply_expand(
     query: sa.Select,
     db_model_class: type[Identifiable],
     schema: SchemaSpec | SupportsModelValidate,
-    expand: AbstractSet[str] | None,
+    expand: ExpandPaths | None,
 ) -> sa.Select:
     """Add to the query the loader options of the requested expand paths.
 
@@ -287,7 +290,9 @@ def apply_expand(
         ValueError: if a path is not allowed for schema.
 
     Example:
-        >>> apply_expand(query, Circuit, CircuitRead, {"used_by_derivations:circuit_extraction"})
+        >>> apply_expand(
+        ...     query, Circuit, CircuitRead, frozenset({"used_by_derivations:circuit_extraction"})
+        ... )
     """
     if not expand:
         return query
@@ -302,7 +307,7 @@ def apply_expand(
 
 
 def unrequested_loaded_attrs(
-    instance: object, schema: SchemaSpec | SupportsModelValidate, expand: AbstractSet[str] | None
+    instance: object, schema: SchemaSpec | SupportsModelValidate, expand: ExpandPaths | None
 ) -> list[str]:
     """Return the ORM attributes of the top-level expandable fields loaded but not requested.
 

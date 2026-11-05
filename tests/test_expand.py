@@ -187,7 +187,9 @@ def test_nested_column(db, strain_id):
     assert "embedding" not in StrainTestRead.model_validate(strain).model_dump()["species"]
 
     db.expunge_all()
-    query = test_module.apply_expand(query, Strain, StrainTestRead, {"species.embedding"})
+    query = test_module.apply_expand(
+        query, Strain, StrainTestRead, frozenset({"species.embedding"})
+    )
     strain = db.execute(query).unique().scalar_one()
     data = StrainTestRead.model_validate(strain).model_dump()
     assert len(data["species"]["embedding"]) == Species.SIZE
@@ -202,7 +204,7 @@ def test_expandable_relationship(db, strain_id):
 
     db.expunge_all()
     expanded = test_module.apply_expand(
-        query, Strain, StrainExpandableSpeciesTestRead, {"expandable_species"}
+        query, Strain, StrainExpandableSpeciesTestRead, frozenset({"expandable_species"})
     )
     strain = db.execute(expanded).unique().scalar_one()
     data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
@@ -211,7 +213,7 @@ def test_expandable_relationship(db, strain_id):
     # a nested path implies its expandable ancestors
     db.expunge_all()
     expanded = test_module.apply_expand(
-        query, Strain, StrainExpandableSpeciesTestRead, {"expandable_species.embedding"}
+        query, Strain, StrainExpandableSpeciesTestRead, frozenset({"expandable_species.embedding"})
     )
     strain = db.execute(expanded).unique().scalar_one()
     data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
@@ -223,7 +225,7 @@ def test_expandable_relationship(db, strain_id):
         query,
         Strain,
         StrainExpandableSpeciesTestRead,
-        {"expandable_species", "expandable_species.embedding"},
+        frozenset({"expandable_species", "expandable_species.embedding"}),
     )
     strain = db.execute(expanded).unique().scalar_one()
     data = StrainExpandableSpeciesTestRead.model_validate(strain).model_dump()
@@ -249,7 +251,7 @@ def test_not_expandable_relationship_not_loaded_still_raises(db, strain_id):
 )
 def test_invalid_expand_path(path):
     with pytest.raises(ValueError, match=f"Invalid expand path: {re.escape(path)}$"):
-        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, {path})
+        test_module.apply_expand(sa.select(Strain), Strain, StrainTestRead, frozenset({path}))
 
 
 def test_expandable_field_without_orm_attribute():
@@ -269,10 +271,15 @@ def test_allowed_expand_paths_not_a_schema():
 def test_unrequested_loaded_attrs(db, species_id):
     db.expunge_all()
     query = sa.select(Species).where(Species.id == species_id)
-    query = test_module.apply_expand(query, Species, SpeciesTestRead, {"embedding"})
+    query = test_module.apply_expand(query, Species, SpeciesTestRead, frozenset({"embedding"}))
     species = db.execute(query).scalar_one()
-    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, set()) == ["embedding"]
-    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, {"embedding"}) == []
+    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, frozenset()) == [
+        "embedding"
+    ]
+    assert (
+        test_module.unrequested_loaded_attrs(species, SpeciesTestRead, frozenset({"embedding"}))
+        == []
+    )
 
 
 def test_openapi_expand_param():

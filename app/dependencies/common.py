@@ -13,7 +13,7 @@ from app.db.model import Identifiable
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
-from app.queries.expand import EXPAND_DESCRIPTION, SchemaSpec, expand_enum
+from app.queries.expand import EXPAND_DESCRIPTION, ExpandPaths, SchemaSpec, expand_enum
 from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
 
@@ -222,9 +222,6 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
-
-# parsed and validated `expand` values, see `expand_query`
-ExpandPaths = frozenset[str]
 
 
 def expand_query(schema: SchemaSpec, db_model_class: type[Identifiable]) -> Any:

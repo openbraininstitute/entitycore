@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Iterable, Set as AbstractSet
+from collections.abc import Iterable
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -35,7 +35,7 @@ from app.filters.base import CustomFilter
 from app.queries import crud
 from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
-from app.queries.expand import apply_expand, unrequested_loaded_attrs
+from app.queries.expand import ExpandPaths, apply_expand, unrequested_loaded_attrs
 from app.queries.filter import filter_from_db
 from app.queries.types import (
     ApplyOperations,
@@ -63,7 +63,7 @@ def router_read_one[T: Schema, I: Identifiable](
     user_context: UserContext | None,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> T:
     """Read a model from the database.
 
@@ -161,7 +161,7 @@ def router_create_one[T: Schema, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> T:
     """Create a model in the database.
 
@@ -298,7 +298,7 @@ def _retrieve_rows[I: Identifiable](
     pagination_request: PaginationQuery,
     filter_model: CustomFilter[I],
     embedding: list[float] | None = None,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
     response_schema_class: SupportsModelValidate,
     filter_query: sa.Select[I],
 ) -> Iterable[I]:
@@ -355,7 +355,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     join_specs: JoinSpecMap | None = None,
     embedding: list[float] | None = None,
     check_authorized_project: bool = True,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> ListResponse[T]:
     """Read multiple models from the database.
 
@@ -461,7 +461,7 @@ def router_update_one[T: Schema, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     check_authorized_project: bool,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ):
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class, {})
     query = (

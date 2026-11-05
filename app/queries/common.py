@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Iterable, Set as AbstractSet
+from collections.abc import Iterable
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -35,7 +35,7 @@ from app.filters.base import CustomFilter
 from app.queries import crud
 from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
-from app.queries.expand import apply_derivation_expand
+from app.queries.expand import ExpandPaths, apply_expand, unrequested_loaded_attrs
 from app.queries.filter import filter_from_db
 from app.queries.types import (
     ApplyOperations,
@@ -63,7 +63,7 @@ def router_read_one[T: Schema, I: Identifiable](
     user_context: UserContext | None,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> T:
     """Read a model from the database.
 
@@ -74,7 +74,7 @@ def router_read_one[T: Schema, I: Identifiable](
         user_context: the user context with project id and user information.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
-        expand: optional set of derivation directions to eager-load (entity models only).
+        expand: optional expand values (see app.queries.expand).
 
     Returns:
         the model data as a Pydantic model.
@@ -90,7 +90,7 @@ def router_read_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
-    query = apply_derivation_expand(query, db_model_class, expand)
+    query = apply_expand(query, db_model_class, response_schema_class, expand)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
     return response_schema_class.model_validate(row)
@@ -161,6 +161,7 @@ def router_create_one[T: Schema, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> T:
     """Create a model in the database.
 
@@ -172,6 +173,7 @@ def router_create_one[T: Schema, I: Identifiable](
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
         embedding: optional embedding vector to attach to the model.
+        expand: optional expand values (see app.queries.expand).
 
     Returns:
         the written model data as a Pydantic model.
@@ -221,9 +223,11 @@ def router_create_one[T: Schema, I: Identifiable](
             action="create",
         )
 
-    if apply_operations:
+    if apply_operations or expand:
         q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
-        q = apply_operations(q)
+        if apply_operations:
+            q = apply_operations(q)
+        q = apply_expand(q, db_model_class, response_schema_class, expand)
         db_model_instance = db.execute(q).unique().scalar_one()
     else:
         db.refresh(db_model_instance)
@@ -294,7 +298,8 @@ def _retrieve_rows[I: Identifiable](
     pagination_request: PaginationQuery,
     filter_model: CustomFilter[I],
     embedding: list[float] | None = None,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
+    response_schema_class: SupportsModelValidate,
     filter_query: sa.Select[I],
 ) -> Iterable[I]:
     """Execute the data query and return matching rows, or an empty list if page_size is 0."""
@@ -326,7 +331,7 @@ def _retrieve_rows[I: Identifiable](
         data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
 
-    data_query = apply_derivation_expand(data_query, db_model_class, expand)
+    data_query = apply_expand(data_query, db_model_class, response_schema_class, expand)
 
     # unique is needed b/c it contains results that include joined eager loads against collections
     return db.execute(data_query).scalars().unique()
@@ -350,7 +355,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     join_specs: JoinSpecMap | None = None,
     embedding: list[float] | None = None,
     check_authorized_project: bool = True,
-    expand: AbstractSet[str] | None = None,
+    expand: ExpandPaths | None = None,
 ) -> ListResponse[T]:
     """Read multiple models from the database.
 
@@ -373,7 +378,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
             - the keys in `name_to_facet_query_params`, for retrieving the facets.
         embedding: optional list of floats representing an embedding vector for semantic search.
         check_authorized_project: Whether to constrain or not to authorized entities
-        expand: optional set of derivation directions to eager-load (entity models only).
+        expand: optional expand values (see app.queries.expand).
 
     Returns:
         the list of model data, pagination, and facets as a Pydantic model.
@@ -417,6 +422,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         filter_model=filter_model,
         embedding=embedding,
         expand=expand,
+        response_schema_class=response_schema_class,
         filter_query=filter_query,
     )
 
@@ -455,6 +461,7 @@ def router_update_one[T: Schema, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     check_authorized_project: bool,
+    expand: ExpandPaths | None = None,
 ):
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class, {})
     query = (
@@ -477,6 +484,7 @@ def router_update_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
+    query = apply_expand(query, db_model_class, response_schema_class, expand)
 
     with (
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
@@ -506,7 +514,12 @@ def router_update_one[T: Schema, I: Identifiable](
         db.flush()
 
     relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
-    db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
+    # expandable fields are returned only if requested, also when set by the update
+    unrequested_names = unrequested_loaded_attrs(db_model_instance, response_schema_class, expand)
+    db.expire(
+        db_model_instance,
+        attribute_names=["update_date", "updated_by", *relationship_names, *unrequested_names],
+    )
 
     return response_schema_class.model_validate(db_model_instance)
 

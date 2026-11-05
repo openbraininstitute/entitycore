@@ -1,15 +1,17 @@
 import uuid
+from typing import Annotated
 
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, EMDenseReconstructionDataset, Subject
 from app.dependencies.auth import AdminContextDep, AdminContextWithProjectIdDep, UserContextDep
 from app.dependencies.common import (
-    ExpandDep,
+    ExpandPaths,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.em_dense_reconstruction_dataset import EMDenseReconstructionDatasetFilterDep
@@ -20,7 +22,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.em_dense_reconstruction_dataset import (
     EMDenseReconstructionDatasetAdminUpdate,
@@ -29,6 +30,10 @@ from app.schemas.em_dense_reconstruction_dataset import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
+
+ExpandDep = Annotated[
+    ExpandPaths, expand_query(EMDenseReconstructionDatasetRead, EMDenseReconstructionDataset)
+]
 
 
 def _load(q: Select[EMDenseReconstructionDataset]) -> Select[EMDenseReconstructionDataset]:
@@ -56,7 +61,7 @@ def _read_many(
     filter_model: EMDenseReconstructionDatasetFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[EMDenseReconstructionDatasetRead]:
     facet_keys = [
@@ -102,7 +107,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[EMDenseReconstructionDatasetRead]:
     return _read_many(
         user_context=user_context,
@@ -125,7 +130,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[EMDenseReconstructionDatasetRead]:
     return _read_many(
         user_context=user_context,
@@ -144,7 +149,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> EMDenseReconstructionDatasetRead:
     return router_read_one(
         id_=id_,
@@ -160,7 +165,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> EMDenseReconstructionDatasetRead:
     return router_read_one(
         id_=id_,
@@ -177,6 +182,7 @@ def create_one(
     user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: EMDenseReconstructionDatasetCreate,
+    expand: ExpandDep = frozenset(),
 ) -> EMDenseReconstructionDatasetRead:
     return router_create_one(
         db=db,
@@ -185,6 +191,7 @@ def create_one(
         json_model=json_model,
         db_model_class=EMDenseReconstructionDataset,
         response_schema_class=EMDenseReconstructionDatasetRead,
+        expand=expand,
     )
 
 
@@ -193,6 +200,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EMDenseReconstructionDatasetAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> EMDenseReconstructionDatasetRead:
     return router_update_one(
         id_=id_,
@@ -203,6 +211,7 @@ def update_one(
         response_schema_class=EMDenseReconstructionDatasetRead,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 

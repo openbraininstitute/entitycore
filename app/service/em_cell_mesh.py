@@ -1,22 +1,21 @@
 import uuid
-from functools import partial
+from typing import Annotated
 
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import (
     Contribution,
     EMCellMesh,
-    MeasurementAnnotation,
-    MeasurementKind,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandPaths,
     FacetsDep,
     InBrainRegionDep,
-    MeasurableEntityExpandDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.em_cell_mesh import EMCellMeshFilterDep
@@ -27,10 +26,8 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import MEASUREMENT_ANNOTATION_EXPAND, MeasurableEntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.em_cell_mesh import (
-    EMCellMeshAnnotationExpandedRead,
     EMCellMeshCreate,
     EMCellMeshRead,
     EMCellMeshUserUpdate,
@@ -38,13 +35,13 @@ from app.schemas.em_cell_mesh import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
+ExpandDep = Annotated[ExpandPaths, expand_query(EMCellMeshRead, EMCellMesh)]
 
-def _load(
-    q: Select[EMCellMesh], *, expand: set[MeasurableEntityExpand] | None = None
-) -> Select[EMCellMesh]:
+
+def _load(q: Select[EMCellMesh]) -> Select[EMCellMesh]:
     """Return the query with the required options to load the data."""
     db_model_class = EMCellMesh
-    query = q.options(
+    return q.options(
         joinedload(db_model_class.subject, innerjoin=True).options(
             selectinload(Subject.species), selectinload(Subject.strain)
         ),
@@ -60,19 +57,6 @@ def _load(
         selectinload(db_model_class.assets),
         raiseload("*"),
     )
-    if expand and MEASUREMENT_ANNOTATION_EXPAND in expand:
-        query = query.options(
-            joinedload(db_model_class.measurement_annotation)
-            .selectinload(MeasurementAnnotation.measurement_kinds)
-            .options(
-                selectinload(MeasurementKind.measurement_items),
-                selectinload(MeasurementKind.measurement_label),
-            ),
-            joinedload(db_model_class.measurement_annotation).contains_eager(
-                MeasurementAnnotation.entity
-            ),
-        )
-    return query
 
 
 def _read_many(
@@ -84,9 +68,9 @@ def _read_many(
     filter_model: EMCellMeshFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
-    expand: set[MeasurableEntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
-) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
+) -> ListResponse[EMCellMeshRead]:
     facet_keys = [
         "brain_region",
         "subject.species",
@@ -107,11 +91,6 @@ def _read_many(
         facet_keys=facet_keys,
         filter_keys=filter_keys,
     )
-    response_schema_class = (
-        EMCellMeshAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else EMCellMeshRead
-    )
     return router_read_many(
         db=db,
         db_model_class=EMCellMesh,
@@ -120,10 +99,10 @@ def _read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=partial(_load, expand=expand),
+        apply_data_query_operations=_load,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
-        response_schema_class=response_schema_class,
+        response_schema_class=EMCellMeshRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         join_specs=join_specs,
@@ -140,8 +119,8 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: MeasurableEntityExpandDep = None,
-) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
+    expand: ExpandDep = frozenset(),
+) -> ListResponse[EMCellMeshRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -163,8 +142,8 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: MeasurableEntityExpandDep = None,
-) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
+    expand: ExpandDep = frozenset(),
+) -> ListResponse[EMCellMeshRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -182,21 +161,15 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: MeasurableEntityExpandDep = None,
-) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
-    response_schema_class = (
-        EMCellMeshAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else EMCellMeshRead
-    )
-    apply_operations = partial(_load, expand=expand)
+    expand: ExpandDep = frozenset(),
+) -> EMCellMeshRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
         user_context=user_context,
-        response_schema_class=response_schema_class,
-        apply_operations=apply_operations,
+        response_schema_class=EMCellMeshRead,
+        apply_operations=_load,
         expand=expand,
     )
 
@@ -204,21 +177,15 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: MeasurableEntityExpandDep = None,
-) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
-    response_schema_class = (
-        EMCellMeshAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else EMCellMeshRead
-    )
-    apply_operations = partial(_load, expand=expand)
+    expand: ExpandDep = frozenset(),
+) -> EMCellMeshRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
         user_context=None,
-        response_schema_class=response_schema_class,
-        apply_operations=apply_operations,
+        response_schema_class=EMCellMeshRead,
+        apply_operations=_load,
         expand=expand,
     )
 
@@ -227,6 +194,7 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     json_model: EMCellMeshCreate,
+    expand: ExpandDep = frozenset(),
 ) -> EMCellMeshRead:
     return router_create_one(
         db=db,
@@ -235,6 +203,7 @@ def create_one(
         json_model=json_model,
         db_model_class=EMCellMesh,
         response_schema_class=EMCellMeshRead,
+        expand=expand,
     )
 
 
@@ -243,6 +212,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EMCellMeshUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> EMCellMeshRead:
     return router_update_one(
         id_=id_,
@@ -253,6 +223,7 @@ def update_one(
         response_schema_class=EMCellMeshRead,
         apply_operations=_load,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -261,6 +232,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EMCellMeshUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> EMCellMeshRead:
     return router_update_one(
         id_=id_,
@@ -271,6 +243,7 @@ def admin_update_one(
         response_schema_class=EMCellMeshRead,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 

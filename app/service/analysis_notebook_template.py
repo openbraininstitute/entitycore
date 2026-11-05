@@ -1,6 +1,6 @@
 import uuid
 from http import HTTPStatus
-from typing import cast
+from typing import Annotated, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -13,7 +13,7 @@ from app.db.model import (
 )
 from app.db.types import EntityType, StorageType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
@@ -25,7 +25,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.queries.utils import get_or_create_user, is_user_authorized_for_clone
 from app.schemas.analysis_notebook_template import (
@@ -45,6 +44,10 @@ from app.service.asset import create_entity_asset_unverified, delete_asset_unver
 from app.utils.s3 import build_s3_path, copy_file
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
+ExpandDep = Annotated[
+    ExpandPaths, expand_query(AnalysisNotebookTemplateRead, AnalysisNotebookTemplate)
+]
+
 
 def _load(query: sa.Select):
     return query.options(
@@ -61,7 +64,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_read_one(
         db=db,
@@ -77,7 +80,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_read_one(
         db=db,
@@ -94,6 +97,7 @@ def create_one(
     db: SessionDep,
     json_model: AnalysisNotebookTemplateCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_create_one(
         db=db,
@@ -102,6 +106,7 @@ def create_one(
         db_model_class=AnalysisNotebookTemplate,
         response_schema_class=AnalysisNotebookTemplateRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -110,6 +115,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: AnalysisNotebookTemplateUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_update_one(
         id_=id_,
@@ -120,6 +126,7 @@ def update_one(
         response_schema_class=AnalysisNotebookTemplateRead,
         apply_operations=_load,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -128,6 +135,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: AnalysisNotebookTemplateAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_update_one(
         id_=id_,
@@ -138,6 +146,7 @@ def admin_update_one(
         response_schema_class=AnalysisNotebookTemplateRead,
         apply_operations=_load,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -149,7 +158,7 @@ def _read_many(
     filter_model: AnalysisNotebookTemplateFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[AnalysisNotebookTemplateRead]:
 
@@ -190,7 +199,7 @@ def read_many(
     filter_model: AnalysisNotebookTemplateFilterDep,
     with_search: SearchDep,
     with_facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[AnalysisNotebookTemplateRead]:
     return _read_many(
         user_context=user_context,
@@ -211,7 +220,7 @@ def admin_read_many(
     filter_model: AnalysisNotebookTemplateFilterDep,
     with_search: SearchDep,
     with_facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[AnalysisNotebookTemplateRead]:
     return _read_many(
         user_context=user_context,

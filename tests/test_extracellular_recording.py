@@ -45,7 +45,6 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "description": "my-description",
         "duration": 600.0,
         "experiment_date": None,
-        "generated_from_derivations": None,
         "id": ANY,
         "license": ANY,
         "lifecycle_status": "active",
@@ -57,7 +56,6 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
         "type": EntityType.extracellular_recording,
         "update_date": ANY,
         "updated_by": ANY,
-        "used_by_derivations": None,
     }
 
     db_model = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()

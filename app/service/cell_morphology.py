@@ -1,5 +1,5 @@
 import uuid
-from functools import partial
+from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (
@@ -11,17 +11,16 @@ from sqlalchemy.orm import (
 from app.db.model import (
     CellMorphology,
     Contribution,
-    MeasurementAnnotation,
-    MeasurementKind,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandPaths,
     FacetsDep,
     InBrainRegionDep,
-    MeasurableEntityExpandDep,
     PaginationQuery,
     SearchDep,
+    expand_query,
 )
 from app.dependencies.db import SessionDep
 from app.filters.cell_morphology import CellMorphologyFilterDep
@@ -32,11 +31,9 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import MEASUREMENT_ANNOTATION_EXPAND, MeasurableEntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
     CellMorphologyAdminUpdate,
-    CellMorphologyAnnotationExpandedRead,
     CellMorphologyCreate,
     CellMorphologyRead,
     CellMorphologyUserUpdate,
@@ -44,12 +41,12 @@ from app.schemas.cell_morphology import (
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
+ExpandDep = Annotated[ExpandPaths, expand_query(CellMorphologyRead, CellMorphology)]
 
-def _load_from_db(
-    query: sa.Select, *, expand: set[MeasurableEntityExpand] | None = None
-) -> sa.Select:
+
+def _load_from_db(query: sa.Select) -> sa.Select:
     """Return the query with the required options to load the data."""
-    query = query.options(
+    return query.options(
         joinedload(CellMorphology.brain_region, innerjoin=True),
         selectinload(CellMorphology.cell_morphology_protocol),
         selectinload(CellMorphology.contributions).options(
@@ -67,40 +64,21 @@ def _load_from_db(
         joinedload(CellMorphology.updated_by, innerjoin=True),
         raiseload("*"),
     )
-    if expand and MEASUREMENT_ANNOTATION_EXPAND in expand:
-        query = query.options(
-            joinedload(CellMorphology.measurement_annotation)
-            .selectinload(MeasurementAnnotation.measurement_kinds)
-            .options(
-                selectinload(MeasurementKind.measurement_items),
-                selectinload(MeasurementKind.measurement_label),
-            ),
-            joinedload(CellMorphology.measurement_annotation).contains_eager(
-                MeasurementAnnotation.entity
-            ),
-        )
-    return query
 
 
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: MeasurableEntityExpandDep = None,
-) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
-    response_schema_class = (
-        CellMorphologyAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else CellMorphologyRead
-    )
-    apply_operations = partial(_load_from_db, expand=expand)
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphology,
         user_context=user_context,
-        response_schema_class=response_schema_class,
-        apply_operations=apply_operations,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
         expand=expand,
     )
 
@@ -108,21 +86,15 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: MeasurableEntityExpandDep = None,
-) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
-    response_schema_class = (
-        CellMorphologyAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else CellMorphologyRead
-    )
-    apply_operations = partial(_load_from_db, expand=expand)
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphology,
         user_context=None,
-        response_schema_class=response_schema_class,
-        apply_operations=apply_operations,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
         expand=expand,
     )
 
@@ -131,6 +103,7 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     json_model: CellMorphologyCreate,
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyRead:
     return router_create_one(
         db=db,
@@ -139,6 +112,7 @@ def create_one(
         json_model=json_model,
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
@@ -147,6 +121,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: CellMorphologyUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyRead:
     return router_update_one(
         id_=id_,
@@ -157,6 +132,7 @@ def update_one(
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -165,6 +141,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: CellMorphologyAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyRead:
     return router_update_one(
         id_=id_,
@@ -175,6 +152,7 @@ def admin_update_one(
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,
         check_authorized_project=False,
+        expand=expand,
     )
 
 
@@ -187,9 +165,9 @@ def _read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: set[MeasurableEntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
-) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
+) -> ListResponse[CellMorphologyRead]:
     facet_keys = [
         "brain_region",
         "subject.species",
@@ -210,11 +188,6 @@ def _read_many(
         facet_keys=facet_keys,
         filter_keys=filter_keys,
     )
-    response_schema_class = (
-        CellMorphologyAnnotationExpandedRead
-        if expand and MEASUREMENT_ANNOTATION_EXPAND in expand
-        else CellMorphologyRead
-    )
     return router_read_many(
         db=db,
         db_model_class=CellMorphology,
@@ -224,9 +197,9 @@ def _read_many(
         facets=with_facets,
         aliases=aliases,
         apply_filter_query_operations=None,
-        apply_data_query_operations=partial(_load_from_db, expand=expand),
+        apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
-        response_schema_class=response_schema_class,
+        response_schema_class=CellMorphologyRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         join_specs=join_specs,
@@ -243,8 +216,8 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: MeasurableEntityExpandDep = None,
-) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
+    expand: ExpandDep = frozenset(),
+) -> ListResponse[CellMorphologyRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -266,8 +239,8 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: MeasurableEntityExpandDep = None,
-) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
+    expand: ExpandDep = frozenset(),
+) -> ListResponse[CellMorphologyRead]:
     return _read_many(
         user_context=user_context,
         db=db,

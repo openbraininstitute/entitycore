@@ -1,11 +1,14 @@
 import uuid
 from collections.abc import Sequence
+from typing import Annotated
 
+from pydantic import MISSING
 from pydantic.json_schema import SkipJsonSchema
 
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
-from app.schemas.base import Schema
+from app.schemas.base import ExpandableSchema, Schema
+from app.schemas.expand import Expandable
 from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 
 
@@ -38,6 +41,14 @@ class MeasurementAnnotationBase(Schema):
 class MeasurementAnnotationRead(MeasurementAnnotationBase, NestedIdentifiableRead):
     entity_type: MeasurableEntityType
     measurement_kinds: Sequence[MeasurementKindRead]
+
+
+class MeasurementAnnotationReadMixin(ExpandableSchema):
+    """Measurement annotation of a measurable entity, returned with `expand`."""
+
+    measurement_annotation: Annotated[
+        MeasurementAnnotationRead | MISSING | None, Expandable(loader="measurement_annotation")
+    ] = MISSING
 
 
 class MeasurementAnnotationCreate(MeasurementAnnotationBase, IdentifiableCreate):

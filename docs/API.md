@@ -63,13 +63,14 @@ The return payload is the same as above, except the `data` only includes matches
 Its pagination data reflects the result of the filters.
 The facets cover the results of the full query, not just the pagination.
 
-## Expanding derivations
+## Expanding optional fields
 
-Entity read endpoints return `generated_from_derivations` and `used_by_derivations` as `null` unless requested with `expand`:
+Some fields of the entity responses are returned only when requested with `expand`. They are omitted from the response otherwise; an expanded list without values is `[]`, and an expanded single value without value is `null`.
 
-- `expand=generated_from_derivations` / `expand=used_by_derivations` load all the derivations in that direction.
-- `expand=<direction>:<derivation_type>` loads only that type. Repeat `expand` to combine types; a bare direction wins over typed values.
-- The qualifier after `:` is always the derivation type; `.` and `=` are reserved for future nested paths and keyed qualifiers.
+- `generated_from_derivations` / `used_by_derivations` (all the entities) load all the derivations in that direction; `expand=<direction>:<derivation_type>` loads only that type. Repeat `expand` to combine types; a value without qualifier wins over the typed values.
+- `measurement_annotation` (cell morphologies and EM cell meshes) loads the measurement annotation of the entity.
+- `expand` is accepted by the read, create and update endpoints, so that their responses follow the same rule. The allowed values of each endpoint are listed in OpenAPI; other values return 422.
+- Nested paths use `.` (`<relationship>.<field>`), for nested objects with expandable fields. `=` is reserved for future keyed qualifiers.
 - The `generated_derivation__*` / `used_derivation__*` filters only select the entities, and never narrow the expanded lists.
 
 Ex: circuits extracted from another circuit, with only their extraction derivations:

@@ -452,7 +452,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.101.0" },
     { name = "pgvector", specifier = ">=0.4.1" },
     { name = "psycopg", extras = ["binary"] },
-    { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic", specifier = ">=2.14" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },

@@ -11,7 +11,7 @@ from app.db.model import (
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import ExpandDep, FacetsDep, PaginationQuery
+from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, expand_query
 from app.dependencies.db import SessionDep
 from app.errors import ensure_valid_schema
 from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
@@ -22,7 +22,6 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
-from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology_protocol import (
     CellMorphologyProtocolCreate,
@@ -32,6 +31,8 @@ from app.schemas.cell_morphology_protocol import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+ExpandDep = Annotated[ExpandPaths, expand_query(CellMorphologyProtocolRead, CellMorphologyProtocol)]
 
 
 def _load_from_db(query: sa.Select) -> sa.Select:
@@ -51,7 +52,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     return router_read_one(
         id_=id_,
@@ -67,7 +68,7 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     return router_read_one(
         db=db,
@@ -84,6 +85,7 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     json_model: Annotated[CellMorphologyProtocolCreate, Body()],
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     db_model_class = CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS[json_model.generation_type]
     return router_create_one(
@@ -93,6 +95,7 @@ def create_one(
         json_model=json_model,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
@@ -103,7 +106,7 @@ def _read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
-    expand: set[EntityExpand] | None,
+    expand: ExpandPaths,
     check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyProtocolRead]:
     facet_keys = [
@@ -145,7 +148,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellMorphologyProtocolRead]:
     return _read_many(
         user_context=user_context,
@@ -164,7 +167,7 @@ def admin_read_many(
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
-    expand: ExpandDep = None,
+    expand: ExpandDep = frozenset(),
 ) -> ListResponse[CellMorphologyProtocolRead]:
     return _read_many(
         user_context=user_context,
@@ -182,6 +185,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: dict,
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     one = read_one(db=db, id_=id_, user_context=user_context)
 
@@ -200,6 +204,7 @@ def update_one(
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
         check_authorized_project=True,
+        expand=expand,
     )
 
 
@@ -208,6 +213,7 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: dict,
+    expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     one = admin_read_one(db=db, id_=id_)
 
@@ -226,6 +232,7 @@ def admin_update_one(
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
         check_authorized_project=False,
+        expand=expand,
     )
 
 

@@ -7,7 +7,7 @@ from app.db.types import (
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.base import NameDescriptionMixin
 from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
-from app.schemas.measurement_annotation import MeasurementAnnotationRead
+from app.schemas.measurement_annotation import MeasurementAnnotationReadMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
@@ -39,10 +39,7 @@ CellMorphologyAdminUpdate = make_update_schema(
 class CellMorphologyRead(
     CellMorphologyBaseMixin,
     ScientificArtifactRead,
+    MeasurementAnnotationReadMixin,
 ):
     mtypes: list[MTypeClassRead] | None
     cell_morphology_protocol: NestedCellMorphologyProtocolRead
-
-
-class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
-    measurement_annotation: MeasurementAnnotationRead | None

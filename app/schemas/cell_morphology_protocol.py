@@ -303,6 +303,8 @@ class CellMorphologyProtocolReadAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolRead."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolRead)
+    # the schema walked by `expand` (see app.queries.expand)
+    __expand_schema__: ClassVar = CellMorphologyProtocolRead
 
     @classmethod
     def model_validate(cls, obj: Any, *args, **kwargs) -> CellMorphologyProtocolRead:  # type: ignore[override]

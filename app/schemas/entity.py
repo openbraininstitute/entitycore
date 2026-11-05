@@ -1,12 +1,14 @@
 """Entity schemas."""
 
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import RootModel
+from pydantic import MISSING, RootModel
 
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import AuthorizationOptionalPublicMixin, Schema
+from app.schemas.base import AuthorizationOptionalPublicMixin, ExpandableSchema, Schema
+from app.schemas.expand import Expandable
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
@@ -51,16 +53,20 @@ class UsedDerivationRead(Schema):
     label: str | None = None
 
 
-class DerivationReadMixin:
+class DerivationReadMixin(ExpandableSchema):
     """On-demand derivation lists, available on every entity read (see the `expand` query param).
 
-    A direction that was not expanded serializes as ``null`` (load-aware property on the Entity
-    model, so no extra query and `raiseload` is never tripped); an expanded-but-empty direction
-    serializes as ``[]``.
+    A direction that is not expanded is omitted; an expanded direction without derivations is
+    ``[]``. The qualifier selects the derivation types, e.g.
+    ``expand=generated_from_derivations:circuit_extraction``.
     """
 
-    generated_from_derivations: list[GeneratedDerivationRead] | None = None
-    used_by_derivations: list[UsedDerivationRead] | None = None
+    generated_from_derivations: Annotated[
+        list[GeneratedDerivationRead] | MISSING, Expandable(loader="generated_from_derivations")
+    ] = MISSING
+    used_by_derivations: Annotated[
+        list[UsedDerivationRead] | MISSING, Expandable(loader="used_by_derivations")
+    ] = MISSING
 
 
 from app.schemas.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]

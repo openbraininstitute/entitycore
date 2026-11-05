@@ -86,7 +86,7 @@ def test_read_one(client, model, json_data):
     ):
         assert data["measurement_annotation"] is None
         assert data["used_by_derivations"] == []
-        assert data["generated_from_derivations"] is None
+        assert "generated_from_derivations" not in data
 
 
 def test_admin_read_one(clients, model, json_data):

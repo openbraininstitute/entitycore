@@ -1,6 +1,6 @@
 import uuid
 from http import HTTPStatus
-from typing import Annotated, Protocol
+from typing import Annotated, Any, Protocol
 
 import sqlalchemy as sa
 from fastapi import Depends, Query
@@ -9,10 +9,11 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
+from app.db.model import Identifiable
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
-from app.queries.expand import EXPAND_DESCRIPTION, EntityExpand, MeasurableEntityExpand
+from app.queries.expand import EXPAND_DESCRIPTION, ExpandPaths, SchemaSpec, expand_enum
 from app.queries.types import FacetQueryParamsMap
 from app.schemas.types import Facet, Facets, PaginationRequest
 
@@ -221,7 +222,26 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
-# `expand` params of the entity read endpoints; the measurable ones add `measurement_annotation`.
-ExpandQuery = Query(description=EXPAND_DESCRIPTION)
-ExpandDep = Annotated[set[EntityExpand] | None, ExpandQuery]
-MeasurableEntityExpandDep = Annotated[set[MeasurableEntityExpand] | None, ExpandQuery]
+
+
+def expand_query(schema: SchemaSpec, db_model_class: type[Identifiable]) -> Any:
+    """Return the dependency of the `expand` query param, for endpoints returning schema.
+
+    The allowed values are an enum named after the schema, documented in OpenAPI; invalid values
+    return 422.
+
+    Example:
+        >>> ExpandDep = Annotated[ExpandPaths, expand_query(CircuitRead, Circuit)]
+        >>> def read_one(..., expand: ExpandDep = frozenset()) -> CircuitRead: ...
+    """
+    expand_values = expand_enum(schema, db_model_class)
+
+    def parse_expand(
+        expand: Annotated[
+            set[expand_values] | None,  # pyright: ignore[reportInvalidTypeForm]
+            Query(description=EXPAND_DESCRIPTION),
+        ] = None,
+    ) -> ExpandPaths:
+        return frozenset(expand or ())
+
+    return Depends(parse_expand)

@@ -25,7 +25,7 @@ ILIKE_SEARCH_FIELD_NAME = "ilike_search"
 class Prefix:
     """Query param prefix of a nested filter field, when it must differ from the field name.
 
-    Example: `species: Annotated[NestedSpeciesFilter | None, Prefix("subject__species")] = None`
+    Example: `Annotated[NestedSpeciesFilter | None, Prefix(value="subject__species")]`
     """
 
     value: str

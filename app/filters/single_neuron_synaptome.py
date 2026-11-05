@@ -18,7 +18,7 @@ class NestedSingleNeuronSynaptomeFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    me_model: Annotated[NestedMEModelFilter | None, Prefix("synaptome__me_model")] = None
+    me_model: Annotated[NestedMEModelFilter | None, Prefix(value="synaptome__me_model")] = None
 
     class Constants(CustomFilter.Constants):
         model = SingleNeuronSynaptome

@@ -16,9 +16,9 @@ from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, Species
 class NestedSubjectFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     age_value: timedelta | None = None
 
-    species: Annotated[NestedSpeciesFilter | None, Prefix("subject__species")] = None
+    species: Annotated[NestedSpeciesFilter | None, Prefix(value="subject__species")] = None
 
-    strain: Annotated[NestedStrainFilter | None, Prefix("subject__strain")] = None
+    strain: Annotated[NestedStrainFilter | None, Prefix(value="subject__strain")] = None
 
     class Constants(CustomFilter.Constants):
         model = Subject

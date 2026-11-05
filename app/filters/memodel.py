@@ -22,7 +22,7 @@ from app.filters.species import NestedSpeciesFilter, SpeciesFilterMixin
 
 class NestedMEModelMorphologyFilter(NestedCellMorphologyFilter):
     generated_derivation: Annotated[
-        NestedDerivationFilter | None, Prefix("morphology__generated_derivation")
+        NestedDerivationFilter | None, Prefix(value="morphology__generated_derivation")
     ] = None
 
 
@@ -33,9 +33,9 @@ class NestedMEModelFilter(
 ):
     validation_status: ValidationStatus | None = None
 
-    species: Annotated[NestedSpeciesFilter | None, Prefix("me_model__species")] = None
-    mtype: Annotated[NestedMTypeClassFilter | None, Prefix("me_model__mtype")] = None
-    etype: Annotated[NestedETypeClassFilter | None, Prefix("me_model__etype")] = None
+    species: Annotated[NestedSpeciesFilter | None, Prefix(value="me_model__species")] = None
+    mtype: Annotated[NestedMTypeClassFilter | None, Prefix(value="me_model__mtype")] = None
+    etype: Annotated[NestedETypeClassFilter | None, Prefix(value="me_model__etype")] = None
 
     class Constants(CustomFilter.Constants):
         model = MEModel

@@ -32,8 +32,8 @@ class _OuterFilter(CustomFilter):
 
 
 class _DuplicatePrefixFilter(CustomFilter):
-    first: Annotated[_InnerFilter | None, Prefix("shared")] = None
-    second: Annotated[_OtherFilter | None, Prefix("shared")] = None
+    first: Annotated[_InnerFilter | None, Prefix(value="shared")] = None
+    second: Annotated[_OtherFilter | None, Prefix(value="shared")] = None
 
     class Constants(CustomFilter.Constants):
         model = Species
@@ -73,13 +73,13 @@ def test_nested_filter_type_ignores_non_filters_and_unions_of_several_filters():
 
 def test_nested_filter_type_rejects_annotated_inside_union():
     with pytest.raises(TypeError, match="Wrap the whole union in Annotated"):
-        nested_filter_type(Annotated[_InnerFilter, Prefix("shared")] | None)  # pyright: ignore[reportOperatorIssue]
+        nested_filter_type(Annotated[_InnerFilter, Prefix(value="shared")] | None)  # pyright: ignore[reportOperatorIssue]
 
 
 def test_nested_prefix_uses_prefix_metadata_or_field_name():
     class _Parent(CustomFilter):
-        prefixed: Annotated[_InnerFilter | None, Prefix("custom")] = None
-        after_other_metadata: Annotated[_InnerFilter | None, "doc", Prefix("custom")] = None
+        prefixed: Annotated[_InnerFilter | None, Prefix(value="custom")] = None
+        after_other_metadata: Annotated[_InnerFilter | None, "doc", Prefix(value="custom")] = None
         plain: _InnerFilter | None = None
 
         class Constants(CustomFilter.Constants):

@@ -4,7 +4,7 @@ from typing import Annotated, get_args
 
 import pytest
 import sqlalchemy as sa
-from pydantic import MISSING, ValidationError
+from pydantic import MISSING, AliasPath, Field, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
@@ -41,10 +41,12 @@ class StrainTestRead(Schema):
 
 
 class StrainExpandableSpeciesTestRead(ExpandableSchema):
-    """Expandable relationship, with attr different from the field name."""
+    """Expandable relationship, with a validation alias for the ORM attribute."""
 
     id: uuid.UUID
-    expandable_species: Annotated[SpeciesTestRead | MISSING, Expandable(attr="species")] = MISSING
+    expandable_species: Annotated[
+        SpeciesTestRead | MISSING, Expandable(), Field(validation_alias="species")
+    ] = MISSING
 
 
 def _strain_query(strain_id):
@@ -114,6 +116,20 @@ def test_expandable_field_checks():
 
         class NotExpandableSchema(Schema):
             summary: Annotated[dict | MISSING, Expandable()] = MISSING
+
+    with pytest.raises(TypeError, match="validation_alias of expandable fields must be a string"):
+
+        class AliasPathSchema(ExpandableSchema):
+            summary: Annotated[
+                dict | MISSING, Expandable(), Field(validation_alias=AliasPath("a", "b"))
+            ] = MISSING
+
+
+def test_collected_orm_attrs():
+    assert StrainExpandableSpeciesTestRead.__expandable_fields__["expandable_species"].attr == (
+        "species"
+    )
+    assert SpeciesTestRead.__expandable_fields__["embedding"].attr == "embedding"
 
 
 def test_collected_loader_names():

@@ -35,7 +35,7 @@ from app.db.model import Entity, Identifiable
 from app.queries.expand_loaders import CUSTOM_LOADERS, ExpandLoader, LoaderStrategy, expand_load
 from app.queries.types import SupportsModelValidate
 from app.schemas.base import Schema
-from app.schemas.expand import ExpandableField
+from app.schemas.expand import ExpandableField, orm_attr
 
 QUALIFIER_SEPARATOR = ":"
 PATH_SEPARATOR = "."
@@ -75,7 +75,7 @@ class _Field:
     """A field of a schema, as needed to walk it.
 
     Attributes:
-        attr: name of the ORM attribute (from the marker, the validation alias, or the name).
+        attr: name of the ORM attribute (see `orm_attr`).
         expandable: the expandable field, or None if always returned.
         nested: the Schema classes in the type of the field, to walk the nested paths.
     """
@@ -86,19 +86,16 @@ class _Field:
 
 
 def _find_field(schema_classes: Sequence[type[Schema]], name: str) -> _Field:
-    """Return the field `name` of the first schema class declaring it.
+    """Return the schema field `name` of the first schema class declaring it.
 
     In a union of schemas, the first class decides whether the field is expandable: the current
     unions share their expandable fields through the same mixins.
     """
     schema_class = next(c for c in schema_classes if name in c.model_fields)
     field_info = schema_class.model_fields[name]
-    expandable = schema_class.__expandable_fields__.get(name)
-    alias = field_info.validation_alias
-    attr = expandable.attr if expandable else alias if isinstance(alias, str) else name
     return _Field(
-        attr=attr,
-        expandable=expandable,
+        attr=orm_attr(name, field_info),
+        expandable=schema_class.__expandable_fields__.get(name),
         nested=_schema_classes(field_info.annotation),
     )
 
@@ -319,7 +316,7 @@ def unrequested_loaded_attrs(
     attrs = {
         expandable.attr
         for schema_class in _schema_classes(schema)
-        for expandable in schema_class.__expandable_fields__.values()
-        if expandable.name not in requested
+        for name, expandable in schema_class.__expandable_fields__.items()
+        if name not in requested
     }
     return sorted(attrs - unloaded)

@@ -48,11 +48,9 @@ class Expandable:
     """Marks a read-schema field as returned only when requested with `expand`.
 
     Args:
-        attr: ORM attribute name, when different from the field name.
         loader: name of the custom loader, for fields needing more than a loader strategy.
     """
 
-    attr: str | None = None
     loader: ExpandLoaderName | None = None
 
 
@@ -66,9 +64,11 @@ class SomeRead(ExpandableSchema, ...):
     summary: Annotated[dict | None | MISSING, Expandable()] = MISSING
 ```
 
+The ORM attribute of a field has the name of the field, or its `validation_alias` when they differ, as for any field read from the ORM.
+
 `None` is part of the type only for single values (a nullable column or a single-object relationship). A list is `[]` when empty, so list fields are `list[X] | MISSING`.
 
-When a schema class is created, its expandable fields are collected, and three rules are checked: the default must be `MISSING`, a list field must not allow `None`, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
+When a schema class is created, its expandable fields are collected, and four rules are checked: the default must be `MISSING`, a list field must not allow `None`, a `validation_alias` must be a string, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
 
 The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, name a custom loader in their marker (`Expandable(loader="generated_from_derivations")`), named after the field it was written for. The names are a `Literal` type (`ExpandLoaderName` in `app/schemas/expand.py`), and `CUSTOM_LOADERS` in `app/queries/expand_loaders.py` maps each name to the loader and the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`. Pyright checks the names on both sides, and a test checks that the names, the dict keys and the names used by the fields are the same.
 
@@ -104,11 +104,10 @@ Without `expand`, create and update run the same queries as today.
 
 `ExpandableSchema(Schema)` has a wrap `model_validator`. When the input is an ORM instance, the handler receives a thin proxy that:
 
-- raises `AttributeError` for the expandable fields whose ORM attribute is in `sa.inspect(instance).unloaded`, so Pydantic uses the `MISSING` default;
-- maps the field names to the ORM attribute names given with `attr=`;
+- raises `AttributeError` for the ORM attributes of the expandable fields that are in `sa.inspect(instance).unloaded`, so Pydantic uses the `MISSING` default;
 - delegates everything else to the instance.
 
-The unloaded attribute is never accessed, so there is no lazy load and `raiseload` is not triggered. Non-expandable attributes are read as today, so a relationship that the service forgot to load still raises. `validation_alias` and `AliasPath` keep working, because the proxy is read with `from_attributes` like the instance.
+The unloaded attribute is never accessed, so there is no lazy load and `raiseload` is not triggered. Non-expandable attributes are read as today, so a relationship that the service forgot to load still raises. `validation_alias` keeps working, because the proxy is read with `from_attributes` like the instance; an expandable field accepts only a string alias, which names the attribute to hide.
 
 The validator is only on `ExpandableSchema`, not on the base `Schema`, because a Python validator on every class adds a call for each nested object (contributions, assets, brain region, ...). Serialization needs nothing: `MISSING` is omitted by Pydantic, in nested objects and lists too, and it stays omitted if FastAPI validates the response again.
 
@@ -117,7 +116,7 @@ The validator is only on `ExpandableSchema`, not on the base `Schema`, because a
 A throwaway prototype checked the design against a local copy of the production database, with SQLAlchemy 2.1, Pydantic 2.14 and FastAPI 0.161:
 
 - `undefer` of deferred columns declared on `entity`, `scientific_artifact` and `cell_morphology` works through the `CellMorphology` subclass, in a single query.
-- `defaultload(rel).undefer(col)` loads a nested column while keeping the service's loading strategy for `rel`. `selectinload` works for an expandable relationship with `attr=`.
+- `defaultload(rel).undefer(col)` loads a nested column while keeping the service's loading strategy for `rel`. `selectinload` works for an expandable relationship whose field name differs from the ORM attribute.
 - The proxy works with real instances, nested, in lists and with `AliasPath`. A non-expandable relationship that isn't loaded still fails, with a validation error that wraps the `lazy='raise'` error.
 - Through a route, fields that aren't requested are absent and requested ones are present, also when the route returns the ORM object directly.
 - The generated `/openapi.json` is the same as on `main` with the derivation fields declared as `list[...] | None | MISSING`, compared field by field with list order normalized. FastAPI doesn't put defaults in response schemas, so `None` and `MISSING` produce the same field schema. Dropping `None` from the list fields, as proposed, changes their schema from "array or null" to "array".
@@ -151,7 +150,7 @@ Expanding a relationship to other entities must not return entities that the use
 
 Both are migrated in the same pull request as the mechanism, to check that it covers the existing cases.
 
-- Derivations: marked in `DerivationReadMixin` with `attr=`, and loaded by a custom loader; the two properties on `Entity` are removed.
+- Derivations: marked in `DerivationReadMixin` and loaded by custom loaders; the two properties on `Entity` are removed, and its relationships are renamed after the fields.
 - `measurement_annotation`: marked in the morphology and EM cell mesh Read schemas, and loaded by a custom loader; the `*AnnotationExpandedRead` schemas are removed.
 
 ## Alternatives considered

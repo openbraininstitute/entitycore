@@ -118,15 +118,15 @@ def test_expandable_field_checks():
 
 def test_collected_loader_names():
     fields = CircuitRead.__expandable_fields__
-    assert fields["generated_from_derivations"].loader == "generated_derivations"
-    assert fields["used_by_derivations"].loader == "used_derivations"
+    assert fields["generated_from_derivations"].loader == "generated_from_derivations"
+    assert fields["used_by_derivations"].loader == "used_by_derivations"
     assert SpeciesTestRead.__expandable_fields__["embedding"].loader is None
 
 
 def test_custom_loaders():
     loaders = expand_loaders.CUSTOM_LOADERS
-    assert loaders["generated_derivations"].qualifiers == tuple(DerivationType)
-    assert loaders["used_derivations"].qualifiers == tuple(DerivationType)
+    assert loaders["generated_from_derivations"].qualifiers == tuple(DerivationType)
+    assert loaders["used_by_derivations"].qualifiers == tuple(DerivationType)
     assert loaders["measurement_annotation"].qualifiers == ()
 
 

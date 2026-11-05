@@ -655,17 +655,17 @@ class Entity(LegacyMixin, Identifiable):
         passive_deletes=False,
     )
 
-    # View-only relationships to the Derivation rows that reference this entity, returned as
-    # `generated_from_derivations` / `used_by_derivations` when requested with `expand`.
+    # View-only relationships to the Derivation rows where this entity is the generated or the
+    # used side, returned only when requested with `expand`.
     # Defined on Entity so every entity subclass inherits them.
-    derivations_as_generated: Mapped[list[Derivation]] = relationship(
+    generated_from_derivations: Mapped[list[Derivation]] = relationship(
         "Derivation",
         primaryjoin=lambda: Entity.id == Derivation.generated_id,
         foreign_keys=lambda: [Derivation.generated_id],
         viewonly=True,
         overlaps="generated",
     )
-    derivations_as_used: Mapped[list[Derivation]] = relationship(
+    used_by_derivations: Mapped[list[Derivation]] = relationship(
         "Derivation",
         primaryjoin=lambda: Entity.id == Derivation.used_id,
         foreign_keys=lambda: [Derivation.used_id],

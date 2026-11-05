@@ -62,12 +62,10 @@ class DerivationReadMixin(ExpandableSchema):
     """
 
     generated_from_derivations: Annotated[
-        list[GeneratedDerivationRead] | MISSING,
-        Expandable(attr="derivations_as_generated", loader="generated_derivations"),
+        list[GeneratedDerivationRead] | MISSING, Expandable(loader="generated_from_derivations")
     ] = MISSING
     used_by_derivations: Annotated[
-        list[UsedDerivationRead] | MISSING,
-        Expandable(attr="derivations_as_used", loader="used_derivations"),
+        list[UsedDerivationRead] | MISSING, Expandable(loader="used_by_derivations")
     ] = MISSING
 
 

@@ -49,14 +49,16 @@ class Expandable:
 
     Args:
         attr: ORM attribute name, when different from the field name.
+        loader: name of the custom loader, for fields needing more than a loader strategy.
     """
 
     attr: str | None = None
+    loader: ExpandLoaderName | None = None
 
 
 class DerivationReadMixin(ExpandableSchema):
     generated_from_derivations: Annotated[
-        list[GeneratedDerivationRead] | MISSING, Expandable(attr="derivations_as_generated")
+        list[GeneratedDerivationRead] | MISSING, Expandable(loader="generated_from_derivations")
     ] = MISSING
 
 
@@ -68,7 +70,7 @@ class SomeRead(ExpandableSchema, ...):
 
 When a schema class is created, its expandable fields are collected, and three rules are checked: the default must be `MISSING`, a list field must not allow `None`, and a class with expandable fields must inherit from `ExpandableSchema`. The marker and its helpers are in `app/schemas/expand.py`; `Schema` and `ExpandableSchema` in `app/schemas/base.py` use them.
 
-The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, name a custom loader in their marker (`Expandable(loader="generated_derivations")`). The names are a `Literal` type (`ExpandLoaderName` in `app/schemas/expand.py`), and `CUSTOM_LOADERS` in `app/queries/expand_loaders.py` maps each name to the loader and the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`. Pyright checks the names on both sides, and a test checks that the names, the dict keys and the names used by the fields are the same.
+The schema only says which fields are expandable; how they are loaded is decided on the query side, as for the rest of the queries. Most fields are loaded with a loader strategy (see Loading). The fields needing more, e.g. nested relationships of the related objects or qualifiers, name a custom loader in their marker (`Expandable(loader="generated_from_derivations")`), named after the field it was written for. The names are a `Literal` type (`ExpandLoaderName` in `app/schemas/expand.py`), and `CUSTOM_LOADERS` in `app/queries/expand_loaders.py` maps each name to the loader and the qualifiers it accepts: the derivations (qualified by the derivation types) and `measurement_annotation`. Pyright checks the names on both sides, and a test checks that the names, the dict keys and the names used by the fields are the same.
 
 ### Loading
 

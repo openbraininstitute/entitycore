@@ -117,10 +117,10 @@ def _measurement_annotation_loader(
 
 
 CUSTOM_LOADERS: Mapping[ExpandLoaderName, CustomLoader] = {
-    "generated_derivations": CustomLoader(
+    "generated_from_derivations": CustomLoader(
         load=_derivation_loader("used"), qualifiers=tuple(DerivationType)
     ),
-    "used_derivations": CustomLoader(
+    "used_by_derivations": CustomLoader(
         load=_derivation_loader("generated"), qualifiers=tuple(DerivationType)
     ),
     "measurement_annotation": CustomLoader(load=_measurement_annotation_loader),

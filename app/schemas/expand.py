@@ -5,7 +5,6 @@ the allowed values and the loader options are defined in `app.queries.expand` an
 `app.queries.expand_loaders`.
 """
 
-import types
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Union, get_args, get_origin
@@ -78,7 +77,7 @@ def _expandable_marker(metadata: Sequence[Any]) -> Expandable | None:
 
 def _union_args(annotation: Any) -> tuple[Any, ...]:
     # Pydantic removes `Annotated` from the field annotations, keeping the metadata apart
-    if get_origin(annotation) in {Union, types.UnionType}:
+    if get_origin(annotation) is Union:
         return get_args(annotation)
     return (annotation,)
 

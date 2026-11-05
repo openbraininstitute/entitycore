@@ -273,12 +273,12 @@ def test_unrequested_loaded_attrs(db, species_id):
     query = sa.select(Species).where(Species.id == species_id)
     query = test_module.apply_expand(query, Species, SpeciesTestRead, frozenset({"embedding"}))
     species = db.execute(query).scalar_one()
-    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, frozenset()) == [
+    assert test_module.unrequested_loaded_attrs(species, SpeciesTestRead, frozenset()) == {
         "embedding"
-    ]
+    }
     assert (
         test_module.unrequested_loaded_attrs(species, SpeciesTestRead, frozenset({"embedding"}))
-        == []
+        == set()
     )
 
 

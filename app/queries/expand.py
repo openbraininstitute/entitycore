@@ -13,7 +13,7 @@ give both the allowed values (the `expand` enums) and, per request, the loader o
 requested paths, so the two can't disagree.
 """
 
-import types
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -66,7 +66,7 @@ def _schema_classes(annotation: Any) -> tuple[type[Schema], ...]:
     origin = get_origin(annotation)
     if origin is Annotated:
         return _schema_classes(get_args(annotation)[0])
-    if origin in {Union, types.UnionType, list, Sequence, set, frozenset, tuple}:
+    if origin in {Union, list, Sequence, set, frozenset, tuple}:
         return tuple(dict.fromkeys(c for arg in get_args(annotation) for c in _schema_classes(arg)))
     if isinstance(annotation, type) and issubclass(annotation, Schema):
         return (annotation,)
@@ -251,14 +251,16 @@ def _requested_qualifiers(expand: Iterable[str]) -> dict[str, frozenset[str] | N
 
     A value without qualifier wins over the values with qualifiers of the same path.
     """
-    requested: dict[str, set[str] | None] = {}
+    unqualified: set[str] = set()
+    qualified: defaultdict[str, set[str]] = defaultdict(set)
     for value in expand:
         path, _, qualifier = value.partition(QUALIFIER_SEPARATOR)
-        if not qualifier:
-            requested[path] = None
-        elif (qualifiers := requested.setdefault(path, set())) is not None:
-            qualifiers.add(qualifier)
-    return {path: None if q is None else frozenset(q) for path, q in requested.items()}
+        if qualifier:
+            qualified[path].add(qualifier)
+        else:
+            unqualified.add(path)
+    # the paths without qualifier, on the right, override the qualified ones
+    return {path: frozenset(q) for path, q in qualified.items()} | dict.fromkeys(unqualified)
 
 
 def _plan_options(plan: _ExpandPlan, qualifiers: frozenset[str] | None) -> Iterator[Load]:
@@ -308,7 +310,7 @@ def apply_expand(
 
 def unrequested_loaded_attrs(
     instance: object, schema: SchemaSpec | SupportsModelValidate, expand: ExpandPaths | None
-) -> list[str]:
+) -> set[str]:
     """Return the ORM attributes of the top-level expandable fields loaded but not requested.
 
     Used to expire them after an update, e.g. a column set by the PATCH.
@@ -324,4 +326,4 @@ def unrequested_loaded_attrs(
         for name, expandable in schema_class.__expandable_fields__.items()
         if name not in requested
     }
-    return sorted(attrs - unloaded)
+    return attrs - unloaded

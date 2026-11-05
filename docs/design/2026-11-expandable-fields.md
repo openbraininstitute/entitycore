@@ -1,10 +1,10 @@
 # Expandable fields in read responses
 
-- Status: Draft
+- Status: Implemented
 - Date: 2026-11-03
 - Author: @GianlucaFicarelli
 - Issues: [prod-platform-architecture#232](https://github.com/openbraininstitute/prod-platform-architecture/issues/232)
-- Pull requests:
+- Pull requests: [#751](https://github.com/openbraininstitute/entitycore/pull/751)
 
 ## Context
 
@@ -144,7 +144,7 @@ Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 der
 
 ### Authorization of expanded entities
 
-Expanding a relationship to other entities must not return entities that the user cannot read. Today the expanded derivations are not filtered ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). Custom loaders receive the user's project context (or none for the admin endpoints), so the derivation loader can apply the same filter as `GET /derivation`. Relationships to entities without such a loader are not expandable in the first version.
+Expanding a relationship to other entities must not return entities that the user cannot read. Today the expanded derivations are not filtered ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). The custom loaders don't receive the user's project context yet; passing it to them (or none for the admin endpoints) would let the derivation loader apply the same filter as `GET /derivation`. Relationships to entities without such a loader are not expandable in the first version.
 
 ### Existing fields
 
@@ -183,7 +183,8 @@ Both are migrated in the same pull request as the mechanism, to check that it co
 
 ## Follow-ups
 
-- entitycore: limit the derivation-type qualifiers of each `expand` enum to the types allowed for the entity type by `DERIVATION_TYPE_RULES`, so that values that can never match return 422 (separate PR).
+- entitycore: limit the derivation-type qualifiers of each `expand` enum to the types allowed for the entity type by `DERIVATION_TYPE_RULES`, so that values that can never match return 422 ([prod-platform-architecture#233](https://github.com/openbraininstitute/prod-platform-architecture/issues/233)).
+- entitycore: filter the expanded derivations by authorization ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)).
 - entitysdk: support `expand` values, including dot paths, in the read and search methods.
 - Frontend: handle absent derivation fields like `null`.
 - Clients building long `id__in` lists (entitysdk, obi-one): split them into chunks.

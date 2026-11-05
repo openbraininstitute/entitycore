@@ -1,15 +1,11 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import ScientificArtifact
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
-from app.filters.common import (
-    IdFilterMixin,
-)
+from app.filters.common import IdFilterMixin
 from app.filters.entity import EntityFilterMixin
 from app.filters.subject import SubjectFilterMixin
 
@@ -48,6 +44,3 @@ class ScientificArtifactFilter(
 ScientificArtifactFilterDep = Annotated[
     ScientificArtifactFilter, FilterDepends(ScientificArtifactFilter)
 ]
-NestedScientificArtifactFilterDep = FilterDepends(
-    with_prefix("scientific_artifact", NestedScientificArtifactFilter)
-)

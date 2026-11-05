@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Contribution
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -9,18 +7,16 @@ from app.filters.common import (
     CreationFilterMixin,
     IdFilterMixin,
     NestedAgentFilter,
-    NestedAgentFilterDep,
 )
-from app.filters.entity import NestedEntityFilter, NestedEntityFilterDep
+from app.filters.entity import NestedEntityFilter
 from app.filters.platform_user import CreatorFilterMixin
 
 NestedContributionFilter = NestedAgentFilter
-NestedContributionFilterDep = FilterDepends(with_prefix("contribution", NestedAgentFilter))
 
 
 class ContributionFilter(IdFilterMixin, CreationFilterMixin, CreatorFilterMixin, CustomFilter):
-    agent: Annotated[NestedAgentFilter | None, NestedAgentFilterDep] = None
-    entity: Annotated[NestedEntityFilter | None, NestedEntityFilterDep] = None
+    agent: NestedAgentFilter | None = None
+    entity: NestedEntityFilter | None = None
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
@@ -32,4 +28,4 @@ ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(Contribution
 
 
 class ContributionFilterMixin:
-    contribution: Annotated[NestedContributionFilter | None, NestedContributionFilterDep] = None
+    contribution: NestedContributionFilter | None = None

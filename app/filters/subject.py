@@ -1,11 +1,9 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Subject
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, Prefix
 from app.filters.common import (
     IdFilterMixin,
     ILikeSearchFilterMixin,
@@ -18,15 +16,9 @@ from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, Species
 class NestedSubjectFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     age_value: timedelta | None = None
 
-    species: Annotated[
-        NestedSpeciesFilter | None,
-        FilterDepends(with_prefix("subject__species", NestedSpeciesFilter)),
-    ] = None
+    species: Annotated[NestedSpeciesFilter | None, Prefix(value="subject__species")] = None
 
-    strain: Annotated[
-        NestedStrainFilter | None,
-        FilterDepends(with_prefix("subject__strain", NestedStrainFilter)),
-    ] = None
+    strain: Annotated[NestedStrainFilter | None, Prefix(value="subject__strain")] = None
 
     class Constants(CustomFilter.Constants):
         model = Subject
@@ -49,8 +41,7 @@ class SubjectFilter(
 
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
-NestedSubjectFilterDep = FilterDepends(with_prefix("subject", NestedSubjectFilter))
 
 
 class SubjectFilterMixin:
-    subject: Annotated[NestedSubjectFilter | None, NestedSubjectFilterDep] = None
+    subject: NestedSubjectFilter | None = None

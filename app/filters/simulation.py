@@ -1,12 +1,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Simulation
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
+from app.filters.circuit import NestedCircuitFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
@@ -25,7 +23,7 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
     simulation_campaign_id: uuid.UUID | None = None
     simulation_campaign_id__in: list[uuid.UUID] | None = None
 
-    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
+    circuit: NestedCircuitFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
@@ -46,4 +44,3 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
 
 
 SimulationFilterDep = Annotated[SimulationFilter, FilterDepends(SimulationFilter)]
-NestedSimulationFilterDep = FilterDepends(with_prefix("simulation", NestedSimulationFilter))

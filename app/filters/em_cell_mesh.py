@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import EMCellMesh
 from app.db.types import EMCellMeshType
 from app.dependencies.filter import FilterDepends
@@ -24,15 +22,7 @@ class EMCellMeshFilter(
     level_of_detail: int | None = None
     mesh_type: EMCellMeshType | None = None
 
-    em_dense_reconstruction_dataset: Annotated[
-        NestedEMDenseReconstructionDatasetFilter | None,
-        FilterDepends(
-            with_prefix(
-                "em_dense_reconstruction_dataset",
-                NestedEMDenseReconstructionDatasetFilter,
-            )
-        ),
-    ] = None
+    em_dense_reconstruction_dataset: NestedEMDenseReconstructionDatasetFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

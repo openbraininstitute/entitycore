@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import CellMorphologyProtocol
 from app.db.types import CellMorphologyGenerationType, CellMorphologyProtocolDesign
 from app.dependencies.filter import FilterDepends
@@ -56,8 +54,3 @@ class CellMorphologyProtocolFilter(
 CellMorphologyProtocolFilterDep = Annotated[
     CellMorphologyProtocolFilter, FilterDepends(CellMorphologyProtocolFilter)
 ]
-
-# Nested dependencies
-NestedCellMorphologyProtocolFilterDep = FilterDepends(
-    with_prefix("cell_morphology_protocol", NestedCellMorphologyProtocolFilter)
-)

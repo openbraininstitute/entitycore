@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import ValidationResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -15,11 +13,6 @@ class NestedValidationResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter)
 
     class Constants(CustomFilter.Constants):
         model = ValidationResult
-
-
-NestedValidationResultFilterDep = FilterDepends(
-    with_prefix("validation_result", NestedValidationResultFilter)
-)
 
 
 class ValidationResultFilter(

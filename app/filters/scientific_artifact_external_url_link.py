@@ -4,12 +4,9 @@ from app.db.model import ScientificArtifactExternalUrlLink
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin
-from app.filters.external_url import NestedExternalUrlFilter, NestedExternalUrlFilterDep
+from app.filters.external_url import NestedExternalUrlFilter
 from app.filters.platform_user import CreatorFilterMixin
-from app.filters.scientific_artifact import (
-    NestedScientificArtifactFilter,
-    NestedScientificArtifactFilterDep,
-)
+from app.filters.scientific_artifact import NestedScientificArtifactFilter
 
 
 class ScientificArtifactExternalUrlLinkFilter(
@@ -19,15 +16,9 @@ class ScientificArtifactExternalUrlLinkFilter(
 ):
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
-    external_url: Annotated[
-        NestedExternalUrlFilter | None,
-        NestedExternalUrlFilterDep,
-    ] = None
+    external_url: NestedExternalUrlFilter | None = None
 
-    scientific_artifact: Annotated[
-        NestedScientificArtifactFilter | None,
-        NestedScientificArtifactFilterDep,
-    ] = None
+    scientific_artifact: NestedScientificArtifactFilter | None = None
 
     class Constants(CustomFilter.Constants):
         model = ScientificArtifactExternalUrlLink

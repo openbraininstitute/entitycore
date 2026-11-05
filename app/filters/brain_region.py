@@ -3,7 +3,6 @@ from enum import StrEnum, auto
 from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi_filter import with_prefix
 from sqlalchemy.orm import aliased
 
 from app.db.model import BrainRegion
@@ -92,8 +91,7 @@ class BrainRegionFilter(SpeciesFilterMixin, NestedBrainRegionFilter):
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]
-NestedBrainRegionFilterDep = FilterDepends(with_prefix("brain_region", NestedBrainRegionFilter))
 
 
 class BrainRegionFilterMixin:
-    brain_region: Annotated[NestedBrainRegionFilter | None, NestedBrainRegionFilterDep] = None
+    brain_region: NestedBrainRegionFilter | None = None

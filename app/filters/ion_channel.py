@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import IonChannel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -54,4 +52,3 @@ class IonChannelFilter(
 
 
 IonChannelFilterDep = Annotated[IonChannelFilter, FilterDepends(IonChannelFilter)]
-NestedIonChannelFilterDep = FilterDepends(with_prefix("ion_channel", NestedIonChannelFilter))

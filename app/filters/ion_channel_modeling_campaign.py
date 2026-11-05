@@ -5,19 +5,13 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
-from app.filters.ion_channel_modeling_config import (
-    NestedIonChannelModelingConfigFilter,
-    NestedIonChannelModelingConfigFilterDep,
-)
+from app.filters.ion_channel_modeling_config import NestedIonChannelModelingConfigFilter
 
 
 class IonChannelModelingCampaignFilter(
     CustomFilter, EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
 ):
-    ion_channel_modeling_config: Annotated[
-        NestedIonChannelModelingConfigFilter | None,
-        NestedIonChannelModelingConfigFilterDep,
-    ] = None
+    ion_channel_modeling_config: NestedIonChannelModelingConfigFilter | None = None
 
     order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 

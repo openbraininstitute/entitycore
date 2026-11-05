@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Derivation, Entity
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.dependencies.filter import FilterDepends
@@ -51,9 +49,6 @@ class NestedEntityFilter(CustomFilter, IdFilterMixin):
         model = Entity
 
 
-NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
-
-
 # Import after class definitions to avoid circular import
 from app.filters.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]
     ContributionFilterMixin,
@@ -71,12 +66,6 @@ class EntityFilterMixin(
     lifecycle_status__in: list[EntityLifecycleStatus] | None = None
 
     # Derivations where this entity is the generated (derived) side: "how it was derived".
-    generated_derivation: Annotated[
-        NestedDerivationFilter | None,
-        FilterDepends(with_prefix("generated_derivation", NestedDerivationFilter)),
-    ] = None
+    generated_derivation: NestedDerivationFilter | None = None
     # Derivations where this entity is the used (source) side: "what was derived from it".
-    used_derivation: Annotated[
-        NestedDerivationFilter | None,
-        FilterDepends(with_prefix("used_derivation", NestedDerivationFilter)),
-    ] = None
+    used_derivation: NestedDerivationFilter | None = None

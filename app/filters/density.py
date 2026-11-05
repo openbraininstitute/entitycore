@@ -15,7 +15,6 @@ from app.filters.common import (
     MTypeClassFilterMixin,
     NameFilterMixin,
     NestedMTypeClassFilter,
-    with_prefix,
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.subject import SubjectFilterMixin
@@ -70,18 +69,9 @@ class ExperimentalBoutonDensityFilter(
     MTypeClassFilterMixin,
 ):
     # Measurement filters for sorting support
-    measurement_mean: Annotated[
-        NestedMeasurementFilter | None,
-        FilterDepends(with_prefix("measurement_mean", NestedMeasurementFilter)),
-    ] = None
-    measurement_standard_error: Annotated[
-        NestedMeasurementFilter | None,
-        FilterDepends(with_prefix("measurement_standard_error", NestedMeasurementFilter)),
-    ] = None
-    measurement_sample_size: Annotated[
-        NestedMeasurementFilter | None,
-        FilterDepends(with_prefix("measurement_sample_size", NestedMeasurementFilter)),
-    ] = None
+    measurement_mean: NestedMeasurementFilter | None = None
+    measurement_standard_error: NestedMeasurementFilter | None = None
+    measurement_sample_size: NestedMeasurementFilter | None = None
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalBoutonDensity
@@ -109,22 +99,10 @@ ExperimentalBoutonDensityFilterDep = Annotated[
 class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
 ):
-    pre_mtype: Annotated[
-        NestedMTypeClassFilter | None,
-        FilterDepends(with_prefix("pre_mtype", NestedMTypeClassFilter)),
-    ] = None
-    post_mtype: Annotated[
-        NestedMTypeClassFilter | None,
-        FilterDepends(with_prefix("post_mtype", NestedMTypeClassFilter)),
-    ] = None
-    pre_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("pre_region", NestedBrainRegionFilter)),
-    ] = None
-    post_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("post_region", NestedBrainRegionFilter)),
-    ] = None
+    pre_mtype: NestedMTypeClassFilter | None = None
+    post_mtype: NestedMTypeClassFilter | None = None
+    pre_region: NestedBrainRegionFilter | None = None
+    post_region: NestedBrainRegionFilter | None = None
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalSynapsesPerConnection

@@ -1,8 +1,6 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Circuit
 from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
 from app.dependencies.filter import FilterDepends
@@ -87,4 +85,3 @@ class CircuitFilter(
 
 
 CircuitFilterDep = Annotated[CircuitFilter, FilterDepends(CircuitFilter)]
-NestedCircuitFilterDep = FilterDepends(with_prefix("circuit", NestedCircuitFilter))

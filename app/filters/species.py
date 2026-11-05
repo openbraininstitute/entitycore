@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import Species, Strain
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -26,7 +24,6 @@ class SpeciesFilter(CreationFilterMixin, CreatorFilterMixin, NestedSpeciesFilter
 
 
 SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
-NestedSpeciesFilterDep = FilterDepends(with_prefix("species", NestedSpeciesFilter))
 
 
 class NestedStrainFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
@@ -44,9 +41,8 @@ class StrainFilter(CreationFilterMixin, CreatorFilterMixin, NestedStrainFilter):
 
 
 StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
-NestedStrainFilterDep = FilterDepends(with_prefix("strain", NestedStrainFilter))
 
 
 class SpeciesFilterMixin:
-    species: Annotated[NestedSpeciesFilter | None, NestedSpeciesFilterDep] = None
-    strain: Annotated[NestedStrainFilter | None, NestedStrainFilterDep] = None
+    species: NestedSpeciesFilter | None = None
+    strain: NestedStrainFilter | None = None

@@ -1,7 +1,5 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import ExternalUrl
 from app.db.types import ExternalSource
 from app.dependencies.filter import FilterDepends
@@ -46,4 +44,3 @@ class ExternalUrlFilter(
 
 
 ExternalUrlFilterDep = Annotated[ExternalUrlFilter, FilterDepends(ExternalUrlFilter)]
-NestedExternalUrlFilterDep = FilterDepends(with_prefix("external_url", NestedExternalUrlFilter))

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 from app.db.model import CellMorphology, Species
 from app.dependencies.filter import _flatten_fields, _unflatten
-from app.filters.base import CustomFilter, Prefix, nested_filter_type
+from app.filters.base import CustomFilter, Prefix, nested_filter_type, nested_prefix
 from app.filters.cell_morphology import CellMorphologyFilter
 
 
@@ -60,10 +60,32 @@ def test_unflatten_ignores_nested_order_by():
     assert filter_.inner.order_by == []
 
 
-def test_nested_filter_type_rejects_union_of_several_filters():
-    assert nested_filter_type(_InnerFilter | _OtherFilter | None) is None
+def test_nested_filter_type_detects_optional_filter():
     assert nested_filter_type(_InnerFilter | None) is _InnerFilter
+    assert nested_filter_type(_InnerFilter) is _InnerFilter
+
+
+def test_nested_filter_type_ignores_non_filters_and_unions_of_several_filters():
+    assert nested_filter_type(_InnerFilter | _OtherFilter | None) is None
     assert nested_filter_type(str | None) is None
+    assert nested_filter_type(Annotated[str, "meta"] | None) is None  # pyright: ignore[reportOperatorIssue]
+
+
+def test_nested_filter_type_rejects_annotated_inside_union():
+    with pytest.raises(TypeError, match="Wrap the whole union in Annotated"):
+        nested_filter_type(Annotated[_InnerFilter, Prefix("shared")] | None)  # pyright: ignore[reportOperatorIssue]
+
+
+def test_nested_prefix_uses_prefix_metadata_or_field_name():
+    class _Parent(CustomFilter):
+        prefixed: Annotated[_InnerFilter | None, Prefix("custom")] = None
+        plain: _InnerFilter | None = None
+
+        class Constants(CustomFilter.Constants):
+            model = Species
+
+    assert nested_prefix("prefixed", _Parent.model_fields["prefixed"]) == "custom"
+    assert nested_prefix("plain", _Parent.model_fields["plain"]) == "plain"
 
 
 def test_sort_rejects_nested_part_that_is_not_a_filter():

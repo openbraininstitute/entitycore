@@ -3,7 +3,7 @@
 from collections import defaultdict
 from operator import attrgetter
 from types import UnionType
-from typing import Annotated, Any, NamedTuple, Union, cast, get_args, get_origin
+from typing import Annotated, Any, NamedTuple, cast, get_args, get_origin
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import (
@@ -33,25 +33,26 @@ class Prefix(NamedTuple):
     value: str
 
 
-def unwrap_annotated(annotation: Any) -> Any:
-    """Strip nested ``Annotated`` wrappers."""
-    while get_origin(annotation) is Annotated:
-        annotation = get_args(annotation)[0]
-    return annotation
+def _is_filter_type(annotation: Any) -> bool:
+    return isinstance(annotation, type) and issubclass(annotation, CustomFilter)
 
 
 def nested_filter_type(annotation: Any) -> type[CustomFilter] | None:
-    """Return the ``CustomFilter`` subclass inside ``T | None`` / ``Annotated[...]``."""
-    annotation = unwrap_annotated(annotation)
-    origin = get_origin(annotation)
-    if origin is Union or origin is UnionType:
+    """Return the ``CustomFilter`` subclass in ``T`` or ``T | None``, or None if there isn't one.
+
+    Raises:
+        TypeError: If ``Annotated`` wraps the filter inside the union, because pydantic then
+            drops its metadata, e.g. ``Prefix``. Use ``Annotated[T | None, ...]`` instead.
+    """
+    if get_origin(annotation) is UnionType:
         args = [a for a in get_args(annotation) if a is not type(None)]
         if len(args) != 1:
             return None
-        annotation = unwrap_annotated(args[0])
-    if isinstance(annotation, type) and issubclass(annotation, CustomFilter):
-        return annotation
-    return None
+        annotation = args[0]
+        if get_origin(annotation) is Annotated and _is_filter_type(get_args(annotation)[0]):
+            msg = f"Wrap the whole union in Annotated, not only the filter: {annotation!r}"
+            raise TypeError(msg)
+    return annotation if _is_filter_type(annotation) else None
 
 
 def nested_prefix(field_name: str, field_info: FieldInfo) -> str:

@@ -15,7 +15,9 @@ from pydantic import MISSING, BaseModel
 
 # names of the custom loaders, defined in `app.queries.expand_loaders.CUSTOM_LOADERS`
 type ExpandLoaderName = Literal[
-    "generated_derivations", "used_derivations", "measurement_annotation"
+    "generated_derivations",
+    "used_derivations",
+    "measurement_annotation",
 ]
 
 

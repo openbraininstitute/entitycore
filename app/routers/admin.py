@@ -9,7 +9,7 @@ from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
 from app.filters.asset import AssetFilter
@@ -45,7 +45,7 @@ def get_entity_assets(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[AssetFilter],
+    filter_model: FilterDep[AssetFilter],
 ) -> ListResponse[AssetRead]:
     """Retrieve a paginated list of assets associated with a specific entity."""
     return admin_service.get_entity_assets(

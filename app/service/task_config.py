@@ -14,7 +14,7 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.task_config import TaskConfigFilter
 from app.queries.common import (
     router_create_one,
@@ -38,7 +38,7 @@ ReadSchema = TaskConfigRead
 CreateSchema = TaskConfigCreate
 UserUpdateSchema = TaskConfigUserUpdate
 AdminUpdateSchema = TaskConfigAdminUpdate
-FilterDep = FilterDepends[TaskConfigFilter]
+FilterDep = FilterDep[TaskConfigFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]

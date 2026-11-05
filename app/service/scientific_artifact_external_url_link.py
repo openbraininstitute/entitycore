@@ -16,7 +16,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.scientific_artifact_external_url_link import (
     ScientificArtifactExternalUrlLinkFilter,
 )
@@ -100,7 +100,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[ScientificArtifactExternalUrlLinkFilter],
+    filter_model: FilterDep[ScientificArtifactExternalUrlLinkFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
@@ -165,7 +165,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[ScientificArtifactExternalUrlLinkFilter],
+    filter_model: FilterDep[ScientificArtifactExternalUrlLinkFilter],
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
     return _read_many(
         user_context=user_context,
@@ -184,7 +184,7 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[ScientificArtifactExternalUrlLinkFilter],
+    filter_model: FilterDep[ScientificArtifactExternalUrlLinkFilter],
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
     return _read_many(
         user_context=user_context,

@@ -8,7 +8,7 @@ from app.db.model import BrainRegion, BrainRegionHierarchy, Species, Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilter
 from app.queries.alias_registry import build_aliases
@@ -31,7 +31,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_region_filter: FilterDepends[BrainRegionFilter],
+    brain_region_filter: FilterDep[BrainRegionFilter],
     semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
     db_model_class = BrainRegion

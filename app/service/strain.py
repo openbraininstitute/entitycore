@@ -8,7 +8,7 @@ from app.db.model import Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.species import StrainFilter
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
@@ -29,7 +29,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    strain_filter: FilterDepends[StrainFilter],
+    strain_filter: FilterDep[StrainFilter],
     semantic_search: str | None = None,
 ) -> ListResponse[StrainRead]:
 

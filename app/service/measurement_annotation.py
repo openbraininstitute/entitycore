@@ -26,7 +26,7 @@ from app.db.utils import MEASURABLE_ENTITIES, MeasurableEntityType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.measurement_annotation import MeasurementAnnotationFilter
 from app.queries import crud
@@ -143,7 +143,7 @@ def _load_from_db_with_entity(q: sa.Select) -> sa.Select:
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,
-    filter_model: FilterDepends[MeasurementAnnotationFilter],
+    filter_model: FilterDep[MeasurementAnnotationFilter],
     pagination_request: PaginationQuery,
 ) -> ListResponse[MeasurementAnnotationRead]:
     apply_filter_query_operations = lambda q: constrain_to_readable_entities_by_project(
@@ -181,7 +181,7 @@ def read_many(
 def admin_read_many(
     user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
     db: SessionDep,
-    filter_model: FilterDepends[MeasurementAnnotationFilter],
+    filter_model: FilterDep[MeasurementAnnotationFilter],
     pagination_request: PaginationQuery,
 ) -> ListResponse[MeasurementAnnotationRead]:
     apply_filter_query_operations = lambda q: q.join(

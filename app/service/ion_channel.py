@@ -11,7 +11,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.ion_channel import IonChannelFilter
 from app.queries.common import (
     router_admin_delete_one,
@@ -81,7 +81,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[IonChannelFilter],
+    filter_model: FilterDep[IonChannelFilter],
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelRead]:

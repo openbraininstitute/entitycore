@@ -15,7 +15,7 @@ from app.db.types import EntityType, StorageType
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import RepoGroupDep, SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.analysis_notebook_template import AnalysisNotebookTemplateFilter
@@ -156,7 +156,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[AnalysisNotebookTemplateFilter],
+    filter_model: FilterDep[AnalysisNotebookTemplateFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandPaths,
@@ -197,7 +197,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[AnalysisNotebookTemplateFilter],
+    filter_model: FilterDep[AnalysisNotebookTemplateFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -218,7 +218,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[AnalysisNotebookTemplateFilter],
+    filter_model: FilterDep[AnalysisNotebookTemplateFilter],
     with_search: SearchDep,
     with_facets: FacetsDep,
     expand: ExpandDep = frozenset(),

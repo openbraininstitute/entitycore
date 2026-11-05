@@ -8,7 +8,7 @@ from app.db.model import Consortium
 from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.consortium import ConsortiumFilter
 from app.queries.factory import query_params_factory
 from app.schemas.agent import ConsortiumAdminUpdate, ConsortiumCreate, ConsortiumRead
@@ -27,7 +27,7 @@ def _load(query: sa.Select):
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[ConsortiumFilter],
+    filter_model: FilterDep[ConsortiumFilter],
 ) -> ListResponse[ConsortiumRead]:
     filter_keys = [
         "created_by",

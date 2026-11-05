@@ -14,7 +14,7 @@ from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
 from app.db.utils import allowed_asset_labels_for
 from app.dependencies.common import PaginationQuery
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilter
 from app.queries import crud
@@ -69,7 +69,7 @@ def get_entity_assets(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[AssetFilter],
+    filter_model: FilterDep[AssetFilter],
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     db_model_class = Asset

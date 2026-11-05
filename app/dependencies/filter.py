@@ -134,12 +134,12 @@ def _filter_depends(filter_model: type[CustomFilter], *, by_alias: bool = False)
 
 if TYPE_CHECKING:
     # Pyright does not follow __class_getitem__ → Annotated; this stub makes
-    # FilterDepends[MyFilter] type as Annotated[MyFilter, Depends()].
-    type FilterDepends[F: CustomFilter] = Annotated[F, Depends()]
+    # FilterDep[MyFilter] type as Annotated[MyFilter, Depends()].
+    type FilterDep[F: CustomFilter] = Annotated[F, Depends()]
 else:
 
-    class FilterDepends:
-        """Use as ``FilterDepends[MyFilter]`` (= ``Annotated[MyFilter, Depends(...)]``)."""
+    class FilterDep:
+        """Use as ``FilterDep[MyFilter]`` (= ``Annotated[MyFilter, Depends(...)]``)."""
 
         def __class_getitem__(cls, filter_model: type[CustomFilter]) -> Any:
             """Build Annotated[filter_model, Depends(...)]."""

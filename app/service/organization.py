@@ -8,7 +8,7 @@ from app.db.model import Organization
 from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.organization import OrganizationFilter
 from app.queries.factory import query_params_factory
 from app.schemas.agent import OrganizationAdminUpdate, OrganizationCreate, OrganizationRead
@@ -27,7 +27,7 @@ def _load(query: sa.Select):
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[OrganizationFilter],
+    filter_model: FilterDep[OrganizationFilter],
 ) -> ListResponse[OrganizationRead]:
     filter_keys = [
         "created_by",

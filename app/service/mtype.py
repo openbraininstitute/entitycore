@@ -4,7 +4,7 @@ from app.db.model import MTypeClass
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.common import MTypeClassFilter
 from app.queries.common import (
     router_admin_delete_one,
@@ -21,7 +21,7 @@ from app.schemas.types import ListResponse
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    mtype_class_filter: FilterDepends[MTypeClassFilter],
+    mtype_class_filter: FilterDep[MTypeClassFilter],
 ) -> ListResponse[MTypeClassRead]:
     return router_read_many(
         db=db,

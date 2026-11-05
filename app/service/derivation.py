@@ -14,7 +14,7 @@ from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.errors import (
     ApiError,
     ApiErrorCode,
@@ -68,7 +68,7 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[DerivationFilter],
+    filter_model: FilterDep[DerivationFilter],
     check_authorized_project: bool,
 ) -> ListResponse[DerivationRead]:
 
@@ -121,7 +121,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[DerivationFilter],
+    filter_model: FilterDep[DerivationFilter],
 ) -> ListResponse[DerivationRead]:
     return _read_many(
         user_context=user_context,
@@ -136,7 +136,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[DerivationFilter],
+    filter_model: FilterDep[DerivationFilter],
 ) -> ListResponse[DerivationRead]:
     return _read_many(
         user_context=user_context,
@@ -262,7 +262,7 @@ def _read_many_from_entity(
     entity_id: uuid.UUID,
     derivation_type: DerivationType,
     pagination_request: PaginationQuery,
-    entity_filter: FilterDepends[BasicEntityFilter],
+    entity_filter: FilterDep[BasicEntityFilter],
     check_authorized_project: bool,
 ) -> ListResponse[BasicEntityRead]:
     """Return a list of basic entities used to generate the specified entity.
@@ -322,7 +322,7 @@ def read_many_from_entity(
     entity_id: uuid.UUID,
     derivation_type: DerivationType,
     pagination_request: PaginationQuery,
-    entity_filter: FilterDepends[BasicEntityFilter],
+    entity_filter: FilterDep[BasicEntityFilter],
 ) -> ListResponse[BasicEntityRead]:
     return _read_many_from_entity(
         user_context=user_context,
@@ -344,7 +344,7 @@ def admin_read_many_from_entity(
     entity_id: uuid.UUID,
     derivation_type: DerivationType,
     pagination_request: PaginationQuery,
-    entity_filter: FilterDepends[BasicEntityFilter],
+    entity_filter: FilterDep[BasicEntityFilter],
 ) -> ListResponse[BasicEntityRead]:
     return _read_many_from_entity(
         user_context=user_context,

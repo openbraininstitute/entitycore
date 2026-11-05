@@ -7,7 +7,7 @@ from app.db.model import License
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.license import LicenseFilter
 from app.queries.common import (
     router_admin_delete_one,
@@ -30,7 +30,7 @@ def _load(query: sa.Select):
 
 
 def read_many(
-    db: SessionDep, pagination_request: PaginationQuery, filter_model: FilterDepends[LicenseFilter]
+    db: SessionDep, pagination_request: PaginationQuery, filter_model: FilterDep[LicenseFilter]
 ) -> ListResponse[LicenseRead]:
     return router_read_many(
         db=db,

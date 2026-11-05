@@ -14,7 +14,7 @@ from app.dependencies.common import (
     expand_query,
 )
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.skeletonization_config import SkeletonizationConfigFilter
 from app.queries.common import (
     router_create_one,
@@ -38,7 +38,7 @@ ReadSchema = SkeletonizationConfigRead
 CreateSchema = SkeletonizationConfigCreate
 UserUpdateSchema = SkeletonizationConfigUserUpdate
 AdminUpdateSchema = SkeletonizationConfigAdminUpdate
-FilterDep = FilterDepends[SkeletonizationConfigFilter]
+FilterDep = FilterDep[SkeletonizationConfigFilter]
 
 
 ExpandDep = Annotated[ExpandPaths, expand_query(ReadSchema, DBModel)]
@@ -190,7 +190,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[SkeletonizationConfigFilter],
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),
@@ -211,7 +211,7 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[SkeletonizationConfigFilter],
+    filter_model: FilterDep[SkeletonizationConfigFilter],
     with_search: SearchDep,
     facets: FacetsDep,
     expand: ExpandDep = frozenset(),

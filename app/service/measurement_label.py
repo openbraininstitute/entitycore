@@ -8,7 +8,7 @@ from app.db.model import MeasurementLabel
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.dependencies.filter import FilterDepends
+from app.dependencies.filter import FilterDep
 from app.filters.measurement_label import MeasurementLabelFilter
 from app.queries.factory import query_params_factory
 from app.schemas.measurement_label import (
@@ -71,7 +71,7 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: FilterDepends[MeasurementLabelFilter],
+    filter_model: FilterDep[MeasurementLabelFilter],
 ) -> ListResponse[MeasurementLabelRead]:
     facet_keys = filter_keys = [
         "created_by",

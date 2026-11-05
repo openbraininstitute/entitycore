@@ -45,9 +45,9 @@ class Expandable:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ExpandableField:
-    """An expandable field of a schema class, as collected at class creation.
+    """An expandable field of a schema class, resolved from its `Expandable` marker and the field.
 
-    The fields are keyed by their name in the schema (`__expandable_fields__`).
+    Resolved at class creation, and keyed by the field name in `__expandable_fields__`.
 
     Attributes:
         attr: name of the ORM attribute of the field (see `orm_attr`).

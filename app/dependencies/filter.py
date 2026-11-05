@@ -15,8 +15,6 @@ from app.filters.base import (
     nested_prefix,
 )
 
-_ORDER_BY_FIELD_NAME = "order_by"
-
 
 def _order_by_schema_extra(fields: list[str]) -> dict[str, Any]:
     """Return a json_schema_extra dict that injects all valid order_by values as enum."""
@@ -35,24 +33,15 @@ def _is_list_type(annotation: Any) -> bool:
 
 
 def _as_query_field(
-    name: str,
-    annotation: Any,
-    field_info: FieldInfo,
-    *,
-    ordering_fields: list[str] | None,
+    field: FieldInfo, json_schema_extra: dict[str, Any] | None = None
 ) -> tuple[Any, FieldInfo]:
     """Ensure list fields use ``Query`` so FastAPI treats them as query params."""
-    info = deepcopy(field_info)
-    if _is_list_type(annotation) and type(info.default) is not params.Query:
-        json_schema_extra = (
-            _order_by_schema_extra(ordering_fields)
-            if name == _ORDER_BY_FIELD_NAME and ordering_fields
-            else None
-        )
+    info = deepcopy(field)
+    if _is_list_type(field.annotation) and type(info.default) is not params.Query:
         default = info.get_default(call_default_factory=True)
         info.default_factory = None
         info.default = Query(default=default, json_schema_extra=json_schema_extra)
-    return annotation, info
+    return field.annotation, info
 
 
 def _flatten_fields(
@@ -87,12 +76,12 @@ def _flatten_fields(
         if flat in fields:
             msg = f"Duplicate query parameter {flat!r} in {filter_model.__name__}"
             raise ValueError(msg)
-        fields[flat] = _as_query_field(
-            name,
-            field.annotation,
-            field,
-            ordering_fields=None if prefix else ordering_fields,
+        json_schema_extra = (
+            _order_by_schema_extra(ordering_fields)
+            if name == ordering_field and ordering_fields
+            else None
         )
+        fields[flat] = _as_query_field(field, json_schema_extra)
 
     return fields
 

@@ -502,14 +502,6 @@ def router_update_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
-    # the linked entities are readable in the same projects as the updated item
-    expand_context = ExpandContext(
-        check_authorized_project=check_authorized_project,
-        project_ids=user_context.authorized_project_ids,
-    )
-    query = apply_expand(
-        query, db_model_class, response_schema_class, expand, context=expand_context
-    )
 
     with (
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
@@ -545,6 +537,24 @@ def router_update_one[T: Schema, I: Identifiable](
         db_model_instance,
         attribute_names=["update_date", "updated_by", *relationship_names, *unrequested_names],
     )
+
+    if expand:
+        # reload with the linked entities readable in the item's project,
+        # known only now, and readable by the user because of the write check
+        item_project_id = getattr(db_model_instance, "authorized_project_id", None)
+        reload_query = sa.select(db_model_class).where(db_model_class.id == id_)
+        if apply_operations:
+            reload_query = apply_operations(reload_query)
+        expand_context = ExpandContext(
+            check_authorized_project=check_authorized_project,
+            project_ids=[item_project_id] if item_project_id else [],
+        )
+        reload_query = apply_expand(
+            reload_query, db_model_class, response_schema_class, expand, context=expand_context
+        )
+        db_model_instance = (
+            db.execute(reload_query.execution_options(populate_existing=True)).unique().scalar_one()
+        )
 
     return response_schema_class.model_validate(db_model_instance)
 

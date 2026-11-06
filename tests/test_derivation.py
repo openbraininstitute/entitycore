@@ -1153,7 +1153,9 @@ def test_admin_delete_one(db, clients, client_admin, root_circuit, circuit, user
     assert_request(clients.user_1.get, url=f"{ROUTE}/{did}", expected_status_code=404)
 
 
-def test_expand_authorization(db, clients, root_circuit_json_data, user_id):
+def test_expand_authorization(
+    db, clients, client_user_1_two_projects_no_project, root_circuit_json_data, user_id
+):
     """The expanded derivations hide the linked entities that the user can't read."""
     public_u1, private_u1, public_u2, private_u2 = _create_entities(
         "/circuit", clients.user_1, clients.user_2, json_data=root_circuit_json_data
@@ -1206,4 +1208,6 @@ def test_expand_authorization(db, clients, root_circuit_json_data, user_id):
         return {d["used"]["id"] for d in data["generated_from_derivations"]}
 
     assert patched_used_ids(clients.user_1, "/circuit") == {public_u1["id"]}
+    # without project-id, only the private entities in the project of the updated item
+    assert patched_used_ids(client_user_1_two_projects_no_project, "/circuit") == {public_u1["id"]}
     assert patched_used_ids(clients.admin, "/admin/circuit") == {public_u1["id"], private_u2["id"]}

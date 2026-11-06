@@ -96,7 +96,7 @@ First version restrictions: polymorphic relationships needing `of_type` (e.g. `C
 Create and update responses follow the same rule as reads: expandable fields are absent unless requested with `expand`. Without this, the two would differ: after a create, `router_create_one` refreshes the instance, and the refresh leaves deferred columns unloaded, so they are absent; after a PATCH, the columns it sets stay loaded, so they would be returned.
 
 - Create: when the service gives loader options, `router_create_one` already reads the new instance again with them, as `router_read_one` does; `apply_expand` is added to that query. When it only refreshes the instance and `expand` is given, it reads the instance again with the expand options.
-- Update: `apply_expand` is added to the query that loads the instance. Before validation, `router_update_one` expires the expandable attributes that are loaded but not requested, e.g. a column set by the PATCH, together with the attributes it already expires. Expiring only marks them as unloaded and runs no query.
+- Update: before validation, `router_update_one` expires the expandable attributes that are loaded but not requested, e.g. a column set by the PATCH, together with the attributes it already expires. Expiring only marks them as unloaded and runs no query. When `expand` is given, it then reads the instance again with the expand options, because the project of the item, used to authorize the expanded entities, is known only after the first query.
 
 Without `expand`, create and update run the same queries as today.
 
@@ -144,7 +144,7 @@ Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 der
 
 ### Authorization of expanded entities
 
-Expanding a relationship to other entities must not return entities that the user cannot read ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). `apply_expand` receives an `ExpandContext`, built by the router helpers with the projects that authorized the returned item (public or in the project for reads, the projects of the write check for updates), or without filter in the admin endpoints. The custom loaders receive it, and the derivation loader keeps only the derivations whose other entity is public or in those projects. Relationships to entities without such a loader are not expandable.
+Expanding a relationship to other entities must not return entities that the user cannot read ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). `apply_expand` receives an `ExpandContext`, built by the router helpers with the projects that authorized the returned item (public or in the project for reads, public or in the project of the updated item for updates), or without filter in the admin endpoints. The custom loaders receive it, and the derivation loader keeps only the derivations whose other entity is public or in those projects. Relationships to entities without such a loader are not expandable.
 
 ### Existing fields
 

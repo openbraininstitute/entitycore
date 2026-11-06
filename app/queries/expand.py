@@ -32,7 +32,13 @@ from sqlalchemy.orm import (
 )
 
 from app.db.model import Entity, Identifiable
-from app.queries.expand_loaders import CUSTOM_LOADERS, ExpandLoader, LoaderStrategy, expand_load
+from app.queries.expand_loaders import (
+    CUSTOM_LOADERS,
+    ExpandContext,
+    ExpandLoader,
+    LoaderStrategy,
+    expand_load,
+)
 from app.queries.types import SupportsModelValidate
 from app.schemas.base import Schema
 from app.schemas.expand import ExpandableField, orm_attr
@@ -263,7 +269,9 @@ def _requested_qualifiers(expand: Iterable[str]) -> dict[str, frozenset[str] | N
     return {path: frozenset(q) for path, q in qualified.items()} | dict.fromkeys(unqualified)
 
 
-def _plan_options(plan: _ExpandPlan, qualifiers: frozenset[str] | None) -> Iterator[Load]:
+def _plan_options(
+    plan: _ExpandPlan, qualifiers: frozenset[str] | None, context: ExpandContext
+) -> Iterator[Load]:
     """Yield the loader options of a plan, chaining its steps from the root of the query."""
     load: Load | None = None
     for step in plan.steps:
@@ -271,7 +279,7 @@ def _plan_options(plan: _ExpandPlan, qualifiers: frozenset[str] | None) -> Itera
         if step.strategy == "selectinload":
             yield load.raiseload("*")
     if plan.custom:
-        yield from plan.custom.loader(load, plan.custom.attr, qualifiers)
+        yield from plan.custom.loader(load, plan.custom.attr, qualifiers, context)
     else:
         yield cast("Load", load)  # without a custom loader, a plan has at least one step
 
@@ -281,6 +289,8 @@ def apply_expand(
     db_model_class: type[Identifiable],
     schema: SchemaSpec | SupportsModelValidate,
     expand: ExpandPaths | None,
+    *,
+    context: ExpandContext,
 ) -> sa.Select:
     """Add to the query the loader options of the requested expand paths.
 
@@ -293,7 +303,11 @@ def apply_expand(
 
     Example:
         >>> apply_expand(
-        ...     query, Circuit, CircuitRead, frozenset({"used_by_derivations:circuit_extraction"})
+        ...     query,
+        ...     Circuit,
+        ...     CircuitRead,
+        ...     frozenset({"used_by_derivations:circuit_extraction"}),
+        ...     context=ExpandContext(check_authorized_project=True, project_id=project_id),
         ... )
     """
     if not expand:
@@ -304,7 +318,7 @@ def apply_expand(
         if (plan := plans.get(path)) is None:
             msg = f"Invalid expand path: {path}"
             raise ValueError(msg)
-        options.extend(_plan_options(plan, qualifiers))
+        options.extend(_plan_options(plan, qualifiers, context))
     return query.options(*options)
 
 

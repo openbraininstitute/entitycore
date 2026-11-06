@@ -239,6 +239,14 @@ def user_context_user_1_two_projects():
 
 
 @pytest.fixture
+def user_context_user_1_two_projects_no_project(user_context_user_1_two_projects):
+    """User with admin role in two projects, without project-id."""
+    return user_context_user_1_two_projects.model_copy(
+        update={"virtual_lab_id": None, "project_id": None}
+    )
+
+
+@pytest.fixture
 def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
@@ -362,6 +370,7 @@ def _override_check_user_info(
     user_context_admin_with_project,
     user_context_user_1,
     user_context_user_1_two_projects,
+    user_context_user_1_two_projects_no_project,
     user_context_user_2,
     user_context_user_3,
     user_context_no_project,
@@ -376,6 +385,7 @@ def _override_check_user_info(
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_1_TWO_PROJECTS, UUID(PROJECT_ID)): user_context_user_1_two_projects,
+        (TOKEN_USER_1_TWO_PROJECTS, None): user_context_user_1_two_projects_no_project,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
         (TOKEN_USER_3, UUID(PROJECT_ID)): user_context_user_3,
         (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
@@ -441,6 +451,12 @@ def client_user_1(client_no_auth):
 def client_user_1_two_projects(client_no_auth):
     """User 1 authenticated as admin of both PROJECT_ID and UNRELATED_PROJECT_ID."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1_TWO_PROJECTS | PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_user_1_two_projects_no_project(client_no_auth):
+    """User 1 authenticated as admin of two projects, without a project-id."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1_TWO_PROJECTS)
 
 
 @pytest.fixture

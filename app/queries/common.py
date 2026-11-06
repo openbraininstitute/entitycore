@@ -36,6 +36,7 @@ from app.queries import crud
 from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.expand import ExpandPaths, apply_expand, unrequested_loaded_attrs
+from app.queries.expand_loaders import ExpandContext
 from app.queries.filter import filter_from_db
 from app.queries.types import (
     ApplyOperations,
@@ -90,7 +91,13 @@ def router_read_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
-    query = apply_expand(query, db_model_class, response_schema_class, expand)
+    expand_context = ExpandContext(
+        check_authorized_project=user_context is not None,
+        project_id=user_context.project_id if user_context else None,
+    )
+    query = apply_expand(
+        query, db_model_class, response_schema_class, expand, context=expand_context
+    )
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
     return response_schema_class.model_validate(row)
@@ -150,6 +157,26 @@ def router_create_activity_one[T: Schema, I: Activity](
     else:
         db.refresh(db_model_instance)
     return response_schema_class.model_validate(db_model_instance)
+
+
+def _read_again[I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    id_: uuid.UUID,
+    apply_operations: ApplyOperations | None,
+    response_schema_class: SupportsModelValidate,
+    expand: ExpandPaths | None,
+    expand_context: ExpandContext,
+) -> I:
+    """Read again an item of the session, with the loader options of the service and expand."""
+    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    if apply_operations:
+        query = apply_operations(query)
+    query = apply_expand(
+        query, db_model_class, response_schema_class, expand, context=expand_context
+    )
+    return db.execute(query).unique().scalar_one()
 
 
 def router_create_one[T: Schema, I: Identifiable](
@@ -224,11 +251,19 @@ def router_create_one[T: Schema, I: Identifiable](
         )
 
     if apply_operations or expand:
-        q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
-        if apply_operations:
-            q = apply_operations(q)
-        q = apply_expand(q, db_model_class, response_schema_class, expand)
-        db_model_instance = db.execute(q).unique().scalar_one()
+        expand_context = ExpandContext(
+            check_authorized_project=True,
+            project_id=user_context.project_id,
+        )
+        db_model_instance = _read_again(
+            db=db,
+            db_model_class=db_model_class,
+            id_=db_model_instance.id,
+            apply_operations=apply_operations,
+            response_schema_class=response_schema_class,
+            expand=expand,
+            expand_context=expand_context,
+        )
     else:
         db.refresh(db_model_instance)
 
@@ -299,6 +334,7 @@ def _retrieve_rows[I: Identifiable](
     filter_model: CustomFilter[I],
     embedding: list[float] | None = None,
     expand: ExpandPaths | None = None,
+    expand_context: ExpandContext,
     response_schema_class: SupportsModelValidate,
     filter_query: sa.Select[I],
 ) -> Iterable[I]:
@@ -331,7 +367,9 @@ def _retrieve_rows[I: Identifiable](
         data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
 
-    data_query = apply_expand(data_query, db_model_class, response_schema_class, expand)
+    data_query = apply_expand(
+        data_query, db_model_class, response_schema_class, expand, context=expand_context
+    )
 
     # unique is needed b/c it contains results that include joined eager loads against collections
     return db.execute(data_query).scalars().unique()
@@ -422,6 +460,10 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         filter_model=filter_model,
         embedding=embedding,
         expand=expand,
+        expand_context=ExpandContext(
+            check_authorized_project=check_authorized_project,
+            project_id=authorized_project_id,
+        ),
         response_schema_class=response_schema_class,
         filter_query=filter_query,
     )
@@ -484,12 +526,12 @@ def router_update_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
-    query = apply_expand(query, db_model_class, response_schema_class, expand)
 
     with (
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
     ):
         db_model_instance = db.execute(query).unique().scalar_one()
+    item_project_id = getattr(db_model_instance, "authorized_project_id", None)
 
     db_model_instance = update_model(
         model=db_model_instance,
@@ -506,7 +548,7 @@ def router_update_one[T: Schema, I: Identifiable](
         parent=db_model_instance,
         json_model=json_model,
         nested_relationships=nested_relationships,
-        project_id=getattr(db_model_instance, "authorized_project_id", None),
+        project_id=item_project_id,
         action="update",
     )
 
@@ -520,6 +562,22 @@ def router_update_one[T: Schema, I: Identifiable](
         db_model_instance,
         attribute_names=["update_date", "updated_by", *relationship_names, *unrequested_names],
     )
+
+    if expand:
+        # the expanded entities are filtered by the item's project, known only after the write check
+        expand_context = ExpandContext(
+            check_authorized_project=check_authorized_project,
+            project_id=item_project_id,
+        )
+        db_model_instance = _read_again(
+            db=db,
+            db_model_class=db_model_class,
+            id_=id_,
+            apply_operations=apply_operations,
+            response_schema_class=response_schema_class,
+            expand=expand,
+            expand_context=expand_context,
+        )
 
     return response_schema_class.model_validate(db_model_instance)
 

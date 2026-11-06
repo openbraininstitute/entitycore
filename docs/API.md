@@ -72,6 +72,7 @@ Some fields of the entity responses are returned only when requested with `expan
 - `expand` is accepted by the read, create and update endpoints, so that their responses follow the same rule. The allowed values of each endpoint are listed in OpenAPI; other values return 422.
 - Nested paths use `.` (`<relationship>.<field>`), for nested objects with expandable fields. `=` is reserved for future keyed qualifiers.
 - The `generated_derivation__*` / `used_derivation__*` filters only select the entities, and never narrow the expanded lists.
+- The expanded derivations include only the linked entities that the user can read; the admin endpoints return all of them.
 
 Ex: circuits extracted from another circuit, with only their extraction derivations:
 ```

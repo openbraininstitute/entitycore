@@ -231,19 +231,43 @@ def router_create_one[T: Schema, I: Identifiable](
         )
 
     if apply_operations or expand:
-        q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
-        if apply_operations:
-            q = apply_operations(q)
         expand_context = ExpandContext(
             check_authorized_project=True,
             project_id=user_context.project_id,
         )
-        q = apply_expand(q, db_model_class, response_schema_class, expand, context=expand_context)
-        db_model_instance = db.execute(q).unique().scalar_one()
+        db_model_instance = _read_again(
+            db=db,
+            db_model_class=db_model_class,
+            id_=db_model_instance.id,
+            apply_operations=apply_operations,
+            response_schema_class=response_schema_class,
+            expand=expand,
+            expand_context=expand_context,
+        )
     else:
         db.refresh(db_model_instance)
 
     return response_schema_class.model_validate(db_model_instance)
+
+
+def _read_again[I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    id_: uuid.UUID,
+    apply_operations: ApplyOperations | None,
+    response_schema_class: SupportsModelValidate,
+    expand: ExpandPaths | None,
+    expand_context: ExpandContext,
+) -> I:
+    """Read again an item of the session, with the loader options of the service and expand."""
+    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    if apply_operations:
+        query = apply_operations(query)
+    query = apply_expand(
+        query, db_model_class, response_schema_class, expand, context=expand_context
+    )
+    return db.execute(query).unique().scalar_one()
 
 
 def _with_subquery[I: Identifiable](
@@ -541,18 +565,18 @@ def router_update_one[T: Schema, I: Identifiable](
 
     if expand:
         # the expanded entities are filtered by the item's project, known only after the write check
-        reload_query = sa.select(db_model_class).where(db_model_class.id == id_)
-        if apply_operations:
-            reload_query = apply_operations(reload_query)
         expand_context = ExpandContext(
             check_authorized_project=check_authorized_project,
             project_id=item_project_id,
         )
-        reload_query = apply_expand(
-            reload_query, db_model_class, response_schema_class, expand, context=expand_context
-        )
-        db_model_instance = (
-            db.execute(reload_query.execution_options(populate_existing=True)).unique().scalar_one()
+        db_model_instance = _read_again(
+            db=db,
+            db_model_class=db_model_class,
+            id_=id_,
+            apply_operations=apply_operations,
+            response_schema_class=response_schema_class,
+            expand=expand,
+            expand_context=expand_context,
         )
 
     return response_schema_class.model_validate(db_model_instance)

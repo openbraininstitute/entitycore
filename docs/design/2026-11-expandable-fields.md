@@ -76,7 +76,7 @@ The schema only says which fields are expandable; how they are loaded is decided
 
 The SQLAlchemy loaded state is the source of truth: the query loads what the requested paths need, and serialization includes an expandable field only if its attribute is loaded. No request information has to reach Pydantic, and nesting works because nested schemas behave the same way.
 
-A generic `apply_expand(query, db_model_class, schema_class, expand)` replaces `apply_derivation_expand` in `router_read_one` and `router_read_many`, and is also applied by `router_create_one` and `router_update_one` (see Create and update). At startup, the schema fields and the mapper are walked in parallel to build a plan for each allowed path: the chain of loader options from the root. The same plans give the allowed values (see Allowed values), so the enum and the loading can't disagree. Each segment uses:
+A generic `apply_expand(query, db_model_class, schema_class, expand, context=...)` replaces `apply_derivation_expand` in `router_read_one` and `router_read_many`, and is also applied by `router_create_one` and `router_update_one` (see Create and update). At startup, the schema fields and the mapper are walked in parallel to build a plan for each allowed path: the chain of loader options from the root. The same plans give the allowed values (see Allowed values), so the enum and the loading can't disagree. Each segment uses:
 
 | Segment | Option |
 |---|---|
@@ -144,7 +144,7 @@ Today `EntityExpand` has 20 values (2 directions, each bare or with one of 9 der
 
 ### Authorization of expanded entities
 
-Expanding a relationship to other entities must not return entities that the user cannot read. Today the expanded derivations are not filtered ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). The custom loaders don't receive the user's project context yet; passing it to them (or none for the admin endpoints) would let the derivation loader apply the same filter as `GET /derivation`. Relationships to entities without such a loader are not expandable in the first version.
+Expanding a relationship to other entities must not return entities that the user cannot read ([prod-platform-architecture#229](https://github.com/openbraininstitute/prod-platform-architecture/issues/229)). `apply_expand` receives an `ExpandContext`, built by the router helpers with the projects that authorized the returned item (public or in the project for reads, the projects of the write check for updates), or without filter in the admin endpoints. The custom loaders receive it, and the derivation loader keeps only the derivations whose other entity is public or in those projects. Relationships to entities without such a loader are not expandable.
 
 ### Existing fields
 

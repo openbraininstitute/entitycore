@@ -5,12 +5,14 @@ needing more, e.g. nested relationships of the related objects or qualifiers, na
 in their `Expandable` marker, defined in `CUSTOM_LOADERS`.
 """
 
+import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 from sqlalchemy import orm
 
+from app.db.auth import is_public_or_in_projects
 from app.db.types import DerivationType
 from app.schemas.expand import ExpandLoaderName
 
@@ -38,6 +40,25 @@ def expand_load(parent: orm.Load | None, strategy: LoaderStrategy, attr: Any) ->
     return getattr(parent, strategy)(attr)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ExpandContext:
+    """Authorization of the entities loaded by the custom loaders, e.g. the linked entities.
+
+    The linked entities are filtered with the projects that authorized the returned item.
+
+    Attributes:
+        check_authorized_project: whether to return only the entities that are public or in
+            project_ids (False in the admin endpoints).
+        project_ids: the projects that authorized the returned item.
+
+    Example:
+        >>> ExpandContext(check_authorized_project=True, project_ids=[project_id])
+    """
+
+    check_authorized_project: bool
+    project_ids: Sequence[uuid.UUID] = ()
+
+
 class ExpandLoader(Protocol):
     """Builds the loader options of an expandable field with a custom loader."""
 
@@ -46,6 +67,7 @@ class ExpandLoader(Protocol):
         parent: orm.Load | None,
         attr: orm.QueryableAttribute,
         qualifiers: frozenset[str] | None,
+        context: ExpandContext,
         /,
     ) -> Sequence[orm.Load]:
         """Return the loader options of the field.
@@ -54,9 +76,10 @@ class ExpandLoader(Protocol):
             parent: load of the parent object, or None at the root of the query.
             attr: ORM attribute of the field.
             qualifiers: requested qualifiers, or None when requested without qualifier.
+            context: authorization of the loaded entities.
 
         Example:
-            >>> def load(parent, attr, qualifiers):
+            >>> def load(parent, attr, qualifiers, context):
             ...     return [expand_load(parent, "selectinload", attr)]
         """
         ...
@@ -78,24 +101,42 @@ class CustomLoader:
 def _derivation_loader(other_side: str) -> ExpandLoader:
     """Return the loader of a derivation list, with the entity on the other side of each one.
 
-    The qualifiers are the derivation types to load.
+    The qualifiers are the derivation types to load. With `check_authorized_project`, only the
+    derivations whose other entity is readable are loaded, as in `GET /derivation`.
     """
 
     def load(
-        parent: orm.Load | None, attr: orm.QueryableAttribute, qualifiers: frozenset[str] | None
+        parent: orm.Load | None,
+        attr: orm.QueryableAttribute,
+        qualifiers: frozenset[str] | None,
+        context: ExpandContext,
     ) -> list[orm.Load]:
         derivation_class = attr.property.mapper.class_
+        other_entity = getattr(derivation_class, other_side)
+        criteria = []
         if qualifiers is not None:
             derivation_types = [DerivationType(q) for q in qualifiers]
-            attr = attr.and_(derivation_class.derivation_type.in_(derivation_types))
-        other_entity = getattr(derivation_class, other_side)
+            criteria.append(derivation_class.derivation_type.in_(derivation_types))
+        if context.check_authorized_project:
+            # aliased, so that the EXISTS subquery can't correlate with the parent entity
+            other_alias = orm.aliased(other_entity.property.mapper.class_, flat=True)
+            criteria.append(
+                other_entity.of_type(other_alias).has(
+                    is_public_or_in_projects(other_alias, list(context.project_ids))
+                )
+            )
+        if criteria:
+            attr = attr.and_(*criteria)
         return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]
 
     return load
 
 
 def _measurement_annotation_loader(
-    parent: orm.Load | None, attr: orm.QueryableAttribute, _qualifiers: frozenset[str] | None
+    parent: orm.Load | None,
+    attr: orm.QueryableAttribute,
+    _qualifiers: frozenset[str] | None,
+    _context: ExpandContext,
 ) -> list[orm.Load]:
     """Load the measurement annotation of an entity, with its kinds, items and labels."""
     annotation_class = attr.property.mapper.class_

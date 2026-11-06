@@ -1151,3 +1151,59 @@ def test_admin_delete_one(db, clients, client_admin, root_circuit, circuit, user
     assert data["id"] == did
 
     assert_request(clients.user_1.get, url=f"{ROUTE}/{did}", expected_status_code=404)
+
+
+def test_expand_authorization(db, clients, root_circuit_json_data, user_id):
+    """The expanded derivations hide the linked entities that the user can't read."""
+    public_u1, private_u1, public_u2, private_u2 = _create_entities(
+        "/circuit", clients.user_1, clients.user_2, json_data=root_circuit_json_data
+    )
+    # derivations linked to entities that the users can read or not
+    for used, generated in [
+        (public_u1, private_u1),
+        (public_u1, private_u2),
+        (public_u2, public_u1),
+        (private_u2, public_u1),
+        (private_u2, private_u1),
+    ]:
+        _add_derivation(db, used_id=used["id"], generated_id=generated["id"], user_id=user_id)
+
+    def linked_ids(client, route, *, many=False):
+        params = {"expand": ["generated_from_derivations", "used_by_derivations"]}
+        if many:
+            params["id"] = public_u1["id"]
+            (data,) = assert_request(client.get, url=route, params=params).json()["data"]
+        else:
+            data = assert_request(client.get, url=f"{route}/{public_u1['id']}", params=params)
+            data = data.json()
+        return (
+            {d["used"]["id"] for d in data["generated_from_derivations"]},
+            {d["generated"]["id"] for d in data["used_by_derivations"]},
+        )
+
+    for many in [False, True]:
+        assert linked_ids(clients.user_1, "/circuit", many=many) == (
+            {public_u2["id"]},
+            {private_u1["id"]},
+        )
+        assert linked_ids(clients.user_2, "/circuit", many=many) == (
+            {public_u2["id"], private_u2["id"]},
+            {private_u2["id"]},
+        )
+        assert linked_ids(clients.no_project, "/circuit", many=many) == ({public_u2["id"]}, set())
+        assert linked_ids(clients.admin, "/admin/circuit", many=many) == (
+            {public_u2["id"], private_u2["id"]},
+            {private_u1["id"], private_u2["id"]},
+        )
+
+    def patched_used_ids(client, route):
+        data = assert_request(
+            client.patch,
+            url=f"{route}/{private_u1['id']}",
+            params={"expand": "generated_from_derivations"},
+            json={"description": "updated"},
+        ).json()
+        return {d["used"]["id"] for d in data["generated_from_derivations"]}
+
+    assert patched_used_ids(clients.user_1, "/circuit") == {public_u1["id"]}
+    assert patched_used_ids(clients.admin, "/admin/circuit") == {public_u1["id"], private_u2["id"]}

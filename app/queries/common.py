@@ -159,6 +159,26 @@ def router_create_activity_one[T: Schema, I: Activity](
     return response_schema_class.model_validate(db_model_instance)
 
 
+def _read_again[I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    id_: uuid.UUID,
+    apply_operations: ApplyOperations | None,
+    response_schema_class: SupportsModelValidate,
+    expand: ExpandPaths | None,
+    expand_context: ExpandContext,
+) -> I:
+    """Read again an item of the session, with the loader options of the service and expand."""
+    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    if apply_operations:
+        query = apply_operations(query)
+    query = apply_expand(
+        query, db_model_class, response_schema_class, expand, context=expand_context
+    )
+    return db.execute(query).unique().scalar_one()
+
+
 def router_create_one[T: Schema, I: Identifiable](
     *,
     db: Session,
@@ -248,26 +268,6 @@ def router_create_one[T: Schema, I: Identifiable](
         db.refresh(db_model_instance)
 
     return response_schema_class.model_validate(db_model_instance)
-
-
-def _read_again[I: Identifiable](
-    *,
-    db: Session,
-    db_model_class: type[I],
-    id_: uuid.UUID,
-    apply_operations: ApplyOperations | None,
-    response_schema_class: SupportsModelValidate,
-    expand: ExpandPaths | None,
-    expand_context: ExpandContext,
-) -> I:
-    """Read again an item of the session, with the loader options of the service and expand."""
-    query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if apply_operations:
-        query = apply_operations(query)
-    query = apply_expand(
-        query, db_model_class, response_schema_class, expand, context=expand_context
-    )
-    return db.execute(query).unique().scalar_one()
 
 
 def _with_subquery[I: Identifiable](

@@ -56,19 +56,6 @@ from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 
 
-def _expand_context(
-    *, check_authorized_project: bool, project_id: uuid.UUID | None
-) -> ExpandContext:
-    """Return the expand context of the entities readable like the returned items.
-
-    As in `constrain_to_readable_entities_by_project`: public, or in project_id if not None.
-    """
-    return ExpandContext(
-        check_authorized_project=check_authorized_project,
-        project_ids=[project_id] if project_id else [],
-    )
-
-
 def router_read_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
@@ -104,9 +91,9 @@ def router_read_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
-    expand_context = _expand_context(
+    expand_context = ExpandContext(
         check_authorized_project=user_context is not None,
-        project_id=user_context.project_id if user_context else None,
+        project_ids=[user_context.project_id] if user_context and user_context.project_id else [],
     )
     query = apply_expand(
         query, db_model_class, response_schema_class, expand, context=expand_context
@@ -247,8 +234,9 @@ def router_create_one[T: Schema, I: Identifiable](
         q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
         if apply_operations:
             q = apply_operations(q)
-        expand_context = _expand_context(
-            check_authorized_project=True, project_id=user_context.project_id
+        expand_context = ExpandContext(
+            check_authorized_project=True,
+            project_ids=[user_context.project_id] if user_context.project_id else [],
         )
         q = apply_expand(q, db_model_class, response_schema_class, expand, context=expand_context)
         db_model_instance = db.execute(q).unique().scalar_one()
@@ -448,8 +436,9 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         filter_model=filter_model,
         embedding=embedding,
         expand=expand,
-        expand_context=_expand_context(
-            check_authorized_project=check_authorized_project, project_id=authorized_project_id
+        expand_context=ExpandContext(
+            check_authorized_project=check_authorized_project,
+            project_ids=[authorized_project_id] if authorized_project_id else [],
         ),
         response_schema_class=response_schema_class,
         filter_query=filter_query,

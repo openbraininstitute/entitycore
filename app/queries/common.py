@@ -507,6 +507,7 @@ def router_update_one[T: Schema, I: Identifiable](
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
     ):
         db_model_instance = db.execute(query).unique().scalar_one()
+    item_project_id = getattr(db_model_instance, "authorized_project_id", None)
 
     db_model_instance = update_model(
         model=db_model_instance,
@@ -523,7 +524,7 @@ def router_update_one[T: Schema, I: Identifiable](
         parent=db_model_instance,
         json_model=json_model,
         nested_relationships=nested_relationships,
-        project_id=getattr(db_model_instance, "authorized_project_id", None),
+        project_id=item_project_id,
         action="update",
     )
 
@@ -539,14 +540,13 @@ def router_update_one[T: Schema, I: Identifiable](
     )
 
     if expand:
-        # reload with the linked entities readable in the item's project,
-        # known only now, and readable by the user because of the write check
+        # the expanded entities are filtered by the item's project, known only after the write check
         reload_query = sa.select(db_model_class).where(db_model_class.id == id_)
         if apply_operations:
             reload_query = apply_operations(reload_query)
         expand_context = ExpandContext(
             check_authorized_project=check_authorized_project,
-            project_id=getattr(db_model_instance, "authorized_project_id", None),
+            project_id=item_project_id,
         )
         reload_query = apply_expand(
             reload_query, db_model_class, response_schema_class, expand, context=expand_context

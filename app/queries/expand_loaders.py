@@ -12,7 +12,7 @@ from typing import Any, Literal, Protocol
 
 from sqlalchemy import orm
 
-from app.db.auth import is_public, is_public_or_in_projects
+from app.db.auth import is_public_or_in_projects
 from app.db.types import DerivationType
 from app.schemas.expand import ExpandLoaderName
 
@@ -120,12 +120,12 @@ def _derivation_loader(other_side: str) -> ExpandLoader:
         if context.check_authorized_project:
             # aliased, so that the EXISTS subquery can't correlate with the parent entity
             other_alias = orm.aliased(other_entity.property.mapper.class_, flat=True)
-            readable = (
-                is_public(other_alias)
-                if context.project_id is None
-                else is_public_or_in_projects(other_alias, [context.project_id])
+            project_ids = [context.project_id] if context.project_id else []
+            criteria.append(
+                other_entity.of_type(other_alias).has(
+                    is_public_or_in_projects(other_alias, project_ids)
+                )
             )
-            criteria.append(other_entity.of_type(other_alias).has(readable))
         if criteria:
             attr = attr.and_(*criteria)
         return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]

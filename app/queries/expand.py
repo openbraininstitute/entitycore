@@ -307,7 +307,7 @@ def apply_expand(
         ...     Circuit,
         ...     CircuitRead,
         ...     frozenset({"used_by_derivations:circuit_extraction"}),
-        ...     context=ExpandContext(check_authorized_project=True, project_ids=[project_id]),
+        ...     context=ExpandContext(check_authorized_project=True, project_id=project_id),
         ... )
     """
     if not expand:

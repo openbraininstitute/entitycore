@@ -93,7 +93,7 @@ def router_read_one[T: Schema, I: Identifiable](
         query = apply_operations(query)
     expand_context = ExpandContext(
         check_authorized_project=user_context is not None,
-        project_ids=[user_context.project_id] if user_context and user_context.project_id else [],
+        project_id=user_context.project_id if user_context else None,
     )
     query = apply_expand(
         query, db_model_class, response_schema_class, expand, context=expand_context
@@ -236,7 +236,7 @@ def router_create_one[T: Schema, I: Identifiable](
             q = apply_operations(q)
         expand_context = ExpandContext(
             check_authorized_project=True,
-            project_ids=[user_context.project_id] if user_context.project_id else [],
+            project_id=user_context.project_id,
         )
         q = apply_expand(q, db_model_class, response_schema_class, expand, context=expand_context)
         db_model_instance = db.execute(q).unique().scalar_one()
@@ -438,7 +438,7 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
         expand=expand,
         expand_context=ExpandContext(
             check_authorized_project=check_authorized_project,
-            project_ids=[authorized_project_id] if authorized_project_id else [],
+            project_id=authorized_project_id,
         ),
         response_schema_class=response_schema_class,
         filter_query=filter_query,
@@ -541,13 +541,12 @@ def router_update_one[T: Schema, I: Identifiable](
     if expand:
         # reload with the linked entities readable in the item's project,
         # known only now, and readable by the user because of the write check
-        item_project_id = getattr(db_model_instance, "authorized_project_id", None)
         reload_query = sa.select(db_model_class).where(db_model_class.id == id_)
         if apply_operations:
             reload_query = apply_operations(reload_query)
         expand_context = ExpandContext(
             check_authorized_project=check_authorized_project,
-            project_ids=[item_project_id] if item_project_id else [],
+            project_id=getattr(db_model_instance, "authorized_project_id", None),
         )
         reload_query = apply_expand(
             reload_query, db_model_class, response_schema_class, expand, context=expand_context

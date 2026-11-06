@@ -12,7 +12,7 @@ from typing import Any, Literal, Protocol
 
 from sqlalchemy import orm
 
-from app.db.auth import is_public_or_in_projects
+from app.db.auth import is_public, is_public_or_in_projects
 from app.db.types import DerivationType
 from app.schemas.expand import ExpandLoaderName
 
@@ -44,19 +44,19 @@ def expand_load(parent: orm.Load | None, strategy: LoaderStrategy, attr: Any) ->
 class ExpandContext:
     """Authorization of the entities loaded by the custom loaders, e.g. the linked entities.
 
-    The linked entities are filtered with the projects that authorized the returned item.
+    The linked entities are filtered with the project that authorized the returned item.
 
     Attributes:
         check_authorized_project: whether to return only the entities that are public or in
-            project_ids (False in the admin endpoints).
-        project_ids: the projects that authorized the returned item.
+            project_id (False in the admin endpoints).
+        project_id: the project that authorized the returned item, or None for public only.
 
     Example:
-        >>> ExpandContext(check_authorized_project=True, project_ids=[project_id])
+        >>> ExpandContext(check_authorized_project=True, project_id=project_id)
     """
 
     check_authorized_project: bool
-    project_ids: Sequence[uuid.UUID] = ()
+    project_id: uuid.UUID | None = None
 
 
 class ExpandLoader(Protocol):
@@ -102,7 +102,7 @@ def _derivation_loader(other_side: str) -> ExpandLoader:
     """Return the loader of a derivation list, with the entity on the other side of each one.
 
     The qualifiers are the derivation types to load. With `check_authorized_project`, only the
-    derivations whose other entity is readable are loaded, as in `GET /derivation`.
+    derivations whose other entity is public or in `project_id` are loaded.
     """
 
     def load(
@@ -120,11 +120,12 @@ def _derivation_loader(other_side: str) -> ExpandLoader:
         if context.check_authorized_project:
             # aliased, so that the EXISTS subquery can't correlate with the parent entity
             other_alias = orm.aliased(other_entity.property.mapper.class_, flat=True)
-            criteria.append(
-                other_entity.of_type(other_alias).has(
-                    is_public_or_in_projects(other_alias, list(context.project_ids))
-                )
+            readable = (
+                is_public(other_alias)
+                if context.project_id is None
+                else is_public_or_in_projects(other_alias, [context.project_id])
             )
+            criteria.append(other_entity.of_type(other_alias).has(readable))
         if criteria:
             attr = attr.and_(*criteria)
         return [expand_load(parent, "selectinload", attr).joinedload(other_entity)]

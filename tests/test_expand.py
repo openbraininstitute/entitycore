@@ -1,5 +1,6 @@
 import re
 import uuid
+from dataclasses import replace
 from typing import Annotated, get_args
 
 import pytest
@@ -8,23 +9,65 @@ from pydantic import MISSING, AliasPath, Field, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
-from app.db.model import CellMorphology, Circuit, Species, Strain
-from app.db.types import DerivationType
+from app.db.model import (
+    CellMorphology,
+    CellMorphologyProtocol,
+    Circuit,
+    ElectricalRecording,
+    EModel,
+    MEModel,
+    ResearchLog,
+    ScientificArtifact,
+    Species,
+    Strain,
+    Subject,
+)
+from app.db.types import DerivationType, EntityType
 from app.queries import expand as test_module, expand_loaders
 from app.queries.expand_loaders import ExpandContext
 from app.schemas.base import ExpandableSchema, Schema
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.circuit import CircuitRead
+from app.schemas.entity import DerivationReadMixin
 from app.schemas.expand import Expandable, ExpandLoaderName
 
-DERIVATION_VALUES = {
-    "generated_from_derivations",
-    "used_by_derivations",
-    *(
-        f"{direction}:{t}"
-        for direction in ("generated_from_derivations", "used_by_derivations")
-        for t in DerivationType
+ALWAYS_USED_BY = ("research_log_input", "research_log_output", "unspecified")
+CIRCUIT_DERIVATION_TYPES = {
+    "generated_from_derivations": (
+        "circuit_customization",
+        "circuit_extraction",
+        "circuit_rewiring",
+        "emodel_circuit",
+        "circuit_simplification",
+        "unspecified",
     ),
+    "used_by_derivations": (
+        "circuit_customization",
+        "circuit_extraction",
+        "circuit_rewiring",
+        "circuit_simplification",
+        *ALWAYS_USED_BY,
+    ),
+}
+CELL_MORPHOLOGY_DERIVATION_TYPES = {
+    "generated_from_derivations": (
+        "em_dense_reconstruction_dataset_cell_morphology",
+        "unspecified",
+    ),
+    "used_by_derivations": ALWAYS_USED_BY,
+}
+
+
+def _derivation_values(derivation_types):
+    return {
+        *derivation_types,
+        *(f"{direction}:{t}" for direction, types in derivation_types.items() for t in types),
+    }
+
+
+CIRCUIT_VALUES = _derivation_values(CIRCUIT_DERIVATION_TYPES)
+CELL_MORPHOLOGY_VALUES = _derivation_values(CELL_MORPHOLOGY_DERIVATION_TYPES) | {
+    "measurement_annotation"
 }
 
 # no authorization filter, as in the admin endpoints
@@ -58,9 +101,9 @@ def _strain_query(strain_id):
 
 
 def test_allowed_expand_paths():
-    assert set(test_module.allowed_expand_paths(CircuitRead, Circuit)) == DERIVATION_VALUES
+    assert set(test_module.allowed_expand_paths(CircuitRead, Circuit)) == CIRCUIT_VALUES
     assert set(test_module.allowed_expand_paths(CellMorphologyRead, CellMorphology)) == (
-        DERIVATION_VALUES | {"measurement_annotation"}
+        CELL_MORPHOLOGY_VALUES
     )
     assert test_module.allowed_expand_paths(StrainTestRead, Strain) == ("species.embedding",)
     assert test_module.allowed_expand_paths(StrainExpandableSpeciesTestRead, Strain) == (
@@ -72,7 +115,7 @@ def test_allowed_expand_paths():
 def test_expand_enum():
     enum = test_module.expand_enum(CircuitRead, Circuit)
     assert enum.__name__ == "CircuitReadExpand"
-    assert {str(v) for v in enum} == DERIVATION_VALUES
+    assert {str(v) for v in enum} == CIRCUIT_VALUES
     assert enum("generated_from_derivations:circuit_extraction").name == (
         "generated_from_derivations__circuit_extraction"
     )
@@ -145,9 +188,88 @@ def test_collected_loader_names():
 
 def test_custom_loaders():
     loaders = expand_loaders.CUSTOM_LOADERS
-    assert loaders["generated_from_derivations"].qualifiers == tuple(DerivationType)
-    assert loaders["used_by_derivations"].qualifiers == tuple(DerivationType)
-    assert loaders["measurement_annotation"].qualifiers == ()
+    for name, types in CIRCUIT_DERIVATION_TYPES.items():
+        assert loaders[name].qualifiers(Circuit) == types
+    for name, types in CELL_MORPHOLOGY_DERIVATION_TYPES.items():
+        assert loaders[name].qualifiers(CellMorphology) == types
+    assert loaders["measurement_annotation"].qualifiers(CellMorphology) == ()
+
+
+@pytest.mark.parametrize(
+    ("db_model_class", "generated_from_count", "used_by_count"),
+    [
+        (Circuit, 6, 7),
+        (CellMorphology, 2, 3),
+        (ResearchLog, 3, 3),
+        (EModel, 1, 4),
+        (Subject, 1, 3),
+    ],
+)
+def test_derivation_qualifiers_per_entity_type(db_model_class, generated_from_count, used_by_count):
+    loaders = expand_loaders.CUSTOM_LOADERS
+    generated_from = loaders["generated_from_derivations"].qualifiers(db_model_class)
+    used_by = loaders["used_by_derivations"].qualifiers(db_model_class)
+    assert len(generated_from) == generated_from_count
+    assert len(used_by) == used_by_count
+    assert set(ALWAYS_USED_BY) <= set(used_by)
+    # in the order of DerivationType
+    assert list(generated_from) == [t for t in DerivationType if t in generated_from]
+    assert list(used_by) == [t for t in DerivationType if t in used_by]
+
+
+def test_derivation_qualifiers_of_a_base_class():
+    # the types allowed for any of the entity types of the class and of its subclasses
+    loaders = expand_loaders.CUSTOM_LOADERS
+    assert loaders["generated_from_derivations"].qualifiers(ScientificArtifact) == (
+        "circuit_customization",
+        "circuit_extraction",
+        "circuit_rewiring",
+        "emodel_circuit",
+        "em_dense_reconstruction_dataset_cell_morphology",
+        "circuit_simplification",
+        "unspecified",
+    )
+
+
+def test_entity_types():
+    assert expand_loaders._entity_types(Circuit) == {EntityType.circuit}
+    assert expand_loaders._entity_types(CellMorphologyProtocol) == {
+        EntityType.cell_morphology_protocol
+    }
+    assert expand_loaders._entity_types(ElectricalRecording) == {
+        EntityType.electrical_recording,
+        EntityType.electrical_cell_recording,
+        EntityType.ion_channel_recording,
+    }
+    with pytest.raises(TypeError, match="Strain is not an entity class"):
+        expand_loaders._entity_types(Strain)
+
+
+def test_custom_loader_qualifiers_of_each_level(monkeypatch):
+    class EModelTestRead(DerivationReadMixin):
+        id: uuid.UUID
+
+    class MEModelTestRead(DerivationReadMixin):
+        id: uuid.UUID
+        emodel: EModelTestRead
+
+    received = []
+
+    def qualifiers(db_model_class):
+        received.append(db_model_class)
+        return (db_model_class.__tablename__,)
+
+    loaders = dict(expand_loaders.CUSTOM_LOADERS)
+    loaders["generated_from_derivations"] = replace(
+        loaders["generated_from_derivations"], qualifiers=qualifiers
+    )
+    monkeypatch.setattr(test_module, "CUSTOM_LOADERS", loaders)
+
+    values = test_module.allowed_expand_paths(MEModelTestRead, MEModel)
+    assert received == [MEModel, EModel]
+    assert "generated_from_derivations:memodel" in values
+    assert "emodel.generated_from_derivations:emodel" in values
+    assert "emodel.generated_from_derivations:memodel" not in values
 
 
 def _schema_subclasses(cls):
@@ -302,10 +424,8 @@ def test_unrequested_loaded_attrs(db, species_id):
 def test_openapi_expand_param():
     schema = app.openapi()
     components = schema["components"]["schemas"]
-    assert set(components["CircuitReadExpand"]["enum"]) == DERIVATION_VALUES
-    assert set(components["CellMorphologyReadExpand"]["enum"]) == (
-        DERIVATION_VALUES | {"measurement_annotation"}
-    )
+    assert set(components["CircuitReadExpand"]["enum"]) == CIRCUIT_VALUES
+    assert set(components["CellMorphologyReadExpand"]["enum"]) == CELL_MORPHOLOGY_VALUES
     for path, method in [
         ("/circuit", "get"),
         ("/circuit", "post"),
@@ -325,3 +445,18 @@ def test_openapi_expand_param():
     assert "measurement_annotation" in morphology["properties"]
     assert "measurement_annotation" not in morphology["required"]
     assert "CellMorphologyAnnotationExpandedRead" not in components
+
+
+def test_openapi_expand_enum_names():
+    # two different enums with the same name, e.g. a Read schema returned for two models with
+    # different values, get names qualified by the module: `app__queries__expand__<name>__1`
+    schema = app.openapi()
+    refs = {
+        param["schema"]["anyOf"][0]["items"]["$ref"].rpartition("/")[2]
+        for operations in schema["paths"].values()
+        for operation in operations.values()
+        for param in operation.get("parameters", [])
+        if param["name"] == "expand"
+    }
+    assert len(refs) > 1
+    assert [ref for ref in refs if not re.fullmatch(r"[A-Za-z0-9]+Expand", ref)] == []

@@ -13,7 +13,9 @@ from typing import Any, Literal, Protocol
 from sqlalchemy import orm
 
 from app.db.auth import is_public_or_in_projects
-from app.db.types import DerivationType
+from app.db.model import Base
+from app.db.types import DERIVATION_TYPE_RULES, DerivationType, EntityType
+from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.schemas.expand import ExpandLoaderName
 
 type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
@@ -85,17 +87,76 @@ class ExpandLoader(Protocol):
         ...
 
 
+class ExpandQualifiers(Protocol):
+    """Returns the qualifiers accepted by an expandable field with a custom loader."""
+
+    def __call__(self, db_model_class: type[Base], /) -> tuple[str, ...]:
+        """Return the qualifiers accepted after `:` in the expand values of the field.
+
+        Called when the expand plans are built, at startup.
+
+        Args:
+            db_model_class: ORM class declaring the field, at the level of the path.
+
+        Example:
+            >>> def qualifiers(db_model_class):
+            ...     return ("circuit_extraction",) if db_model_class is Circuit else ()
+        """
+        ...
+
+
+def _no_qualifiers(_db_model_class: type[Base], /) -> tuple[str, ...]:
+    return ()
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CustomLoader:
     """Custom loading of the expandable fields naming it in their `Expandable` marker.
 
     Attributes:
         load: builder of the loader options.
-        qualifiers: values accepted after `:` in the expand values of the field.
+        qualifiers: returns the values accepted after `:` in the expand values of the field.
     """
 
     load: ExpandLoader
-    qualifiers: tuple[str, ...] = ()
+    qualifiers: ExpandQualifiers = _no_qualifiers
+
+
+def _entity_types(db_model_class: type[Base]) -> frozenset[EntityType]:
+    """Return the entity types of an ORM class and of its subclasses.
+
+    Raises:
+        TypeError: if db_model_class isn't an entity class.
+
+    Example:
+        >>> _entity_types(ElectricalRecording)
+        frozenset({'electrical_recording', 'electrical_cell_recording', 'ion_channel_recording'})
+    """
+    entity_types = frozenset(
+        entity_type
+        for entity_type, entity_class in ENTITY_TYPE_TO_CLASS.items()
+        if issubclass(entity_class, db_model_class)
+    )
+    if not entity_types:
+        msg = f"{db_model_class.__name__} is not an entity class"
+        raise TypeError(msg)
+    return entity_types
+
+
+def _derivation_types(side: Literal["used", "generated"]) -> ExpandQualifiers:
+    """Return the qualifiers of a derivation list: the types allowing the entity on side."""
+
+    def qualifiers(db_model_class: type[Base], /) -> tuple[str, ...]:
+        entity_types = _entity_types(db_model_class)
+        return tuple(
+            derivation_type
+            for derivation_type in DerivationType
+            # None: any entity type is allowed on that side
+            if (allowed := getattr(DERIVATION_TYPE_RULES[derivation_type], side)) is None
+            or allowed & entity_types
+        )
+
+    return qualifiers
 
 
 def _derivation_loader(other_side: str) -> ExpandLoader:
@@ -160,10 +221,10 @@ def _measurement_annotation_loader(
 
 CUSTOM_LOADERS: Mapping[ExpandLoaderName, CustomLoader] = {
     "generated_from_derivations": CustomLoader(
-        load=_derivation_loader("used"), qualifiers=tuple(DerivationType)
+        load=_derivation_loader("used"), qualifiers=_derivation_types("generated")
     ),
     "used_by_derivations": CustomLoader(
-        load=_derivation_loader("generated"), qualifiers=tuple(DerivationType)
+        load=_derivation_loader("generated"), qualifiers=_derivation_types("used")
     ),
     "measurement_annotation": CustomLoader(load=_measurement_annotation_loader),
 }

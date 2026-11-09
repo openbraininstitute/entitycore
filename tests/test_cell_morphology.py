@@ -937,3 +937,23 @@ def test_brain_region_filter(
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+@pytest.mark.parametrize(
+    ("expand", "expected_status_code"),
+    [
+        ("generated_from_derivations:em_dense_reconstruction_dataset_cell_morphology", 200),
+        ("generated_from_derivations:unspecified", 200),
+        ("used_by_derivations:research_log_input", 200),
+        # derivation types that can't apply to cell morphologies
+        ("generated_from_derivations:circuit_extraction", 422),
+        ("used_by_derivations:em_dense_reconstruction_dataset_cell_morphology", 422),
+    ],
+)
+def test_expand_derivation_types(client, expand, expected_status_code):
+    assert_request(
+        client.get,
+        url=ROUTE,
+        params={"expand": expand},
+        expected_status_code=expected_status_code,
+    )

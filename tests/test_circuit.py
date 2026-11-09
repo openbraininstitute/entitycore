@@ -629,10 +629,23 @@ def test_expand_derivations_by_type(
         "generated_from_derivations.used",
         "used_by_derivations:",
         "measurement_annotation",
+        # derivation types that can't apply to circuits
+        "generated_from_derivations:em_dense_reconstruction_dataset_cell_morphology",
+        "used_by_derivations:emodel_circuit",
     ],
 )
 def test_expand_invalid_values(client, expand):
     assert_request(client.get, url=ROUTE, params={"expand": expand}, expected_status_code=422)
+
+
+def test_expand_values_of_the_clients(client):
+    # sent by core-web-app for the "Derivation type" column of the circuits
+    expand = [
+        "generated_from_derivations:circuit_extraction",
+        "generated_from_derivations:circuit_rewiring",
+        "generated_from_derivations:circuit_customization",
+    ]
+    assert_request(client.get, url=ROUTE, params={"expand": expand})
 
 
 def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, user_id):

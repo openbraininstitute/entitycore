@@ -67,7 +67,7 @@ The facets cover the results of the full query, not just the pagination.
 
 Some fields of the entity responses are returned only when requested with `expand`. They are omitted from the response otherwise; an expanded list without values is `[]`, and an expanded single value without value is `null`.
 
-- `generated_from_derivations` / `used_by_derivations` (all the entities) load all the derivations in that direction; `expand=<direction>:<derivation_type>` loads only that type. Repeat `expand` to combine types; a value without qualifier wins over the typed values.
+- `generated_from_derivations` / `used_by_derivations` (all the entities) load all the derivations in that direction; `expand=<direction>:<derivation_type>` loads only that type. Each endpoint accepts only the derivation types allowed for its entity type in that direction, e.g. `generated_from_derivations:circuit_extraction` on circuits but not on cell morphologies; other types return 422. Repeat `expand` to combine types; a value without qualifier wins over the typed values.
 - `measurement_annotation` (cell morphologies and EM cell meshes) loads the measurement annotation of the entity.
 - `expand` is accepted by the read, create and update endpoints, so that their responses follow the same rule. The allowed values of each endpoint are listed in OpenAPI; other values return 422.
 - Nested paths use `.` (`<relationship>.<field>`), for nested objects with expandable fields. `=` is reserved for future keyed qualifiers.

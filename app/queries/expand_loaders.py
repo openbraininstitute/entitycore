@@ -14,7 +14,8 @@ from sqlalchemy import orm
 
 from app.db.auth import is_public_or_in_projects
 from app.db.model import Base
-from app.db.types import DerivationType
+from app.db.types import DerivationType, EntityType
+from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.schemas.expand import ExpandLoaderName
 
 type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
@@ -123,6 +124,27 @@ class CustomLoader:
 
 def _all_derivation_types(_db_model_class: type[Base], /) -> tuple[str, ...]:
     return tuple(DerivationType)
+
+
+def _entity_types(db_model_class: type[Base]) -> frozenset[EntityType]:
+    """Return the entity types of an ORM class and of its subclasses.
+
+    Raises:
+        TypeError: if db_model_class isn't an entity class.
+
+    Example:
+        >>> _entity_types(ElectricalRecording)
+        frozenset({'electrical_recording', 'electrical_cell_recording', 'ion_channel_recording'})
+    """
+    entity_types = frozenset(
+        entity_type
+        for entity_type, entity_class in ENTITY_TYPE_TO_CLASS.items()
+        if issubclass(entity_class, db_model_class)
+    )
+    if not entity_types:
+        msg = f"{db_model_class.__name__} is not an entity class"
+        raise TypeError(msg)
+    return entity_types
 
 
 def _derivation_loader(other_side: str) -> ExpandLoader:

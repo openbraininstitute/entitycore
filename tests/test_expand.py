@@ -9,8 +9,17 @@ from pydantic import MISSING, AliasPath, Field, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
-from app.db.model import CellMorphology, Circuit, EModel, MEModel, Species, Strain
-from app.db.types import DerivationType
+from app.db.model import (
+    CellMorphology,
+    CellMorphologyProtocol,
+    Circuit,
+    ElectricalRecording,
+    EModel,
+    MEModel,
+    Species,
+    Strain,
+)
+from app.db.types import DerivationType, EntityType
 from app.queries import expand as test_module, expand_loaders
 from app.queries.expand_loaders import ExpandContext
 from app.schemas.base import ExpandableSchema, Schema
@@ -150,6 +159,20 @@ def test_custom_loaders():
     assert loaders["generated_from_derivations"].qualifiers(Circuit) == tuple(DerivationType)
     assert loaders["used_by_derivations"].qualifiers(Circuit) == tuple(DerivationType)
     assert loaders["measurement_annotation"].qualifiers(CellMorphology) == ()
+
+
+def test_entity_types():
+    assert expand_loaders._entity_types(Circuit) == {EntityType.circuit}
+    assert expand_loaders._entity_types(CellMorphologyProtocol) == {
+        EntityType.cell_morphology_protocol
+    }
+    assert expand_loaders._entity_types(ElectricalRecording) == {
+        EntityType.electrical_recording,
+        EntityType.electrical_cell_recording,
+        EntityType.ion_channel_recording,
+    }
+    with pytest.raises(TypeError, match="Strain is not an entity class"):
+        expand_loaders._entity_types(Strain)
 
 
 def test_custom_loader_qualifiers_of_each_level(monkeypatch):

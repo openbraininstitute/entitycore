@@ -151,6 +151,7 @@ def _derivation_types(side: Literal["used", "generated"]) -> ExpandQualifiers:
         return tuple(
             derivation_type
             for derivation_type in DerivationType
+            # None: any entity type is allowed on that side
             if (allowed := getattr(DERIVATION_TYPE_RULES[derivation_type], side)) is None
             or allowed & entity_types
         )

@@ -47,9 +47,10 @@ PUBLISHABLE_BASE_CLASSES: list[type[PublishableBaseModel]] = [
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
+    # skip the single-table subclasses, sharing the table name of their parent
     if issubclass(mapper.class_, MeasurableEntityMixin)
     and issubclass(mapper.class_, Entity)
-    and mapper.class_.__tablename__
+    and not mapper.single
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 
@@ -72,10 +73,8 @@ CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[
     CellMorphologyGenerationType, type[CellMorphologyProtocol]
 ] = {
     CellMorphologyGenerationType[mapper.polymorphic_identity]: mapper.class_
-    for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, CellMorphologyProtocol)
-    and mapper.class_ != CellMorphologyProtocol  # exclude the base class
-    and mapper.polymorphic_identity
+    for mapper in CellMorphologyProtocol.__mapper__.self_and_descendants
+    if mapper.single and mapper.polymorphic_identity  # exclude the base class
 }
 
 entity_type_with_brain_region_enum_members = {

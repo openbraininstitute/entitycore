@@ -123,6 +123,28 @@ def test_expand_enum():
     assert enum("expandable_species.embedding").name == "expandable_species___embedding"
 
 
+def test_expand_enum_name_guard():
+    class SharedEntityTestRead(DerivationReadMixin):
+        id: uuid.UUID
+
+    enum = test_module.expand_enum(SharedEntityTestRead, Circuit)
+    assert enum.__name__ == "SharedEntityTestReadExpand"
+    assert test_module.expand_enum(SharedEntityTestRead, Circuit) is enum
+    # without the cache, the same values with the same name are fine
+    assert test_module.expand_enum.__wrapped__(SharedEntityTestRead, Circuit).__name__ == (
+        "SharedEntityTestReadExpand"
+    )
+    # other values for the same name
+    with pytest.raises(
+        TypeError,
+        match=(
+            "SharedEntityTestReadExpand: the values for SharedEntityTestRead and CellMorphology "
+            "differ"
+        ),
+    ):
+        test_module.expand_enum(SharedEntityTestRead, CellMorphology)
+
+
 def test_expand_enum_without_expandable_fields():
     class NotExpandableRead(Schema):
         id: uuid.UUID

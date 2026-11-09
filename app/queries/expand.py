@@ -240,9 +240,17 @@ def _member_name(value: str) -> str:
     return value.replace(PATH_SEPARATOR, "___").replace(QUALIFIER_SEPARATOR, "__")
 
 
+# values of the expand enums by name, since the name is the OpenAPI component of the enum
+_expand_enum_values: dict[str, tuple[str, ...]] = {}
+
+
 @cache
 def expand_enum(schema: SchemaSpec, db_model_class: type[Identifiable]) -> type[StrEnum]:
     """Return the StrEnum of the allowed expand values, named after the schema.
+
+    Raises:
+        TypeError: if schema has no expandable fields, or if an enum with the same name and
+            different values exists, e.g. for the same schema returned for another model.
 
     Example:
         >>> expand_enum(CircuitRead, Circuit).__name__
@@ -253,6 +261,12 @@ def expand_enum(schema: SchemaSpec, db_model_class: type[Identifiable]) -> type[
         msg = f"{schema} has no expandable fields"
         raise TypeError(msg)
     name = f"{schema.__name__}Expand"
+    if _expand_enum_values.setdefault(name, values) != values:
+        msg = (
+            f"{name}: the values for {schema.__name__} and {db_model_class.__name__} differ from "
+            "those of an enum with the same name"
+        )
+        raise TypeError(msg)
     return cast("type[StrEnum]", StrEnum(name, [(_member_name(v), v) for v in values]))
 
 

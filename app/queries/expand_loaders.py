@@ -14,7 +14,7 @@ from sqlalchemy import orm
 
 from app.db.auth import is_public_or_in_projects
 from app.db.model import Base
-from app.db.types import DerivationType, EntityType
+from app.db.types import DERIVATION_TYPE_RULES, DerivationType, EntityType
 from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.schemas.expand import ExpandLoaderName
 
@@ -122,10 +122,6 @@ class CustomLoader:
     qualifiers: ExpandQualifiers = _no_qualifiers
 
 
-def _all_derivation_types(_db_model_class: type[Base], /) -> tuple[str, ...]:
-    return tuple(DerivationType)
-
-
 def _entity_types(db_model_class: type[Base]) -> frozenset[EntityType]:
     """Return the entity types of an ORM class and of its subclasses.
 
@@ -145,6 +141,21 @@ def _entity_types(db_model_class: type[Base]) -> frozenset[EntityType]:
         msg = f"{db_model_class.__name__} is not an entity class"
         raise TypeError(msg)
     return entity_types
+
+
+def _derivation_types(side: Literal["used", "generated"]) -> ExpandQualifiers:
+    """Return the qualifiers of a derivation list: the types allowing the entity on side."""
+
+    def qualifiers(db_model_class: type[Base], /) -> tuple[str, ...]:
+        entity_types = _entity_types(db_model_class)
+        return tuple(
+            derivation_type
+            for derivation_type in DerivationType
+            if (allowed := getattr(DERIVATION_TYPE_RULES[derivation_type], side)) is None
+            or allowed & entity_types
+        )
+
+    return qualifiers
 
 
 def _derivation_loader(other_side: str) -> ExpandLoader:
@@ -209,10 +220,10 @@ def _measurement_annotation_loader(
 
 CUSTOM_LOADERS: Mapping[ExpandLoaderName, CustomLoader] = {
     "generated_from_derivations": CustomLoader(
-        load=_derivation_loader("used"), qualifiers=_all_derivation_types
+        load=_derivation_loader("used"), qualifiers=_derivation_types("generated")
     ),
     "used_by_derivations": CustomLoader(
-        load=_derivation_loader("generated"), qualifiers=_all_derivation_types
+        load=_derivation_loader("generated"), qualifiers=_derivation_types("used")
     ),
     "measurement_annotation": CustomLoader(load=_measurement_annotation_loader),
 }

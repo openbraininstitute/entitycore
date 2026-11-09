@@ -265,7 +265,8 @@ entities = [
     )
     for mapper in Base.registry.mappers
     if issubclass(mapper.class_, NameDescriptionVectorMixin)
-    and "description_vector" in mapper.class_.__table__.c  # exclude children
+    and "description_vector" in mapper.class_.__table__.c  # exclude joined-table children
+    and not mapper.single  # exclude single-table children
 ]
 
 entities += [

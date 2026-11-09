@@ -5,6 +5,7 @@ import sqlalchemy as sa
 
 from app.db import model, utils as test_module
 from app.db.model import Person, PlatformUser
+from app.db.types import EntityType
 from app.queries.utils import get_or_create_user, get_user
 from app.schemas.auth import UserProfile
 
@@ -26,6 +27,17 @@ from app.schemas.auth import UserProfile
 def test_authorized_project_id_declaring_class(cls, parent_cls):
     result_cls = test_module.get_authorized_project_id_declaring_class(cls)
     assert result_cls is parent_cls
+
+
+def test_entity_type_to_class():
+    assert set(test_module.ENTITY_TYPE_TO_CLASS) == set(EntityType)
+    assert (
+        test_module.ENTITY_TYPE_TO_CLASS[EntityType.cell_morphology_protocol]
+        is model.CellMorphologyProtocol
+    )
+    for entity_type, cls in test_module.ENTITY_TYPE_TO_CLASS.items():
+        assert cls.__tablename__ == entity_type
+        assert not sa.inspect(cls).single
 
 
 def _profile(sub: uuid.UUID, name: str = "John Doe") -> UserProfile:

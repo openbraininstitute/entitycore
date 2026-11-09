@@ -10,6 +10,7 @@ from app.db.model import (
 )
 from app.db.types import (
     CellMorphologyGenerationType,
+    DerivationType,
     EntityLifecycleStatus,
     EntityType,
     ModifiedMorphologyMethodType,
@@ -445,3 +446,27 @@ def test_delete_one(db, clients, json_data):
             CellMorphologyProtocol: 0,
         },
     )
+
+
+@pytest.mark.parametrize(
+    "json_data_fixture",
+    [
+        "json_data_digital_reconstruction",
+        "json_data_modified_reconstruction",
+        "json_data_computationally_synthesized",
+        "json_data_placeholder",
+    ],
+)
+def test_entity_routes_of_each_generation_type(request, client, json_data_fixture):
+    json_data = request.getfixturevalue(json_data_fixture)
+    entity_id = assert_request(client.post, url=ROUTE, json=json_data).json()["id"]
+
+    data = assert_request(client.get, url=f"{ROUTE}/{entity_id}/assets").json()
+    assert data["data"] == []
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}/{entity_id}/derived-from",
+        params={"derivation_type": DerivationType.unspecified},
+    ).json()
+    assert data["data"] == []

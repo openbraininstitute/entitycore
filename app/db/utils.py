@@ -56,7 +56,8 @@ MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     EntityType[mapper.class_.__tablename__]: mapper.class_
     for mapper in Base.registry.mappers
-    if hasattr(EntityType, mapper.class_.__tablename__)
+    # skip the single-table subclasses, sharing the table name of their parent
+    if hasattr(EntityType, mapper.class_.__tablename__) and not mapper.single
 }
 
 

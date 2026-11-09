@@ -123,28 +123,6 @@ def test_expand_enum():
     assert enum("expandable_species.embedding").name == "expandable_species___embedding"
 
 
-def test_expand_enum_name_guard():
-    class SharedEntityTestRead(DerivationReadMixin):
-        id: uuid.UUID
-
-    enum = test_module.expand_enum(SharedEntityTestRead, Circuit)
-    assert enum.__name__ == "SharedEntityTestReadExpand"
-    assert test_module.expand_enum(SharedEntityTestRead, Circuit) is enum
-    # without the cache, the same values with the same name are fine
-    assert test_module.expand_enum.__wrapped__(SharedEntityTestRead, Circuit).__name__ == (
-        "SharedEntityTestReadExpand"
-    )
-    # other values for the same name
-    with pytest.raises(
-        TypeError,
-        match=(
-            "SharedEntityTestReadExpand: the values for SharedEntityTestRead and CellMorphology "
-            "differ"
-        ),
-    ):
-        test_module.expand_enum(SharedEntityTestRead, CellMorphology)
-
-
 def test_expand_enum_without_expandable_fields():
     class NotExpandableRead(Schema):
         id: uuid.UUID
@@ -467,3 +445,18 @@ def test_openapi_expand_param():
     assert "measurement_annotation" in morphology["properties"]
     assert "measurement_annotation" not in morphology["required"]
     assert "CellMorphologyAnnotationExpandedRead" not in components
+
+
+def test_openapi_expand_enum_names():
+    # two different enums with the same name, e.g. a Read schema returned for two models with
+    # different values, get names qualified by the module: `app__queries__expand__<name>__1`
+    schema = app.openapi()
+    refs = {
+        param["schema"]["anyOf"][0]["items"]["$ref"].rpartition("/")[2]
+        for operations in schema["paths"].values()
+        for operation in operations.values()
+        for param in operation.get("parameters", [])
+        if param["name"] == "expand"
+    }
+    assert len(refs) > 1
+    assert [ref for ref in refs if not re.fullmatch(r"[A-Za-z0-9]+Expand", ref)] == []

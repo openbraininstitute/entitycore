@@ -178,7 +178,11 @@ def _walk(
                 custom_load = _CustomLoad(attr=attr, loader=custom.load)
                 yield (
                     path,
-                    _ExpandPlan(steps=steps, custom=custom_load, qualifiers=custom.qualifiers),
+                    _ExpandPlan(
+                        steps=steps,
+                        custom=custom_load,
+                        qualifiers=custom.qualifiers(mapper.class_),
+                    ),
                 )
                 continue
             step = _Step(attr=attr, strategy=_expandable_strategy(path, prop))

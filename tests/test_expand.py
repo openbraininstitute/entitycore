@@ -1,5 +1,6 @@
 import re
 import uuid
+from dataclasses import replace
 from typing import Annotated, get_args
 
 import pytest
@@ -8,13 +9,14 @@ from pydantic import MISSING, AliasPath, Field, ValidationError
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.application import app
-from app.db.model import CellMorphology, Circuit, Species, Strain
+from app.db.model import CellMorphology, Circuit, EModel, MEModel, Species, Strain
 from app.db.types import DerivationType
 from app.queries import expand as test_module, expand_loaders
 from app.queries.expand_loaders import ExpandContext
 from app.schemas.base import ExpandableSchema, Schema
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.circuit import CircuitRead
+from app.schemas.entity import DerivationReadMixin
 from app.schemas.expand import Expandable, ExpandLoaderName
 
 DERIVATION_VALUES = {
@@ -145,9 +147,36 @@ def test_collected_loader_names():
 
 def test_custom_loaders():
     loaders = expand_loaders.CUSTOM_LOADERS
-    assert loaders["generated_from_derivations"].qualifiers == tuple(DerivationType)
-    assert loaders["used_by_derivations"].qualifiers == tuple(DerivationType)
-    assert loaders["measurement_annotation"].qualifiers == ()
+    assert loaders["generated_from_derivations"].qualifiers(Circuit) == tuple(DerivationType)
+    assert loaders["used_by_derivations"].qualifiers(Circuit) == tuple(DerivationType)
+    assert loaders["measurement_annotation"].qualifiers(CellMorphology) == ()
+
+
+def test_custom_loader_qualifiers_of_each_level(monkeypatch):
+    class EModelTestRead(DerivationReadMixin):
+        id: uuid.UUID
+
+    class MEModelTestRead(DerivationReadMixin):
+        id: uuid.UUID
+        emodel: EModelTestRead
+
+    received = []
+
+    def qualifiers(db_model_class):
+        received.append(db_model_class)
+        return (db_model_class.__tablename__,)
+
+    loaders = dict(expand_loaders.CUSTOM_LOADERS)
+    loaders["generated_from_derivations"] = replace(
+        loaders["generated_from_derivations"], qualifiers=qualifiers
+    )
+    monkeypatch.setattr(test_module, "CUSTOM_LOADERS", loaders)
+
+    values = test_module.allowed_expand_paths(MEModelTestRead, MEModel)
+    assert received == [MEModel, EModel]
+    assert "generated_from_derivations:memodel" in values
+    assert "emodel.generated_from_derivations:emodel" in values
+    assert "emodel.generated_from_derivations:memodel" not in values
 
 
 def _schema_subclasses(cls):

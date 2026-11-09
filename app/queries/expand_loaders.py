@@ -13,6 +13,7 @@ from typing import Any, Literal, Protocol
 from sqlalchemy import orm
 
 from app.db.auth import is_public_or_in_projects
+from app.db.model import Base
 from app.db.types import DerivationType
 from app.schemas.expand import ExpandLoaderName
 
@@ -85,17 +86,43 @@ class ExpandLoader(Protocol):
         ...
 
 
+class ExpandQualifiers(Protocol):
+    """Returns the qualifiers accepted by an expandable field with a custom loader."""
+
+    def __call__(self, db_model_class: type[Base], /) -> tuple[str, ...]:
+        """Return the qualifiers accepted after `:` in the expand values of the field.
+
+        Called when the expand plans are built, at startup.
+
+        Args:
+            db_model_class: ORM class declaring the field, at the level of the path.
+
+        Example:
+            >>> def qualifiers(db_model_class):
+            ...     return ("circuit_extraction",) if db_model_class is Circuit else ()
+        """
+        ...
+
+
+def _no_qualifiers(_db_model_class: type[Base], /) -> tuple[str, ...]:
+    return ()
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CustomLoader:
     """Custom loading of the expandable fields naming it in their `Expandable` marker.
 
     Attributes:
         load: builder of the loader options.
-        qualifiers: values accepted after `:` in the expand values of the field.
+        qualifiers: returns the values accepted after `:` in the expand values of the field.
     """
 
     load: ExpandLoader
-    qualifiers: tuple[str, ...] = ()
+    qualifiers: ExpandQualifiers = _no_qualifiers
+
+
+def _all_derivation_types(_db_model_class: type[Base], /) -> tuple[str, ...]:
+    return tuple(DerivationType)
 
 
 def _derivation_loader(other_side: str) -> ExpandLoader:
@@ -160,10 +187,10 @@ def _measurement_annotation_loader(
 
 CUSTOM_LOADERS: Mapping[ExpandLoaderName, CustomLoader] = {
     "generated_from_derivations": CustomLoader(
-        load=_derivation_loader("used"), qualifiers=tuple(DerivationType)
+        load=_derivation_loader("used"), qualifiers=_all_derivation_types
     ),
     "used_by_derivations": CustomLoader(
-        load=_derivation_loader("generated"), qualifiers=tuple(DerivationType)
+        load=_derivation_loader("generated"), qualifiers=_all_derivation_types
     ),
     "measurement_annotation": CustomLoader(load=_measurement_annotation_loader),
 }

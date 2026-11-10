@@ -19,6 +19,7 @@ class HeaderKey(StrEnum):
     content_encoding = "Content-Encoding"
     etag = "ETag"
     cache_control = "Cache-Control"
+    vary = "Vary"
     if_none_match = "If-None-Match"
 
 

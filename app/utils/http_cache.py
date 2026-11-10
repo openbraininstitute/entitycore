@@ -1,6 +1,7 @@
 """Utilities for HTTP caching with ETags."""
 
 import hashlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Self
@@ -10,13 +11,22 @@ from starlette.responses import Response
 
 from app.schemas.types import HeaderKey
 
-# Clients can store the response, but they must revalidate it before using it.
-CACHE_CONTROL = "private, no-cache"
 # Weak ETag: same content, but the body can be compressed.
 WEAK_ETAG_PREFIX = "W/"
 NOT_MODIFIED_RESPONSE: dict[int | str, dict] = {
     HTTPStatus.NOT_MODIFIED: {"description": "Not modified, the ETag in If-None-Match is current"}
 }
+
+
+def make_cache_control(max_age_seconds: int = 0) -> str:
+    """Return the Cache-Control value for a private response.
+
+    Without max_age_seconds, clients can store the response but must revalidate it before
+    using it. Otherwise, they can reuse it without asking the server for that many seconds.
+    """
+    if max_age_seconds <= 0:
+        return "private, no-cache"
+    return f"private, max-age={max_age_seconds}"
 
 
 def make_etag(content: bytes) -> str:
@@ -52,12 +62,24 @@ class CachedJson:
         """Return the size of the content in bytes."""
         return len(self.content)
 
-    def to_response(self, request: Request) -> Response:
-        """Return a new response, or 304 Not Modified if the client already has the content."""
+    def to_response(
+        self, request: Request, *, max_age_seconds: int = 0, vary: Sequence[str] = ()
+    ) -> Response:
+        """Return a new response, or 304 Not Modified if the client already has the content.
+
+        Args:
+            request: The incoming request, used to evaluate If-None-Match.
+            max_age_seconds: Seconds during which the client can reuse the content without
+                asking the server. If 0, the client must revalidate it on every use.
+            vary: Names of the request headers that change the content, for example
+                ``("virtual-lab-id", "project-id")``.
+        """
         headers: dict[str, str] = {
             HeaderKey.etag: self.etag,
-            HeaderKey.cache_control: CACHE_CONTROL,
+            HeaderKey.cache_control: make_cache_control(max_age_seconds),
         }
+        if vary:
+            headers[HeaderKey.vary] = ", ".join(vary)
         if etag_matches(request.headers.get(HeaderKey.if_none_match), self.etag):
             return Response(status_code=HTTPStatus.NOT_MODIFIED, headers=headers)
         return Response(content=self.content, media_type="application/json", headers=headers)

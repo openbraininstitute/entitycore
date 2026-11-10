@@ -313,7 +313,12 @@ def read_many_region(
         pagination_request=pagination_request,
         brain_atlas_region_filter=brain_atlas_region_filter,
     )
-    return cached.to_response(request)
+    # The regions visible depend on the project, so the browser must key its copy on the headers.
+    return cached.to_response(
+        request,
+        max_age_seconds=settings.BRAIN_ATLAS_REGIONS_BROWSER_MAX_AGE_SECONDS,
+        vary=("virtual-lab-id", "project-id"),
+    )
 
 
 def read_one_region(

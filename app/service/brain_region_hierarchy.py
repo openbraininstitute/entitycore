@@ -7,6 +7,7 @@ from fastapi import HTTPException, Request, Response
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
+from app.config import settings
 from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import FacetsDep, PaginationQuery
@@ -154,7 +155,7 @@ def read_hierarchy(
     if (cached := HIERARCHY_CACHE.get(id_)) is None:
         cached = CachedJson.from_content(_build_hierarchy_json(db=db, id_=id_))
         HIERARCHY_CACHE[id_] = cached
-    return cached.to_response(request)
+    return cached.to_response(request, max_age_seconds=settings.HIERARCHY_BROWSER_MAX_AGE_SECONDS)
 
 
 def _build_hierarchy_json(*, db: SessionDep, id_: uuid.UUID) -> bytes:

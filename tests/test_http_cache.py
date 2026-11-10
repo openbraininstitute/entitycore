@@ -1,13 +1,21 @@
 import pytest
 
 import app.service.brain_atlas as brain_atlas_service
+from app.config import settings
 from app.db.model import BrainAtlasRegion
-from app.utils.http_cache import CACHE_CONTROL, CachedJson, etag_matches, make_etag
+from app.utils.http_cache import (
+    CachedJson,
+    etag_matches,
+    make_cache_control,
+    make_etag,
+)
 
 from tests import test_brain_region, utils
 
 HIERARCHY_ROUTE = "/brain-region-hierarchy"
 ATLAS_ROUTE = "/brain-atlas"
+HIERARCHY_CACHE_CONTROL = make_cache_control(settings.HIERARCHY_BROWSER_MAX_AGE_SECONDS)
+REGIONS_CACHE_CONTROL = make_cache_control(settings.BRAIN_ATLAS_REGIONS_BROWSER_MAX_AGE_SECONDS)
 
 
 @pytest.fixture
@@ -49,6 +57,10 @@ def regions_url(brain_atlas_id):
     return f"{ATLAS_ROUTE}/{brain_atlas_id}/regions"
 
 
+def _vary(response):
+    return {v.strip().lower() for v in response.headers.get("vary", "").split(",")}
+
+
 def _ids(response):
     return {item["id"] for item in response.json()["data"]}
 
@@ -78,6 +90,12 @@ def test_etag_matches(if_none_match, expected):
     assert etag_matches(if_none_match, 'W/"abc"') is expected
 
 
+def test_make_cache_control():
+    assert make_cache_control(0) == "private, no-cache"
+    assert make_cache_control(-1) == "private, no-cache"
+    assert make_cache_control(600) == "private, max-age=600"
+
+
 def test_cached_json_from_content():
     cached = CachedJson.from_content(b"{}")
     assert cached.content == b"{}"
@@ -89,13 +107,14 @@ def test_hierarchy_etag(client, hierarchy_url):
     response = utils.assert_request(client.get, url=hierarchy_url)
     etag = response.headers["etag"]
     assert etag.startswith('W/"')
-    assert response.headers["cache-control"] == CACHE_CONTROL
+    assert response.headers["cache-control"] == HIERARCHY_CACHE_CONTROL
+    assert "project-id" not in response.headers.get("vary", "").lower()
 
     response = client.get(hierarchy_url, headers={"If-None-Match": etag})
     assert response.status_code == 304
     assert response.content == b""
     assert response.headers["etag"] == etag
-    assert response.headers["cache-control"] == CACHE_CONTROL
+    assert response.headers["cache-control"] == HIERARCHY_CACHE_CONTROL
     assert "content-encoding" not in response.headers
 
     response = client.get(hierarchy_url, headers={"If-None-Match": 'W/"stale"'})
@@ -110,13 +129,15 @@ def test_regions_etag(client, add_region, regions_url):
 
     response = utils.assert_request(client.get, url=regions_url)
     etag = response.headers["etag"]
-    assert response.headers["cache-control"] == CACHE_CONTROL
+    assert response.headers["cache-control"] == REGIONS_CACHE_CONTROL
     assert _ids(response) == {str(region.id)}
 
     response = client.get(regions_url, headers={"If-None-Match": etag})
     assert response.status_code == 304
     assert response.content == b""
     assert response.headers["etag"] == etag
+    assert response.headers["cache-control"] == REGIONS_CACHE_CONTROL
+    assert _vary(response) >= {"virtual-lab-id", "project-id"}
 
     response = client.get(regions_url, headers={"If-None-Match": 'W/"stale"'})
     assert response.status_code == 200

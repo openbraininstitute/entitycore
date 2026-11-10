@@ -105,6 +105,10 @@ class Settings(BaseSettings):
     COMPRESSION_ENABLED: bool = True
     BRAIN_ATLAS_REGIONS_CACHE_MAXSIZE_BYTES: int = 64 * 1024 * 1024
     BRAIN_ATLAS_REGIONS_CACHE_TTL_SECONDS: int = 3600
+    # Browser freshness lifetimes, 0 means that the browser revalidates on every use.
+    # Hierarchies aren't updated, so they can be kept for longer than the atlas regions.
+    HIERARCHY_BROWSER_MAX_AGE_SECONDS: int = 86400
+    BRAIN_ATLAS_REGIONS_BROWSER_MAX_AGE_SECONDS: int = 600
 
     OPENAI_API_KEY: SecretStr | None = None
 

@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 30
     DB_POOL_PRE_PING: bool = False
     DB_MAX_OVERFLOW: int = 10
+    # Maximum duration of a single SQL statement, 0 disables the limit. Longer statements are
+    # cancelled by PostgreSQL, and the request fails with a 504 error.
+    DB_STATEMENT_TIMEOUT_MS: int = 60_000
     TRACEMALLOC_ENABLED: bool = False
     TRACEMALLOC_TOP_N: int = 20
     GC_CONTROL_ENABLED: bool = True

@@ -60,6 +60,13 @@ class DatabaseSessionManager:
                 session.commit()
 
 
+def _statement_timeout_connect_args() -> dict[str, str]:
+    """Return the connect args that set the statement timeout on every new connection."""
+    if settings.DB_STATEMENT_TIMEOUT_MS <= 0:
+        return {}
+    return {"options": f"-c statement_timeout={settings.DB_STATEMENT_TIMEOUT_MS}"}
+
+
 def configure_database_session_manager(**kwargs) -> DatabaseSessionManager:
     database_session_manager = DatabaseSessionManager()
     database_session_manager.initialize(
@@ -68,6 +75,7 @@ def configure_database_session_manager(**kwargs) -> DatabaseSessionManager:
             "pool_size": settings.DB_POOL_SIZE,
             "pool_pre_ping": settings.DB_POOL_PRE_PING,
             "max_overflow": settings.DB_MAX_OVERFLOW,
+            "connect_args": _statement_timeout_connect_args(),
             **kwargs,
         },
     )

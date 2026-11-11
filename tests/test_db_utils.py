@@ -84,3 +84,36 @@ def test_get_user__found(db):
 
 def test_get_user__not_found(db):
     assert get_user(db, uuid.uuid4()) is None
+
+
+@pytest.mark.parametrize(
+    ("db_model_class", "expected"),
+    [
+        (model.Circuit, (EntityType.circuit,)),
+        (model.CellMorphologyProtocol, (EntityType.cell_morphology_protocol,)),
+        (
+            model.ElectricalRecording,
+            (
+                EntityType.electrical_cell_recording,
+                EntityType.electrical_recording,
+                EntityType.ion_channel_recording,
+            ),
+        ),
+        (model.ExternalUrl, (EntityType.external_url,)),
+    ],
+)
+def test_get_entity_types(db_model_class, expected):
+    assert test_module.get_entity_types(db_model_class) == expected
+
+
+def test_get_entity_types_raises():
+    with pytest.raises(TypeError, match="Strain is not an entity class"):
+        test_module.get_entity_types(model.Strain)
+
+
+@pytest.mark.usefixtures("morphology_id")
+def test_get_entity_types_match_the_stored_types(db):
+    for db_model_class in (model.CellMorphology, model.ScientificArtifact):
+        stored = set(db.execute(sa.select(model.Entity.type).select_from(db_model_class)).scalars())
+        assert stored
+        assert stored <= set(test_module.get_entity_types(db_model_class))

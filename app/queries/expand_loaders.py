@@ -14,8 +14,8 @@ from sqlalchemy import orm
 
 from app.db.auth import is_public_or_in_projects
 from app.db.model import Base
-from app.db.types import DERIVATION_TYPE_RULES, DerivationType, EntityType
-from app.db.utils import ENTITY_TYPE_TO_CLASS
+from app.db.types import DERIVATION_TYPE_RULES, DerivationType
+from app.db.utils import get_entity_types
 from app.schemas.expand import ExpandLoaderName
 
 type LoaderStrategy = Literal["defaultload", "joinedload", "selectinload", "undefer"]
@@ -122,38 +122,17 @@ class CustomLoader:
     qualifiers: ExpandQualifiers = _no_qualifiers
 
 
-def _entity_types(db_model_class: type[Base]) -> frozenset[EntityType]:
-    """Return the entity types of an ORM class and of its subclasses.
-
-    Raises:
-        TypeError: if db_model_class isn't an entity class.
-
-    Example:
-        >>> _entity_types(ElectricalRecording)
-        frozenset({'electrical_recording', 'electrical_cell_recording', 'ion_channel_recording'})
-    """
-    entity_types = frozenset(
-        entity_type
-        for entity_type, entity_class in ENTITY_TYPE_TO_CLASS.items()
-        if issubclass(entity_class, db_model_class)
-    )
-    if not entity_types:
-        msg = f"{db_model_class.__name__} is not an entity class"
-        raise TypeError(msg)
-    return entity_types
-
-
 def _derivation_types(side: Literal["used", "generated"]) -> ExpandQualifiers:
     """Return the qualifiers of a derivation list: the types allowing the entity on side."""
 
     def qualifiers(db_model_class: type[Base], /) -> tuple[str, ...]:
-        entity_types = _entity_types(db_model_class)
+        entity_types = get_entity_types(db_model_class)
         return tuple(
             derivation_type
             for derivation_type in DerivationType
             # None: any entity type is allowed on that side
             if (allowed := getattr(DERIVATION_TYPE_RULES[derivation_type], side)) is None
-            or allowed & entity_types
+            or not allowed.isdisjoint(entity_types)
         )
 
     return qualifiers

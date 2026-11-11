@@ -637,6 +637,13 @@ class Entity(LegacyMixin, Identifiable):
                     "id",
                     postgresql_where=sa.text("authorized_public = true"),
                 ),
+                # used when listing the entities of a given type, ordered by creation date
+                Index(
+                    "ix_entity_type_creation_date_id",
+                    "type",
+                    sa.literal_column("creation_date DESC"),
+                    "id",
+                ),
                 *args,
             )
         return args

@@ -100,13 +100,11 @@ async def query_timeout_handler(request: Request, exception: OperationalError) -
     if not isinstance(exception.orig, QueryCanceled):
         raise exception
     error = ApiError(
-        message=(
-            "The database query took too long and was cancelled. "
-            "Try again with more specific filters."
-        ),
+        message="The database query took too long and was cancelled",
         error_code=ApiErrorCode.QUERY_TIMEOUT,
         http_status_code=HTTPStatus.GATEWAY_TIMEOUT,
         details={"statement_timeout_ms": settings.DB_STATEMENT_TIMEOUT_MS},
+        log_level="ERROR",
     )
     error.__cause__ = exception
     return await api_error_handler(request, error)

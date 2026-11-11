@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Collection, Iterable
 from http import HTTPStatus
 from typing import Annotated, Any, Protocol
 
@@ -19,9 +20,9 @@ from app.schemas.types import Facet, Facets, PaginationRequest
 
 
 class BuildFacetQuery(Protocol):
-    """Build a facet query with the given facet key."""
+    """Build a query with the joins needed by all the given facet keys."""
 
-    def __call__(self, *, facet_key: str) -> sa.Select: ...
+    def __call__(self, *, facet_keys: Iterable[str]) -> sa.Select: ...
 
 
 def forbid_extra_query_params(
@@ -70,39 +71,99 @@ def forbid_extra_query_params(
         )
 
 
+def _get_facets_group(
+    db: Session,
+    build_facet_query: BuildFacetQuery,
+    name_to_facet_query_params: FacetQueryParamsMap,
+    count_distinct_field: sa.SQLColumnExpression,
+) -> dict[str, list[Facet]]:
+    """Return the facets of the given keys, computed with a single query using GROUPING SETS.
+
+    The rows are filtered and joined only once, and then aggregated once for each facet key.
+    The result is the same of running a separate query for each key, but it avoids scanning
+    the same rows many times.
+    """
+    facet_types = list(name_to_facet_query_params)
+    id_columns: list[sa.ColumnElement] = []
+    label_columns: list[sa.ColumnElement] = []
+    type_columns: list[sa.ColumnElement | None] = []
+    grouping_sets: list[sa.Tuple] = []
+    for i, fields in enumerate(name_to_facet_query_params.values()):
+        id_column = fields["id"].label(f"id_{i}")
+        label_column = fields["label"].label(f"label_{i}")
+        # the type is the facet key, unless the facet defines its own type column
+        type_column = fields["type"].label(f"type_{i}") if "type" in fields else None
+        id_columns.append(id_column)
+        label_columns.append(label_column)
+        type_columns.append(type_column)
+        group_columns = [id_column, label_column]
+        if type_column is not None:
+            group_columns.append(type_column)
+        grouping_sets.append(sa.tuple_(*group_columns))
+
+    facet_q = build_facet_query(facet_keys=facet_types).with_only_columns(
+        # bit i is 0 if the row belongs to the grouping set i, and 1 otherwise
+        sa.func.grouping(*id_columns).label("grouping"),
+        *id_columns,
+        *label_columns,
+        *(c for c in type_columns if c is not None),
+        sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
+    )
+    # The rows of each facet have NULL in the labels of the other facets, so ordering by all the
+    # labels in turn orders the rows of each facet by its own label. The id makes it deterministic.
+    order_columns = [c for pair in zip(label_columns, id_columns, strict=True) for c in pair]
+    facet_q = facet_q.group_by(sa.func.grouping_sets(*grouping_sets)).order_by(*order_columns)
+
+    facets_by_type: dict[str, list[Facet]] = {facet_type: [] for facet_type in facet_types}
+    last_index = len(facet_types) - 1
+    for row in db.execute(facet_q).mappings():
+        # find the only bit set to 0 in the grouping value
+        index = next(
+            i for i in range(len(facet_types)) if not row["grouping"] >> (last_index - i) & 1
+        )
+        # exclude null rows if present
+        if row[f"id_{index}"] is not None:
+            type_column = type_columns[index]
+            facets_by_type[facet_types[index]].append(
+                Facet(
+                    id=row[f"id_{index}"],
+                    label=row[f"label_{index}"],
+                    count=row["count"],
+                    type=facet_types[index] if type_column is None else row[f"type_{index}"],
+                )
+            )
+    return facets_by_type
+
+
 def _get_facets(
     db: Session,
     build_facet_query: BuildFacetQuery,
     name_to_facet_query_params: FacetQueryParamsMap,
     count_distinct_field: sa.SQLColumnExpression,
+    multi_valued_facet_keys: Collection[str],
 ) -> Facets:
-    facets = {}
-    groupby_keys = ["id", "label", "type"]
-    orderby_keys = ["label"]
-    for facet_type, fields in name_to_facet_query_params.items():
-        groupby_fields = {"type": sa.literal(facet_type), **fields}
-        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
-        # literal_column renders inline ordinals (GROUP BY 1, 2, 3); sa.literal emits bound params
-        groupby_ids = [sa.literal_column(str(i + 1)) for i in range(len(groupby_columns))]
-        facet_q = build_facet_query(facet_key=facet_type)
-        # ensure that only the required columns are selected
-        facet_q = (
-            facet_q.with_only_columns(
-                *groupby_columns,
-                sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
-            )
-            .group_by(*groupby_ids)
-            .order_by(*orderby_keys)
-        )
+    """Return the facets of all the keys, using as few queries as possible.
 
-        # use only the inner name as the key, in case of nested filters
-        facets[facet_type.rsplit(".", maxsplit=1)[-1]] = [
-            Facet.model_validate(row, from_attributes=True)
-            for row in db.execute(facet_q).all()
-            if row.id is not None  # exclude null rows if present
-        ]
-
-    return facets
+    The keys that join a one-to-many relationship multiply the rows of the query, so they cannot
+    be computed together without multiplying the rows by each of them.
+    Each of them is computed in a separate query, and the first one also includes all the other
+    keys.
+    """
+    params = name_to_facet_query_params
+    single_valued = {k: v for k, v in params.items() if k not in multi_valued_facet_keys}
+    multi_valued = [k for k in params if k in multi_valued_facet_keys]
+    groups = [single_valued] if single_valued else []
+    if multi_valued:
+        groups = [{**single_valued, multi_valued[0]: params[multi_valued[0]]}]
+        groups.extend({key: params[key]} for key in multi_valued[1:])
+    facets_by_type: dict[str, list[Facet]] = {}
+    for group in groups:
+        facets_by_type.update(_get_facets_group(db, build_facet_query, group, count_distinct_field))
+    # use only the inner name as the key, in case of nested filters
+    return {
+        facet_type.rsplit(".", maxsplit=1)[-1]: facets_by_type[facet_type]
+        for facet_type in name_to_facet_query_params
+    }
 
 
 class WithFacets(BaseModel):
@@ -114,6 +175,7 @@ class WithFacets(BaseModel):
         build_facet_query: BuildFacetQuery,
         name_to_facet_query_params: FacetQueryParamsMap,
         count_distinct_field: sa.SQLColumnExpression,
+        multi_valued_facet_keys: Collection[str],
     ):
         if not self.with_facets:
             return None
@@ -123,6 +185,7 @@ class WithFacets(BaseModel):
             build_facet_query,
             name_to_facet_query_params,
             count_distinct_field,
+            multi_valued_facet_keys,
         )
 
 

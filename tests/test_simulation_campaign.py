@@ -295,6 +295,17 @@ def campaigns_with_different_circuits(db, json_data, user_id, multiple_circuits)
     return campaigns
 
 
+def test_facets_include_campaigns_without_simulations(client, create_id):
+    create_id(name="campaign-1")
+    create_id(name="campaign-2")
+
+    data = assert_request(client.get, url=ROUTE, params={"with_facets": True}).json()
+
+    assert data["pagination"]["total_items"] == 2
+    assert [facet["count"] for facet in data["facets"]["created_by"]] == [2]
+    assert data["facets"]["simulation"] == []
+
+
 def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multiple_circuits):  # ruff:ignore[unused-function-argument]
     first_circuit_id = str(multiple_circuits[0].id)
 

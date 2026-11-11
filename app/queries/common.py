@@ -38,7 +38,7 @@ from app.queries.alias_registry import Aliases
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.expand import ExpandPaths, apply_expand, unrequested_loaded_attrs
 from app.queries.expand_loaders import ExpandContext
-from app.queries.filter import filter_from_db
+from app.queries.filter import filter_from_db, multi_valued_facet_keys
 from app.queries.types import (
     ApplyOperations,
     FacetQueryParamsMap,
@@ -456,9 +456,9 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     base_query = filter_query
     description_vector = getattr(db_model_class, "description_vector", None)
 
-    def _apply_filters(q: sa.Select, *, facet_key: str | None = None) -> sa.Select:
+    def _apply_filters(q: sa.Select, *, facet_keys: Iterable[str] = ()) -> sa.Select:
         if join_specs:
-            q = filter_from_db(q, filter_model, join_specs, facet_key=facet_key)
+            q = filter_from_db(q, filter_model, join_specs, facet_keys=facet_keys)
         q = filter_model.filter(q, aliases=aliases)
         if with_search and description_vector:
             q = with_search(q, description_vector)
@@ -495,9 +495,14 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
     if facets and name_to_facet_query_params:
         facets_result = facets(
             db,
-            build_facet_query=lambda facet_key: _apply_filters(base_query, facet_key=facet_key),
+            build_facet_query=lambda facet_keys: _apply_filters(base_query, facet_keys=facet_keys),
             name_to_facet_query_params=name_to_facet_query_params,
             count_distinct_field=db_model_class.id,
+            multi_valued_facet_keys=(
+                multi_valued_facet_keys(base_query, join_specs, name_to_facet_query_params)
+                if join_specs
+                else set(name_to_facet_query_params)
+            ),
         )
     return ListResponse[T](
         data=[response_schema_class.model_validate(row) for row in data],

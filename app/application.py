@@ -12,6 +12,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import iter_route_contexts
+from psycopg.errors import QueryCanceled
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import configure_mappers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
@@ -90,6 +92,24 @@ async def api_error_handler(request: Request, exception: ApiError) -> Response:
     )
 
 
+async def query_timeout_handler(request: Request, exception: OperationalError) -> Response:
+    """Return a 504 error when PostgreSQL cancelled a statement, because of the timeout.
+
+    Any other operational error is raised again, to be handled as an unexpected error.
+    """
+    if not isinstance(exception.orig, QueryCanceled):
+        raise exception
+    error = ApiError(
+        message="The database query took too long and was cancelled",
+        error_code=ApiErrorCode.QUERY_TIMEOUT,
+        http_status_code=HTTPStatus.GATEWAY_TIMEOUT,
+        details={"statement_timeout_ms": settings.DB_STATEMENT_TIMEOUT_MS},
+        log_level="ERROR",
+    )
+    error.__cause__ = exception
+    return await api_error_handler(request, error)
+
+
 async def validation_exception_handler(
     request: Request, exception: RequestValidationError
 ) -> Response:
@@ -147,6 +167,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         exception_handlers={
             ApiError: api_error_handler,
+            OperationalError: query_timeout_handler,
             RequestValidationError: validation_exception_handler,
             StarletteHTTPException: http_exception_handler,
         },

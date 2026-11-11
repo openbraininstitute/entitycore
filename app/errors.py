@@ -55,6 +55,7 @@ class ApiErrorCode(UpperStrEnum):
     S3_CANNOT_CREATE_PRESIGNED_URL = auto()
     OPENAI_API_KEY_MISSING = auto()
     OPENAI_API_ERROR = auto()
+    QUERY_TIMEOUT = auto()
 
 
 @dataclasses.dataclass(kw_only=True)

@@ -11,9 +11,10 @@ from app.db.auth import (
     constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
-from app.db.model import Activity, Identifiable
+from app.db.model import Activity, Entity, Identifiable
 from app.db.utils import (
     get_authorized_project_id_declaring_class,
+    get_entity_types,
     load_db_model_from_pydantic,
     update_model,
 )
@@ -430,6 +431,22 @@ def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-argume
             query=filter_query,
             project_id=authorized_project_id,
             db_model_class=id_model_class,
+        )
+
+    if issubclass(db_model_class, Entity) and db_model_class is not Entity:
+        # Redundant with the joined-table inheritance, but it allows using the indexes on
+        # entity that start with the type, instead of scanning the entities of all the types.
+        # The types are rendered as literals: psycopg prepares the statements executed several
+        # times, and PostgreSQL may then use a generic plan, estimated without knowing the types.
+        filter_query = filter_query.where(
+            Entity.type.in_(
+                sa.bindparam(
+                    None,
+                    get_entity_types(db_model_class),
+                    expanding=True,
+                    literal_execute=True,
+                )
+            )
         )
 
     if apply_filter_query_operations:

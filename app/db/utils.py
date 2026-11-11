@@ -1,3 +1,4 @@
+import functools
 import uuid
 from enum import StrEnum
 from typing import cast
@@ -174,6 +175,32 @@ def get_authorized_project_id_declaring_class(
         return None
 
     return class_mapper(db_model_class).get_property("authorized_project_id").parent.class_
+
+
+@functools.cache
+def get_entity_types(db_model_class: type[Base]) -> tuple[EntityType, ...]:
+    """Return the sorted entity types of an ORM class and of its subclasses.
+
+    The result is cached, and it's a tuple so that it can't be modified by the callers.
+
+    Raises:
+        TypeError: if db_model_class isn't an entity class.
+
+    Example:
+        >>> get_entity_types(ElectricalRecording)
+        ('electrical_cell_recording', 'electrical_recording', 'ion_channel_recording')
+    """
+    entity_types = tuple(
+        sorted(
+            entity_type
+            for entity_type, entity_class in ENTITY_TYPE_TO_CLASS.items()
+            if issubclass(entity_class, db_model_class)
+        )
+    )
+    if not entity_types:
+        msg = f"{db_model_class.__name__} is not an entity class"
+        raise TypeError(msg)
+    return entity_types
 
 
 def allowed_asset_labels_for(entity: Entity) -> dict[AssetLabel, list[LabelRequirements]] | None:

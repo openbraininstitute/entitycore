@@ -53,10 +53,12 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 ## Consequences
 
 - Service admins can use the admin routes with the headers of a project they don't belong to.
-- On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache.
-- `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed; they were used only manually.
+- On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache. This goes away when those writes move to the admin routes (see Follow-ups).
+- `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed. They were used only by migration scripts through entitysdk `register_entity`, which needs `admin=True` to use the admin route.
 - The resources without a project get a `POST /admin/<route>` behaving as their user create.
 
 ## Follow-ups
 
+- entitysdk: add `admin=True` to `register_entity`, to use `POST /admin/<route>`. Needed by the admin create endpoints and by the move of the `em_dense_reconstruction_dataset` create.
+- entitycore: move the writes restricted to admins of the global resources and agents to the admin routes, as for `em_dense_reconstruction_dataset`. The global resources (brain regions and hierarchies, etypes, mtypes, ion channels, licenses, measurement labels, roles, species, strains) keep only the user read routes. Consortia, organizations, persons, publications and external URLs keep the user read and create routes, and their update and delete move to the admin routes. Then `AdminContextDep` is used only on the admin routes, and the token is verified once per request. The old routes are removed without a transition period: no active client uses them, and entitysdk users switch to `admin=True`.
 - Admin create for the associations (etype and mtype classifications, scientific artifact links).

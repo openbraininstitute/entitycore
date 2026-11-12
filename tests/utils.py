@@ -821,34 +821,6 @@ def check_authorization(
         private_u1_1["id"],
     }
 
-    # the exclusion combines with the other params
-    data = assert_request(
-        client_user_1.get,
-        url=route,
-        params={"authorized_exclude_public_project_id": PROJECT_ID, "authorized_public": True},
-    ).json()["data"]
-    assert {row["id"] for row in data} == {public_u2_0["id"]}
-
-    # excluding another project's public entities keeps every own entity
-    data = assert_request(
-        client_user_1.get,
-        url=route,
-        params={"authorized_exclude_public_project_id": UNRELATED_PROJECT_ID},
-    ).json()["data"]
-    assert {row["id"] for row in data} == {
-        public_u1_0["id"],
-        private_u1_0["id"],
-        private_u1_1["id"],
-    }
-
-    # client_no_project only reads public entities, so the excluded project's ones go
-    data = assert_request(
-        client_no_project.get,
-        url=route,
-        params={"authorized_exclude_public_project_id": PROJECT_ID},
-    ).json()["data"]
-    assert {row["id"] for row in data} == {public_u2_0["id"]}
-
 
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
     db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from operator import attrgetter
 from types import UnionType
@@ -10,7 +11,7 @@ from fastapi_filter.contrib.sqlalchemy.filter import (
 )
 from pydantic import field_validator
 from pydantic.fields import FieldInfo
-from sqlalchemy import Select, or_
+from sqlalchemy import ColumnElement, Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.queries.alias_registry import Aliases
@@ -19,9 +20,6 @@ from app.utils.pattern import convert_to_ilike_pattern
 NESTED_SEPARATOR = "__"
 ILIKE_SEARCH_FIELDS = ["name", "description"]
 ILIKE_SEARCH_FIELD_NAME = "ilike_search"
-# A filter method named CONDITION_PREFIX + field name returns that field's SQL condition,
-# for a field that is not one column compared with its value.
-CONDITION_PREFIX = "condition_"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -32,6 +30,20 @@ class Prefix:
     """
 
     value: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Condition:
+    """SQL condition of a filter field that is not one column compared with its value.
+
+    Example: `Annotated[uuid.UUID | None, Condition(build=lambda model, value: ...)]`
+    """
+
+    build: Callable[[Any, Any], ColumnElement[bool]]
+
+
+def field_condition(field_info: FieldInfo) -> Condition | None:
+    return next((meta for meta in field_info.metadata if isinstance(meta, Condition)), None)
 
 
 def _is_filter_type(annotation: Any) -> bool:
@@ -162,8 +174,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
             field_value = getattr(self, field_name)
             if isinstance(field_value, CustomFilter):
                 query = field_value.filter(query, aliases, _ancestors=(*_ancestors, field_name))
-            elif condition := getattr(self, f"{CONDITION_PREFIX}{field_name}", None):
-                query = query.filter(condition(model, value))
+            elif condition := field_condition(type(self).model_fields[field_name]):
+                query = query.filter(condition.build(model, value))
             else:
                 if "__" in field_name:
                     field_name, operator = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]

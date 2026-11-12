@@ -3,7 +3,9 @@ from datetime import datetime
 
 from fastapi import Query
 from pydantic import Field
+from sqlalchemy import ColumnElement, or_
 
+from app.db.auth import HasAuth, is_private
 from app.db.model import (
     Agent,
     ETypeClass,
@@ -22,6 +24,16 @@ class AuthorizedFilterMixin:
     authorized_public: bool | None = None
     authorized_project_id: uuid.UUID | None = None
     authorized_project_id__neq: uuid.UUID | None = None
+    authorized_exclude_public_project_id: uuid.UUID | None = Field(
+        Query(None, description="Exclude the public rows of this project."),
+    )
+
+    @staticmethod
+    def condition_authorized_exclude_public_project_id(
+        model: type[HasAuth], project_id: uuid.UUID
+    ) -> ColumnElement[bool]:
+        """NOT (public AND project = X), which the AND-only params above cannot express."""
+        return or_(is_private(model), model.authorized_project_id != project_id)
 
 
 class NameFilterMixin:

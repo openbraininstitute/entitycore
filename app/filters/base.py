@@ -19,6 +19,9 @@ from app.utils.pattern import convert_to_ilike_pattern
 NESTED_SEPARATOR = "__"
 ILIKE_SEARCH_FIELDS = ["name", "description"]
 ILIKE_SEARCH_FIELD_NAME = "ilike_search"
+# A filter method named CONDITION_PREFIX + field name returns that field's SQL condition,
+# for a field that is not one column compared with its value.
+CONDITION_PREFIX = "condition_"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -159,6 +162,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
             field_value = getattr(self, field_name)
             if isinstance(field_value, CustomFilter):
                 query = field_value.filter(query, aliases, _ancestors=(*_ancestors, field_name))
+            elif condition := getattr(self, f"{CONDITION_PREFIX}{field_name}", None):
+                query = query.filter(condition(model, value))
             else:
                 if "__" in field_name:
                     field_name, operator = field_name.split(NESTED_SEPARATOR)  # ruff:ignore[redefined-loop-name]

@@ -4,7 +4,7 @@
 - Date: 2026-11-12
 - Author: @GianlucaFicarelli
 - Issues: [prod-platform-architecture#231](https://github.com/openbraininstitute/prod-platform-architecture/issues/231)
-- Pull requests: preparation (this PR), admin create endpoints (follow-up)
+- Pull requests: [#765](https://github.com/openbraininstitute/entitycore/pull/765) (preparation), admin create endpoints (follow-up)
 
 ## Context
 

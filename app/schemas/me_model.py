@@ -7,6 +7,7 @@ from app.schemas.base import (
 )
 from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.cell_morphology import CellMorphologyRead
+from app.schemas.classification import ETypeClassIdsCreateMixin, MTypeClassIdsCreateMixin
 from app.schemas.emodel import EModelRead
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.memodel_calibration_result import NestedMEModelCalibrationResultRead
@@ -24,16 +25,24 @@ class NestedMEModel(MEModelBaseMixin, NestedEntityRead):
     etypes: list[ETypeClassRead] | None
 
 
-class MEModelCreate(MEModelBaseMixin, SpeciesStrainCreateMixin, EntityCreate):
+class MEModelCreateFields(MEModelBaseMixin, SpeciesStrainCreateMixin, EntityCreate):
     brain_region_id: uuid.UUID
     morphology_id: uuid.UUID
     emodel_id: uuid.UUID
 
 
-MEModelUserUpdate = make_update_schema(MEModelCreate, "MEModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
+class MEModelCreate(
+    MEModelCreateFields,
+    MTypeClassIdsCreateMixin,
+    ETypeClassIdsCreateMixin,
+):
+    pass
+
+
+MEModelUserUpdate = make_update_schema(MEModelCreateFields, "MEModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 MEModelAdminUpdate = make_update_schema(
-    MEModelCreate,
+    MEModelCreateFields,
     "MEModelAdminUpdate",
     excluded_fields=set(),
 )  # pyright : ignore [reportInvalidTypeForm]

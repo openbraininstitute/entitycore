@@ -35,6 +35,10 @@ from app.errors import (
 from app.filters.base import CustomFilter
 from app.queries import crud
 from app.queries.alias_registry import Aliases
+from app.queries.classification import (
+    classification_create_ignore_attributes,
+    create_classifications_from_create_model,
+)
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.expand import ExpandPaths, apply_expand, unrequested_loaded_attrs
 from app.queries.expand_loaders import ExpandContext
@@ -218,13 +222,17 @@ def router_create_one[T: Schema, I: Identifiable](
         else None
     )
 
+    ignore_attributes = set(nested_relationships or ()) | classification_create_ignore_attributes(
+        json_model
+    )
+
     db_model_instance = load_db_model_from_pydantic(
         json_model,
         db_model_class,
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
         authorized_project_id=project_id,
-        ignore_attributes=set(nested_relationships) if nested_relationships else None,
+        ignore_attributes=ignore_attributes or None,
     )
 
     if embedding is not None and hasattr(db_model_instance, "embedding"):
@@ -250,6 +258,13 @@ def router_create_one[T: Schema, I: Identifiable](
             project_id=getattr(db_model_instance, "authorized_project_id", None),
             action="create",
         )
+
+    create_classifications_from_create_model(
+        db,
+        entity_id=db_model_instance.id,
+        json_model=json_model,
+        user_context=user_context,
+    )
 
     if apply_operations or expand:
         expand_context = ExpandContext(

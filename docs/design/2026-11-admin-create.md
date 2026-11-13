@@ -20,7 +20,7 @@ In scope: an admin create endpoint for every entity and activity with `authorize
 
 The admin router depends on `user_with_service_admin_role`, which no longer goes through `user_verified`. Both call the same verification of the token with Keycloak; the admin dependency accepts a service admin when the only failure is the membership of the project in the headers.
 
-- When only `project-id` is given and the admin isn't a member, `virtual_lab_id` stays `None` in the context, because it can't be derived from the Keycloak groups.
+- When only `project-id` is given and the admin isn't a member, `virtual_lab_id` stays `None` in the context, because it can't be derived from the Keycloak groups. The admin create endpoints remove this case (see Admin contexts).
 - The user routes keep depending on `user_verified` at the router level, so admins have no special privilege there, also on the user routes restricted to admins (e.g. `POST /license`).
 - A test checks that no admin or debug route depends on `user_verified`.
 - The Keycloak result is cached also when the user isn't a member of the project. Its cache expiration now considers the token expiration in that case too, so that an expired token can't be accepted on the admin routes from the cache.
@@ -31,12 +31,20 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 
 - `project-id` is required, `virtual-lab-id` is optional, as in the user routes.
 - The project is checked with virtual-lab-manager, using the existing admin client (`AdminVirtualLabClient.get_virtual_lab_by_project`). An unknown project is rejected; when `virtual-lab-id` is given, it must be the virtual lab of the project.
-- `?skip_project_validation=true` skips the call to virtual-lab-manager, and with it the check of `virtual-lab-id`. It is available to service admins only, since the admin router requires the role.
+- `?skip_project_validation=true` skips the call to virtual-lab-manager. `virtual-lab-id` is then required, unless it can be derived from the Keycloak groups of the admin, and it's accepted as given. It is available to service admins only, since the admin router requires the role.
 - `created_by` and `updated_by` are the admin calling the endpoint.
 - The create logic is the same as the user routes, including the checks that the referenced entities are public or in the same project, and the database triggers.
-- `AdminContextWithProjectIdDep` is replaced by a single dependency with this behaviour; it's used only by `em_dense_reconstruction_dataset` today.
 - `admin_create_one` is added to the `AdminCrudService` protocol and registered by `register_default_admin_routes`. The resources without a project (global resources, agents, publications, external URLs) define `admin_create_one = create_one`: same behaviour as their user create, which is already admin-only or unrestricted, so all the admin routes have the same operations.
 - Services whose `create_one` has extra logic share it with `admin_create_one` through a private function.
+
+### Admin contexts
+
+No new context types: the admin dependencies return the existing schemas, and differ from the user ones only in the checks done before returning.
+
+- `AdminContextWithProjectIdDep` returns `UserContextWithProjectId`, with `virtual_lab_id` and `project_id` always set, as for the user create. It checks the admin role and validates the project as described above, instead of the Keycloak membership. It keeps its name and replaces the current implementation, used only by `em_dense_reconstruction_dataset`. It's used only by the admin create of the entities and activities.
+- `AdminContextDep` returns `UserContextBase`, without `virtual_lab_id`, `project_id` and the Keycloak project groups. The admin read, update, delete and asset routes take the project from the stored entity, so their code can't use the project headers by mistake. The headers are ignored, not rejected. The query helpers accept `UserContextBase` where they only need the profile.
+- The admin asset routes keep resolving the virtual lab from the project of the entity with virtual-lab-manager. With `APP_DISABLE_AUTH` they use `APP_DISABLE_AUTH_VIRTUAL_LAB_ID` instead of the `virtual-lab-id` header.
+- A separate admin type with the same fields as `UserContextWithProjectId` was considered and not needed: no code receiving it relies on the project membership.
 
 ### Resources with admin-only writes
 

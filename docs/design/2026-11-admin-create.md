@@ -10,7 +10,7 @@
 
 Entities and activities can only be created with the project-scoped user routes (`POST /<route>`), where the user must be a member of the project in the headers. The admin routes (`/admin/<route>`) cover read, update and delete only, so admins create entities in other projects with external scripts.
 
-Admins aren't members of every project in Keycloak, and today they can't use the admin routes with a project they don't belong to: `user_verified` checks the membership of the project in the headers for every request, admins included, and the admin router depends on it.
+Admins aren't members of every project in Keycloak. The existing admin routes work in any project when no project headers are sent: `user_verified` accepts a request without headers, and the admin read, update, delete and asset operations take the project from the stored entity. Creation is different, because the project must come from the headers, and `user_verified` rejects headers naming a project that the user, service admins included, doesn't belong to. The admin router depends on `user_verified`, so the same 403 is returned to any admin request sending those headers, e.g. from a client configured with a project context.
 
 In scope: an admin create endpoint for every entity and activity with `authorized_project_id`, and the changes needed to authorize admins in any project. Out of scope: associations (classifications and scientific artifact links), which register their admin routes by hand, left for a follow-up.
 
@@ -52,7 +52,7 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 
 ## Consequences
 
-- Service admins can use the admin routes with the headers of a project they don't belong to.
+- Service admins can send the headers of a project they don't belong to on the admin routes. Admin create needs this. The other admin routes keep ignoring the headers.
 - On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache. This goes away when those writes move to the admin routes (see Follow-ups).
 - `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed. They were used only by migration scripts through entitysdk `register_entity`, which needs `admin=True` to use the admin route.
 - The resources without a project get a `POST /admin/<route>` behaving as their user create.

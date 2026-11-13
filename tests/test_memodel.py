@@ -30,6 +30,8 @@ from .utils import (
     check_entity_read_many,
     check_entity_update_one,
     create_cell_morphology_id,
+    create_etype,
+    create_mtype,
 )
 
 ROUTE = "/memodel"
@@ -131,6 +133,31 @@ def test_create_memodel(
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
     data = response.json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_create_memodel_with_classifications(client: TestClient, db, json_data, user_id):
+    mtype = create_mtype(
+        db,
+        pref_label="memodel-create-mtype",
+        created_by_id=user_id,
+    )
+    etype = create_etype(
+        db,
+        pref_label="memodel-create-etype",
+        created_by_id=user_id,
+    )
+    payload = json_data | {
+        "mtype_class_ids": [str(mtype.id)],
+        "etype_class_ids": [str(etype.id)],
+    }
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    _assert_read_response(data, json_data)
+    assert {m["id"] for m in data["mtypes"]} == {str(mtype.id)}
+    assert {e["id"] for e in data["etypes"]} == {str(etype.id)}
+
+    data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+    assert {m["id"] for m in data["mtypes"]} == {str(mtype.id)}
+    assert {e["id"] for e in data["etypes"]} == {str(etype.id)}
 
 
 def test_read_many(clients, public_json_data):

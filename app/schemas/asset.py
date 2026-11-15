@@ -255,6 +255,58 @@ class DirectoryUploadRequest(Schema):
         return self
 
 
+# Max files per request. Each one costs an S3 HEAD (the duplicate check).
+DIRECTORY_ADD_FILES_MAX = 10
+
+
+class DirectoryAddFile(Schema):
+    """A file to add, plus what S3 should enforce when it's uploaded."""
+
+    path: RelativePathStr
+    size: Annotated[
+        int,
+        Field(
+            description="Exact size in bytes. Uploads of any other size are refused.",
+            ge=0,
+            # A single PUT, so the same 5 GiB cap as one multipart part.
+            le=settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE,
+        ),
+    ]
+    sha256_digest: Annotated[
+        Sha256Digest,
+        Field(description="SHA256 of the content. Uploads with other bytes are refused."),
+    ]
+
+
+class DirectoryAddFilesRequest(Schema):
+    files: Annotated[
+        list[DirectoryAddFile | RelativePathStr],
+        Field(
+            description=(
+                "Files to add, relative to the directory. "
+                "Paths that already exist in the directory are refused: files are never replaced. "
+                "Give size and sha256_digest and S3 enforces them itself: the upload URL then "
+                "only accepts those bytes, and only once. A bare path gets a URL with no check."
+            ),
+            min_length=1,
+            max_length=DIRECTORY_ADD_FILES_MAX,
+        ),
+    ]
+
+    @property
+    def paths(self) -> list[str]:
+        """Each file's path, in order."""
+        return [f if isinstance(f, str) else f.path for f in self.files]
+
+    @model_validator(mode="after")
+    def verify_unique(self):
+        """Make sure no file is listed twice."""
+        if len(set(self.paths)) != len(self.paths):
+            msg = "Filenames must be unique within the request."
+            raise ValueError(msg)
+        return self
+
+
 class DetailedFile(Schema):
     name: str
     size: int
@@ -268,6 +320,18 @@ class DetailedFileList(Schema):
 class AssetAndPresignedURLS(Schema):
     asset: AssetRead
     files: dict[Path, AnyUrl]
+
+
+class DirectoryAddFilesResponse(AssetAndPresignedURLS):
+    headers: Annotated[
+        dict[Path, dict[str, str]],
+        Field(
+            description=(
+                "For each file sent with size and sha256_digest: the headers its PUT must send, "
+                "exactly as given. They're part of the signature."
+            ),
+        ),
+    ] = {}  # ruff:ignore[mutable-class-default]
 
 
 class MultipartUploadInitiateRequest(Schema):

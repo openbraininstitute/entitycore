@@ -20,3 +20,4 @@ The status of each record is in its header.
 - [ResearchLog entity](2026-10-research-log-entity.md)
 - [Expandable fields in read responses](2026-11-expandable-fields.md)
 - [ExtracellularRecording entity](2026-11-extracellular-recording-entity.md)
+- [Add files to a directory asset, replace a file asset](2026-11-asset-add-files-and-replace.md)

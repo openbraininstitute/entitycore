@@ -1,7 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Query, UploadFile, status
+from fastapi import APIRouter, Form, Header, Query, Response, UploadFile, status
+from pydantic import Json
 from starlette.responses import RedirectResponse
 
 from app.config import storages
@@ -84,7 +85,8 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     label: Annotated[AssetLabel, Form()],
-    meta: Annotated[dict | None, Form()] = None,
+    # JSON text: multipart forms only carry strings and files, so a plain dict never validated.
+    meta: Annotated[Json[dict] | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -101,6 +103,37 @@ def upload_entity_asset(
         meta=meta,
         virtual_lab_client=virtual_lab_client,
     )
+
+
+@router.put("/{entity_route}/{entity_id}/assets/{asset_id}")
+def replace_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: AdminContextDep,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    file: UploadFile,
+    response: Response,
+    if_match: Annotated[str | None, Header()] = None,
+) -> AssetRead:
+    """Replace the content of a small file asset, for services with the admin role.
+
+    Same rules as the user route (label, If-Match, ETag), but on any project's entity.
+    """
+    replaced = admin_service.replace_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        storage_client_factory=storage_client_factory,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        file=file,
+        if_match=if_match,
+    )
+    response.headers["ETag"] = f'"{replaced.sha256_digest}"'
+    return replaced
 
 
 @router.post("/{entity_route}/{entity_id}/assets/register", status_code=status.HTTP_201_CREATED)

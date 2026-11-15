@@ -3,7 +3,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, UploadFile, status
+from fastapi import APIRouter, Form, Header, Response, UploadFile, status
+from pydantic import Json
 from starlette.responses import RedirectResponse
 
 from app.config import storages
@@ -20,6 +21,8 @@ from app.schemas.asset import (
     AssetReadWithUploadMeta,
     AssetRegister,
     DetailedFileList,
+    DirectoryAddFilesRequest,
+    DirectoryAddFilesResponse,
     DirectoryUploadRequest,
     MultipartDirectoryUploadRequest,
     MultipartDirectoryUploadResponse,
@@ -96,7 +99,8 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     label: Annotated[AssetLabel, Form()],
-    meta: Annotated[dict | None, Form()] = None,
+    # JSON text: multipart forms only carry strings and files, so a plain dict never validated.
+    meta: Annotated[Json[dict] | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -112,6 +116,46 @@ def upload_entity_asset(
         label=label,
         meta=meta,
     )
+
+
+@router.put("/{entity_route}/{entity_id}/assets/{asset_id}")
+def replace_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    user_context: UserContextDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    file: UploadFile,
+    response: Response,
+    if_match: Annotated[
+        str | None,
+        Header(description='The sha256_digest you last read, e.g. "3fa9…". Required.'),
+    ] = None,
+) -> AssetRead:
+    """Replace the content of a small file asset. Its id, path, label and link don't change.
+
+    Only works for labels that must always show the newest content, like
+    `research_log_document`. Anything else gets HTTP 409 and stays immutable.
+
+    Send `If-Match` with the `sha256_digest` you last read. If the content changed since, you
+    get HTTP 412 and nothing is written: read it again, then replace. No `If-Match` gets
+    HTTP 428. The response's `ETag` is the new digest, to send next time. On a public entity,
+    only people who can delete it can replace its content.
+    """
+    replaced = asset_service.replace_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        storage_client_factory=storage_client_factory,
+        file=file,
+        if_match=if_match,
+    )
+    response.headers["ETag"] = f'"{replaced.sha256_digest}"'
+    return replaced
 
 
 @router.post("/{entity_route}/{entity_id}/assets/register", status_code=status.HTTP_201_CREATED)
@@ -224,6 +268,37 @@ def entity_asset_directory_upload(
         files=files,
     )
     return AssetAndPresignedURLS.model_validate({"asset": model.model_dump(), "files": urls})
+
+
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/files")
+def entity_asset_directory_add_files(
+    repos: RepoGroupDep,
+    user_context: UserContextDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    files: DirectoryAddFilesRequest,
+) -> DirectoryAddFilesResponse:
+    """Add files to an existing directory asset: you get one presigned upload URL per new file.
+
+    The directory must have been made with `assets/directory/upload`. A path that already
+    exists in it gets HTTP 409, so files are never replaced.
+
+    Send each file as `{path, size, sha256_digest}`, then send the returned `headers` with its
+    PUT. S3 then only accepts those exact bytes, and only once (a second PUT gets 412, other
+    bytes get 400). A bare path still works, but its URL has none of those checks. URLs last
+    15 minutes.
+    """
+    return asset_service.entity_asset_directory_add_files(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        storage_client_factory=storage_client_factory,
+        files=files,
+    )
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/list")

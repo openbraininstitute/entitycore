@@ -55,6 +55,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["passed"] == json_data["passed"]
     assert data["validated_entity_id"] == json_data["validated_entity_id"]
+    assert data["description"] == json_data.get("description")
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["creation_date"] == data["update_date"]
     assert "assets" in data
@@ -70,7 +71,9 @@ def test_update_one(clients, public_json_data):
             "name": "name",
             "passed": False,
         },
-        optional_payload=None,
+        optional_payload={
+            "description": "Step at **130%** of rheobase.",
+        },
     )
 
 
@@ -105,6 +108,15 @@ def test_create_one(client: TestClient, json_data):
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
     assert data["authorized_public"] is False
+
+
+def test_create_one__description(client, json_data):
+    payload = json_data | {"description": "| Phase | Duration |\n|---|---|\n| hold | 500 ms |"}
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    _assert_read_response(data, payload)
+
+    data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+    _assert_read_response(data, payload)
 
 
 def test_create_one__public(client, public_json_data):

@@ -1541,6 +1541,9 @@ class ValidationResult(Entity):
 
     name: Mapped[str] = mapped_column(index=True)
 
+    # Markdown text written by the producer, e.g. the protocol that was run.
+    description: Mapped[str | None]
+
     validated_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )

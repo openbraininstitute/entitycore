@@ -21,6 +21,7 @@ class ValidationResultBaseMixin:
     name: str
     passed: bool
     validated_entity_id: uuid.UUID
+    description: str | None = None
 
 
 class ValidationResultRead(

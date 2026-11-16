@@ -21,7 +21,8 @@ class ValidationResultBaseMixin:
     name: str
     passed: bool
     validated_entity_id: uuid.UUID
-    description: str | None = None
+    # Defaults to empty so existing clients that don't send it keep working.
+    description: str = ""
 
 
 class ValidationResultRead(

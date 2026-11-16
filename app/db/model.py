@@ -1534,15 +1534,10 @@ class IonChannelModelingConfigGeneration(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
-class ValidationResult(Entity):
+class ValidationResult(NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.validation_result.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     passed: Mapped[bool] = mapped_column(default=False)
-
-    name: Mapped[str] = mapped_column(index=True)
-
-    # Markdown text written by the producer, e.g. the protocol that was run.
-    description: Mapped[str | None]
 
     validated_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True

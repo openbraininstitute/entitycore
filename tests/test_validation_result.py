@@ -55,7 +55,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["passed"] == json_data["passed"]
     assert data["validated_entity_id"] == json_data["validated_entity_id"]
-    assert data["description"] == json_data.get("description")
+    assert data["description"] == json_data.get("description", "")
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["creation_date"] == data["update_date"]
     assert "assets" in data
@@ -70,10 +70,9 @@ def test_update_one(clients, public_json_data):
         patch_payload={
             "name": "name",
             "passed": False,
+            "description": "Step at 130% of rheobase for 1350 ms.",
         },
-        optional_payload={
-            "description": "Step at **130%** of rheobase.",
-        },
+        optional_payload=None,
     )
 
 
@@ -111,12 +110,26 @@ def test_create_one(client: TestClient, json_data):
 
 
 def test_create_one__description(client, json_data):
-    payload = json_data | {"description": "| Phase | Duration |\n|---|---|\n| hold | 500 ms |"}
+    payload = json_data | {
+        "description": (
+            "Holds the cell at its calibrated holding current for 500 ms, then applies "
+            "a step of 200% of rheobase for 1350 ms."
+        )
+    }
     data = assert_request(client.post, url=ROUTE, json=payload).json()
     _assert_read_response(data, payload)
 
     data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
     _assert_read_response(data, payload)
+
+
+def test_search_description(client, create):
+    create(name="spiking", description="Step at 130% of rheobase.")
+    create(name="rebound", description="Hyperpolarizing pulse after a long hold.")
+
+    data = assert_request(client.get, url=ROUTE, params={"search": "hyperpolarizing"}).json()
+
+    assert [item["name"] for item in data["data"]] == ["rebound"]
 
 
 def test_create_one__public(client, public_json_data):

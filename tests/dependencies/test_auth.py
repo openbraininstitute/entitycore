@@ -88,9 +88,11 @@ def _make_test_app() -> FastAPI:
 
 @pytest.fixture(autouse=True)  # ruff: ignore[pytest-fixture-autouse]
 def _clear_auth_cache():
-    test_module._check_user_info.cache_clear()
+    # keep the cached function, because some tests replace it with a mock
+    check_user_info = test_module._check_user_info
+    check_user_info.cache_clear()
     yield
-    test_module._check_user_info.cache_clear()
+    check_user_info.cache_clear()
 
 
 @pytest.fixture
@@ -364,3 +366,37 @@ def test_app_routes_admin_not_member(db, session_client, mock_keycloak):  # ruff
     )
     assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
     assert response.json()["message"] == AuthErrorReason.NOT_AUTHORIZED_PROJECT
+
+
+@pytest.mark.parametrize("is_service_admin", [True, False])
+@pytest.mark.parametrize("auth_error_reason", [*AuthErrorReason, None])
+def test_unauthorized_context_rejected(
+    test_client, monkeypatch, auth_error_reason, is_service_admin
+):
+    """Any unauthorized context returned by the Keycloak check is rejected.
+
+    The only exception is NOT_AUTHORIZED_PROJECT for service admins on the admin routes.
+    It covers every member of AuthErrorReason, also the ones added later.
+    """
+
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=False,
+            is_service_admin=is_service_admin,
+            virtual_lab_id=project_context.virtual_lab_id,
+            project_id=project_context.project_id,
+            auth_error_reason=auth_error_reason,
+        )
+
+    monkeypatch.setattr(test_module, "_check_user_info", mock_check_user_info)
+
+    response = test_client.get("/user", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
+    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
+
+    response = test_client.get("/admin/resource", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
+    if is_service_admin and auth_error_reason == AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+        assert response.status_code == HTTPStatus.OK
+    else:
+        assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}

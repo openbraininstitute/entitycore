@@ -236,7 +236,7 @@ def _authenticate(
     if not user_context.is_authorized:
         match user_context.auth_error_reason:
             case AuthErrorReason.NOT_AUTHORIZED_PROJECT:
-                # the token is valid, the membership is checked by the calling dependency
+                # the only error not raised here, handled by the calling dependency
                 pass
             case AuthErrorReason.NOT_AUTHORIZED_USER:
                 raise ApiError(
@@ -255,10 +255,13 @@ def _authenticate(
 
 
 def _require_project_membership(user_context: UserContext) -> None:
-    """Raise an error if the user isn't a member of the virtual lab or project in the headers."""
-    if user_context.auth_error_reason == AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+    """Raise an error if the user isn't a member of the virtual lab or project in the headers.
+
+    Only NOT_AUTHORIZED_PROJECT is expected after `_authenticate`, but any other is rejected too.
+    """
+    if not user_context.is_authorized:
         raise ApiError(
-            message=AuthErrorReason.NOT_AUTHORIZED_PROJECT,
+            message=user_context.auth_error_reason or AuthErrorReason.NOT_AUTHORIZED_PROJECT,
             error_code=ApiErrorCode.NOT_AUTHORIZED,
             http_status_code=403,
         )

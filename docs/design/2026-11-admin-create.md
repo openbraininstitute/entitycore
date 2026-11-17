@@ -18,7 +18,7 @@ In scope: an admin create endpoint for every entity and activity with `authorize
 
 ### Authentication of the admin routes
 
-The admin router depends on `user_with_service_admin_role`, which no longer goes through `user_verified`. Both call the same verification of the token with Keycloak; the admin dependency accepts a service admin when the only failure is the membership of the project in the headers.
+The admin router depends on `user_with_service_admin_role`, which no longer goes through `user_verified`. Both call the same verification of the token with Keycloak; the admin dependency skips the membership of the project in the headers, then requires the service admin role. A user who is neither a member nor an admin gets "Service admin role required" on the admin routes.
 
 - When only `project-id` is given and the admin isn't a member, `virtual_lab_id` stays `None` in the context, because it can't be derived from the Keycloak groups. The admin create endpoints remove this case (see Admin contexts).
 - The user routes keep depending on `user_verified` at the router level, so admins have no special privilege there, also on the user routes restricted to admins (e.g. `POST /license`).

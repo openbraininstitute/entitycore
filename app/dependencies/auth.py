@@ -176,21 +176,21 @@ def _enrich_request_context(user_context: UserContext) -> None:
     ctx["user_id"] = str(user_context.profile.subject)
 
 
-def _verify_user(
+def _authenticate(
     project_context: OptionalProjectContext,
     token: HTTPAuthorizationCredentials | None,
     request: Request,
-    *,
-    require_admin_project_membership: bool,
 ) -> UserContext:
-    """Ensure that the user is authenticated and authorized.
+    """Ensure that the user is authenticated, and return the user context.
+
+    The membership of the virtual lab and project in the headers is not enforced here: when the
+    user isn't a member, the returned context has `auth_error_reason` NOT_AUTHORIZED_PROJECT,
+    and the calling dependency decides whether to accept it.
 
     Args:
         project_context: virtual-lab-id and project-id from the headers.
         token: the auth token.
         request: the request, used to get the shared http client.
-        require_admin_project_membership: if False, service admins are accepted even when they
-            aren't members of the virtual lab or project in the headers.
     """
     if settings.APP_DISABLE_AUTH:
         L.warning("Authentication is disabled: admin role granted, vlab and proj not verified")
@@ -233,17 +233,12 @@ def _verify_user(
     # enrich request context before potentially raising an exception
     _enrich_request_context(user_context)
 
-    if (
-        not require_admin_project_membership
-        and user_context.is_service_admin
-        and user_context.auth_error_reason == AuthErrorReason.NOT_AUTHORIZED_PROJECT
-    ):
-        # the token is valid, only the project membership is missing
-        return user_context.model_copy(update={"is_authorized": True, "auth_error_reason": None})
-
     if not user_context.is_authorized:
         match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+            case AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+                # the token is valid, the membership is checked by the calling dependency
+                pass
+            case AuthErrorReason.NOT_AUTHORIZED_USER:
                 raise ApiError(
                     message=user_context.auth_error_reason,
                     error_code=ApiErrorCode.NOT_AUTHORIZED,
@@ -259,6 +254,36 @@ def _verify_user(
     return user_context
 
 
+def _require_project_membership(user_context: UserContext) -> None:
+    """Raise an error if the user isn't a member of the virtual lab or project in the headers."""
+    if user_context.auth_error_reason == AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+        raise ApiError(
+            message=AuthErrorReason.NOT_AUTHORIZED_PROJECT,
+            error_code=ApiErrorCode.NOT_AUTHORIZED,
+            http_status_code=403,
+        )
+
+
+def _require_service_admin(user_context: UserContext) -> None:
+    """Raise an error if the authenticated user doesn't have the service admin role."""
+    if not user_context.is_service_admin:
+        raise ApiError(
+            message=AuthErrorReason.ADMIN_REQUIRED,
+            error_code=ApiErrorCode.NOT_AUTHORIZED,
+            http_status_code=403,
+        )
+
+
+def _require_project_id(user_context: UserContext) -> None:
+    """Raise an error if virtual_lab_id or project_id is missing."""
+    if not user_context.virtual_lab_id or not user_context.project_id:
+        raise ApiError(
+            message=AuthErrorReason.PROJECT_REQUIRED,
+            error_code=ApiErrorCode.NOT_AUTHORIZED,
+            http_status_code=403,
+        )
+
+
 def user_verified(
     project_context: Annotated[OptionalProjectContext, Header()],
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
@@ -271,34 +296,9 @@ def user_verified(
     If neither is specified, it's enough that the auth token is valid.
     Service admins have no exception: this dependency is used by the user routes.
     """
-    return _verify_user(
-        project_context=project_context,
-        token=token,
-        request=request,
-        require_admin_project_membership=True,
-    )
-
-
-def _require_service_admin(user_context: UserContext) -> UserContext:
-    """Ensure that the authenticated user has a service admin role."""
-    if not user_context.is_service_admin:
-        raise ApiError(
-            message=AuthErrorReason.ADMIN_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
+    user_context = _authenticate(project_context=project_context, token=token, request=request)
+    _require_project_membership(user_context)
     return user_context
-
-
-def user_with_project_id(user_context: UserContextDep) -> UserContextWithProjectId:
-    """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
-    if not user_context.virtual_lab_id or not user_context.project_id:
-        raise ApiError(
-            message=AuthErrorReason.PROJECT_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
-    return UserContextWithProjectId.model_validate(user_context, from_attributes=True)
 
 
 def user_with_service_admin_role(
@@ -309,32 +309,41 @@ def user_with_service_admin_role(
     """Ensure that the user is authenticated and has a service admin role.
 
     Unlike `user_verified`, the admin doesn't need to be a member of the virtual_lab_id and
-    project_id claimed in the headers. When only the project_id is given and the admin isn't a
-    member, the virtual_lab_id of the returned context is None.
+    project_id claimed in the headers. In that case, `is_authorized` is False in the returned
+    context, because it reports the membership. When only the project_id is given and the admin
+    isn't a member, the virtual_lab_id of the returned context is None.
 
     The membership is skipped only on the admin routes: the user routes depend on
     `user_verified` at the router level, so service admins have no special privilege there.
     """
-    user_context = _verify_user(
-        project_context=project_context,
-        token=token,
-        request=request,
-        require_admin_project_membership=False,
-    )
-    return _require_service_admin(user_context)
+    user_context = _authenticate(project_context=project_context, token=token, request=request)
+    _require_service_admin(user_context)
+    return user_context
+
+
+def user_with_project_id(
+    user_context: UserContextDep,
+) -> UserContextWithProjectId:
+    """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
+    _require_project_id(user_context)
+    return UserContextWithProjectId.model_validate(user_context)
 
 
 def user_with_service_admin_role_and_project_id(
-    user_context: UserContextDep,
+    user_context: AdminContextDep,
 ) -> UserContextWithProjectId:
     """Ensure that the authenticated user has an admin role and valid virtual_lab_id/project_id."""
-    _require_service_admin(user_context)
-    return user_with_project_id(user_context)
+    _require_project_id(user_context)
+    return UserContextWithProjectId.model_validate(user_context)
 
 
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
 AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
-UserContextWithProjectIdDep = Annotated[UserContextWithProjectId, Depends(user_with_project_id)]
+UserContextWithProjectIdDep = Annotated[
+    UserContextWithProjectId,
+    Depends(user_with_project_id),
+]
 AdminContextWithProjectIdDep = Annotated[
-    UserContextWithProjectId, Depends(user_with_service_admin_role_and_project_id)
+    UserContextWithProjectId,
+    Depends(user_with_service_admin_role_and_project_id),
 ]

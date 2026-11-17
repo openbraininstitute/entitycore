@@ -123,6 +123,25 @@ def test_create_one__description(client, json_data):
     _assert_read_response(data, payload)
 
 
+def test_create_one__null_description(client, json_data):
+    # entitysdk sends null when no description is set.
+    data = assert_request(client.post, url=ROUTE, json=json_data | {"description": None}).json()
+    _assert_read_response(data, json_data)
+
+
+def test_update_one__without_description_keeps_it(client, create):
+    validation_result_id = create(description="Step at 130% of rheobase.")["id"]
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{validation_result_id}",
+        json={"passed": False},
+    ).json()
+
+    assert data["passed"] is False
+    assert data["description"] == "Step at 130% of rheobase."
+
+
 def test_search_description(client, create):
     create(name="spiking", description="Step at 130% of rheobase.")
     create(name="rebound", description="Hyperpolarizing pulse after a long hold.")

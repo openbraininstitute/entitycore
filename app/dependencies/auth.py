@@ -1,6 +1,7 @@
 import hashlib
 import threading
 import time
+from collections.abc import Collection
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -31,6 +32,25 @@ from app.utils.http import deserialize_response, make_http_request
 AuthHeader: HTTPBearer = HTTPBearer(auto_error=False)
 
 KEYCLOAK_GROUPS_URL = f"{settings.KEYCLOAK_URL}/protocol/openid-connect/userinfo"
+
+# HTTP status code and error code returned for each auth error reason
+AUTH_ERROR_STATUS: dict[AuthErrorReason, tuple[int, ApiErrorCode]] = {
+    AuthErrorReason.AUTH_TOKEN_MISSING: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.AUTH_TOKEN_INVALID: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.AUTH_TOKEN_EXPIRED: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.NOT_AUTHENTICATED_USER: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.UNKNOWN: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.NOT_AUTHORIZED_USER: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.NOT_AUTHORIZED_PROJECT: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.PROJECT_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.ADMIN_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
+}
+
+
+def _auth_error(reason: AuthErrorReason) -> ApiError:
+    """Return the error to be raised for the given auth error reason."""
+    http_status_code, error_code = AUTH_ERROR_STATUS[reason]
+    return ApiError(message=reason, error_code=error_code, http_status_code=http_status_code)
 
 
 def _get_cache_key(
@@ -181,11 +201,11 @@ def _authenticate(
     token: HTTPAuthorizationCredentials | None,
     request: Request,
 ) -> UserContext:
-    """Ensure that the user is authenticated, and return the user context.
+    """Authenticate the user with KeyCloak, and return the user context.
 
-    The membership of the virtual lab and project in the headers is not enforced here: when the
-    user isn't a member, the returned context has `auth_error_reason` NOT_AUTHORIZED_PROJECT,
-    and the calling dependency decides whether to accept it.
+    Only a missing or invalid token raises an error here. The other errors, including the missing
+    membership of the virtual lab and project in the headers, are in `auth_error_reason` of the
+    returned context, and the calling dependency decides which ones to accept.
 
     Args:
         project_context: virtual-lab-id and project-id from the headers.
@@ -211,18 +231,10 @@ def _authenticate(
         return user_context
 
     if not token:
-        raise ApiError(
-            message=AuthErrorReason.AUTH_TOKEN_MISSING,
-            error_code=ApiErrorCode.NOT_AUTHENTICATED,
-            http_status_code=401,
-        )
+        raise _auth_error(AuthErrorReason.AUTH_TOKEN_MISSING)
     if not token.credentials or not is_ascii(token.credentials):
         # non-ascii headers would raise an error in httpx when calling KeyCloak
-        raise ApiError(
-            message=AuthErrorReason.AUTH_TOKEN_INVALID,
-            error_code=ApiErrorCode.NOT_AUTHENTICATED,
-            http_status_code=401,
-        )
+        raise _auth_error(AuthErrorReason.AUTH_TOKEN_INVALID)
 
     user_context = _check_user_info(
         project_context=project_context,
@@ -230,61 +242,30 @@ def _authenticate(
         http_client=request.state.http_client,
     )
 
-    # enrich request context before potentially raising an exception
+    # enrich request context before the calling dependency potentially raises an exception
     _enrich_request_context(user_context)
-
-    if not user_context.is_authorized:
-        match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED_PROJECT:
-                # the only error not raised here, handled by the calling dependency
-                pass
-            case AuthErrorReason.NOT_AUTHORIZED_USER:
-                raise ApiError(
-                    message=user_context.auth_error_reason,
-                    error_code=ApiErrorCode.NOT_AUTHORIZED,
-                    http_status_code=403,
-                )
-            case _:
-                raise ApiError(
-                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
-                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
-                    http_status_code=401,
-                )
 
     return user_context
 
 
-def _require_project_membership(user_context: UserContext) -> None:
-    """Raise an error if the user isn't a member of the virtual lab or project in the headers.
-
-    Only NOT_AUTHORIZED_PROJECT is expected after `_authenticate`, but any other is rejected too.
-    """
-    if not user_context.is_authorized:
-        raise ApiError(
-            message=user_context.auth_error_reason or AuthErrorReason.NOT_AUTHORIZED_PROJECT,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
+def _raise_for_auth_error(
+    user_context: UserContext, *, allowed: Collection[AuthErrorReason] = ()
+) -> None:
+    """Raise an error if the user isn't authorized, unless the reason is in `allowed`."""
+    if not user_context.is_authorized and user_context.auth_error_reason not in allowed:
+        raise _auth_error(user_context.auth_error_reason or AuthErrorReason.UNKNOWN)
 
 
 def _require_service_admin(user_context: UserContext) -> None:
     """Raise an error if the authenticated user doesn't have the service admin role."""
     if not user_context.is_service_admin:
-        raise ApiError(
-            message=AuthErrorReason.ADMIN_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
+        raise _auth_error(AuthErrorReason.ADMIN_REQUIRED)
 
 
 def _require_project_id(user_context: UserContext) -> None:
     """Raise an error if virtual_lab_id or project_id is missing."""
     if not user_context.virtual_lab_id or not user_context.project_id:
-        raise ApiError(
-            message=AuthErrorReason.PROJECT_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
+        raise _auth_error(AuthErrorReason.PROJECT_REQUIRED)
 
 
 def user_verified(
@@ -300,7 +281,7 @@ def user_verified(
     Service admins have no exception: this dependency is used by the user routes.
     """
     user_context = _authenticate(project_context=project_context, token=token, request=request)
-    _require_project_membership(user_context)
+    _raise_for_auth_error(user_context)
     return user_context
 
 
@@ -320,6 +301,8 @@ def user_with_service_admin_role(
     `user_verified` at the router level, so service admins have no special privilege there.
     """
     user_context = _authenticate(project_context=project_context, token=token, request=request)
+    # admins don't need to be members of the virtual lab and project in the headers
+    _raise_for_auth_error(user_context, allowed={AuthErrorReason.NOT_AUTHORIZED_PROJECT})
     _require_service_admin(user_context)
     return user_context
 

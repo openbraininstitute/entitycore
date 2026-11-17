@@ -391,12 +391,25 @@ def test_unauthorized_context_rejected(
         )
 
     monkeypatch.setattr(test_module, "_check_user_info", mock_check_user_info)
+    reason = auth_error_reason or AuthErrorReason.UNKNOWN
+    expected_status_code, expected_error_code = test_module.AUTH_ERROR_STATUS[reason]
 
     response = test_client.get("/user", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
-    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
+    assert response.status_code == expected_status_code
+    assert response.json()["message"] == reason
+    assert response.json()["error_code"] == expected_error_code
 
     response = test_client.get("/admin/resource", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
-    if is_service_admin and auth_error_reason == AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+    if reason != AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+        # the auth error is checked before the role
+        assert response.status_code == expected_status_code
+        assert response.json()["message"] == reason
+    elif is_service_admin:
         assert response.status_code == HTTPStatus.OK
     else:
-        assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
+        assert response.status_code == HTTPStatus.FORBIDDEN
+        assert response.json()["message"] == AuthErrorReason.ADMIN_REQUIRED
+
+
+def test_auth_error_status_complete():
+    assert set(test_module.AUTH_ERROR_STATUS) == set(AuthErrorReason)

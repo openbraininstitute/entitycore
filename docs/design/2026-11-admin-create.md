@@ -31,7 +31,6 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 
 - `project-id` is required, `virtual-lab-id` is optional, as in the user routes.
 - The project is checked with virtual-lab-manager, using the existing admin client (`AdminVirtualLabClient.get_virtual_lab_by_project`). An unknown project is rejected; when `virtual-lab-id` is given, it must be the virtual lab of the project.
-- `?skip_project_validation=true` skips the call to virtual-lab-manager. `virtual-lab-id` is then required, unless it can be derived from the Keycloak groups of the admin, and it's accepted as given. It is available to service admins only, since the admin router requires the role.
 - `created_by` and `updated_by` are the admin calling the endpoint.
 - The create logic is the same as the user routes, including the checks that the referenced entities are public or in the same project, and the database triggers.
 - `admin_create_one` is added to the `AdminCrudService` protocol and registered by `register_default_admin_routes`. The resources without a project (global resources, agents, publications, external URLs) define `admin_create_one = create_one`: same behaviour as their user create, which is already admin-only or unrestricted, so all the admin routes have the same operations.
@@ -57,10 +56,12 @@ No new context types: the admin dependencies return the existing schemas, and di
 - **An optional protocol for admin create**, registered only by the routers supporting it. It avoids the aliases in the resources without a project, at the cost of two registration paths.
 - **A flag to skip only the user create** (`include_create=False`). Doesn't cover update and delete, which have the same problem in `em_dense_reconstruction_dataset`.
 - **Registering only the operations defined by the service module.** A missing or misnamed function would silently drop a route.
+- **A parameter to skip the validation with virtual-lab-manager** (`?skip_project_validation=true`, with `virtual-lab-id` required). Deferred until there's a need for it.
 
 ## Consequences
 
 - Service admins can send the headers of a project they don't belong to on the admin routes. Admin create needs this. The other admin routes keep ignoring the headers.
+- Admin create depends on virtual-lab-manager: it fails when the project is unknown or the service is unavailable.
 - On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache. This goes away when those writes move to the admin routes (see Follow-ups).
 - `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed. They were used only by migration scripts through entitysdk `register_entity`, which needs `admin=True` to use the admin route.
 - The resources without a project get a `POST /admin/<route>` behaving as their user create.

@@ -325,6 +325,17 @@ def test_admin_route_missing_token(test_client):
     assert response.json()["message"] == AuthErrorReason.AUTH_TOKEN_MISSING
 
 
+@pytest.mark.parametrize("url", ["/admin/resource", "/user"])
+def test_invalid_token(test_client, httpx2_mock, url):
+    # non-ascii token, sent as latin-1 bytes because the http client accepts only ascii strings
+    response = test_client.get(url, headers={"Authorization": "Bearer caf\xe9".encode("latin-1")})
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json()["message"] == AuthErrorReason.AUTH_TOKEN_INVALID
+    assert response.json()["error_code"] == ApiErrorCode.NOT_AUTHENTICATED
+    # KeyCloak isn't called for invalid tokens
+    assert not httpx2_mock.calls
+
+
 def _user_context(*, is_authorized, auth_error_reason, expiration):
     return UserContext(
         profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),

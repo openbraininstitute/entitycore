@@ -15,9 +15,9 @@ from app.application import api_error_handler
 from app.config import settings
 from app.dependencies import auth as test_module
 from app.dependencies.auth import AdminContextDep, AdminContextWithProjectIdDep, UserContextDep
-from app.errors import ApiError, AuthErrorReason
+from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.middleware import RequestContextMiddleware
-from app.schemas.auth import UserContext, UserProfile
+from app.schemas.auth import CacheKey, UserContext, UserContextWithProjectId, UserProfile
 
 from tests.utils import (
     PROJECT_ID,
@@ -36,9 +36,30 @@ NON_MEMBER_HEADERS = {
     "project-id": UNRELATED_PROJECT_ID,
 }
 MEMBER_HEADERS = {"virtual-lab-id": VIRTUAL_LAB_ID, "project-id": PROJECT_ID}
+CACHE_KEY = CacheKey(
+    virtual_lab_id=None,
+    project_id=None,
+    scheme="bearer",
+    token_digest="digest",  # ruff:ignore[hardcoded-password-func-arg]
+)
+
+# expected HTTP status code and error code for each auth error reason, independent of the code
+NOT_AUTHENTICATED = (HTTPStatus.UNAUTHORIZED, ApiErrorCode.NOT_AUTHENTICATED)
+NOT_AUTHORIZED = (HTTPStatus.FORBIDDEN, ApiErrorCode.NOT_AUTHORIZED)
+EXPECTED_AUTH_ERROR_STATUS = {
+    AuthErrorReason.AUTH_TOKEN_MISSING: NOT_AUTHENTICATED,
+    AuthErrorReason.AUTH_TOKEN_INVALID: NOT_AUTHENTICATED,
+    AuthErrorReason.AUTH_TOKEN_EXPIRED: NOT_AUTHENTICATED,
+    AuthErrorReason.NOT_AUTHENTICATED_USER: NOT_AUTHENTICATED,
+    AuthErrorReason.UNKNOWN: NOT_AUTHENTICATED,
+    AuthErrorReason.NOT_AUTHORIZED_USER: NOT_AUTHORIZED,
+    AuthErrorReason.NOT_AUTHORIZED_PROJECT: NOT_AUTHORIZED,
+    AuthErrorReason.PROJECT_REQUIRED: NOT_AUTHORIZED,
+    AuthErrorReason.ADMIN_REQUIRED: NOT_AUTHORIZED,
+}
 
 
-def _context_json(user_context: UserContext) -> dict:
+def _context_json(user_context: UserContext | UserContextWithProjectId) -> dict:
     return {
         "virtual_lab_id": user_context.virtual_lab_id and str(user_context.virtual_lab_id),
         "project_id": user_context.project_id and str(user_context.project_id),
@@ -122,6 +143,12 @@ def _get(client, url, headers=None, expected_status_code=HTTPStatus.OK):
     return response.json()
 
 
+def _post(client, url, headers=None, expected_status_code=HTTPStatus.OK):
+    response = client.post(url, headers=AUTH_HEADER | (headers or {}))
+    assert response.status_code == expected_status_code, response.json()
+    return response.json()
+
+
 def test_admin_route_admin_not_member(test_client, mock_keycloak):
     mock_keycloak([ADMIN_GROUP])
 
@@ -138,12 +165,6 @@ def test_admin_route_admin_not_member(test_client, mock_keycloak):
     data = _get(test_client, "/admin/resource", headers={"project-id": UNRELATED_PROJECT_ID})
     assert data["project_id"] == UNRELATED_PROJECT_ID
     assert data["virtual_lab_id"] is None
-
-
-def _post(client, url, headers=None, expected_status_code=HTTPStatus.OK):
-    response = client.post(url, headers=AUTH_HEADER | (headers or {}))
-    assert response.status_code == expected_status_code, response.json()
-    return response.json()
 
 
 def test_admin_route_with_project_id_admin_not_member(test_client, mock_keycloak):
@@ -330,7 +351,7 @@ def test_get_cache_ttu_token_expiration(is_authorized, auth_error_reason):
         auth_error_reason=auth_error_reason,
         expiration=token_expiration,
     )
-    assert test_module._get_cache_ttu(None, value, now) == token_expiration
+    assert test_module._get_cache_ttu(CACHE_KEY, value, now) == token_expiration
 
 
 def test_get_cache_ttu_expired_token():
@@ -340,7 +361,7 @@ def test_get_cache_ttu_expired_token():
         auth_error_reason=AuthErrorReason.AUTH_TOKEN_EXPIRED,
         expiration=now - 10,
     )
-    assert test_module._get_cache_ttu(None, value, now) == now + settings.AUTH_CACHE_MAX_TTL
+    assert test_module._get_cache_ttu(CACHE_KEY, value, now) == now + settings.AUTH_CACHE_MAX_TTL
 
 
 def test_app_routes_admin_not_member(db, session_client, mock_keycloak):  # ruff:ignore[unused-function-argument]
@@ -392,7 +413,7 @@ def test_unauthorized_context_rejected(
 
     monkeypatch.setattr(test_module, "_check_user_info", mock_check_user_info)
     reason = auth_error_reason or AuthErrorReason.UNKNOWN
-    expected_status_code, expected_error_code = test_module.AUTH_ERROR_STATUS[reason]
+    expected_status_code, expected_error_code = EXPECTED_AUTH_ERROR_STATUS[reason]
 
     response = test_client.get("/user", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
     assert response.status_code == expected_status_code
@@ -404,12 +425,16 @@ def test_unauthorized_context_rejected(
         # the auth error is checked before the role
         assert response.status_code == expected_status_code
         assert response.json()["message"] == reason
+        assert response.json()["error_code"] == expected_error_code
     elif is_service_admin:
         assert response.status_code == HTTPStatus.OK
+        assert response.json()["is_authorized"] is False
     else:
         assert response.status_code == HTTPStatus.FORBIDDEN
         assert response.json()["message"] == AuthErrorReason.ADMIN_REQUIRED
 
 
-def test_auth_error_status_complete():
-    assert set(test_module.AUTH_ERROR_STATUS) == set(AuthErrorReason)
+def test_auth_error_status():
+    assert test_module.AUTH_ERROR_STATUS == EXPECTED_AUTH_ERROR_STATUS
+    # fails when a reason is added to AuthErrorReason without updating the expected values
+    assert set(EXPECTED_AUTH_ERROR_STATUS) == set(AuthErrorReason)

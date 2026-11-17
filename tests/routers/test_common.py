@@ -1,12 +1,16 @@
 import types
+from typing import cast
 
 import pytest
 
 from app.routers import common as test_module
 from app.routers.common import UserOperation
+from app.schemas.service import UserCrudService
 
 
-def _make_service():
+def _make_service() -> UserCrudService:
+    """Return a stand-in for a service module, with the functions of the user operations."""
+
     def read_many():
         pass
 
@@ -22,13 +26,14 @@ def _make_service():
     def delete_one(id_: str):
         pass
 
-    return types.SimpleNamespace(
+    service = types.SimpleNamespace(
         read_many=read_many,
         read_one=read_one,
         create_one=create_one,
         update_one=update_one,
         delete_one=delete_one,
     )
+    return cast("UserCrudService", service)
 
 
 def _routes(router):

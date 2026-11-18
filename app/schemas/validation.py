@@ -1,7 +1,4 @@
 import uuid
-from typing import Annotated
-
-from pydantic import BeforeValidator
 
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
 from app.schemas.entity import EntityCreate, EntityRead
@@ -24,7 +21,8 @@ class ValidationResultBaseMixin:
     name: str
     passed: bool
     validated_entity_id: uuid.UUID
-    description: Annotated[str, BeforeValidator(lambda value: "" if value is None else value)] = ""
+    # Defaults to empty so existing clients that don't send it keep working.
+    description: str = ""
 
 
 class ValidationResultRead(

@@ -55,6 +55,8 @@ EXPECTED_AUTH_ERROR_STATUS = {
     AuthErrorReason.NOT_AUTHORIZED_USER: NOT_AUTHORIZED,
     AuthErrorReason.NOT_AUTHORIZED_PROJECT: NOT_AUTHORIZED,
     AuthErrorReason.PROJECT_REQUIRED: NOT_AUTHORIZED,
+    AuthErrorReason.PROJECT_NOT_FOUND: NOT_AUTHORIZED,
+    AuthErrorReason.VIRTUAL_LAB_MISMATCH: NOT_AUTHORIZED,
     AuthErrorReason.ADMIN_REQUIRED: NOT_AUTHORIZED,
 }
 
@@ -167,24 +169,127 @@ def test_admin_route_admin_not_member(test_client, mock_keycloak):
     assert data["virtual_lab_id"] is None
 
 
-def test_admin_route_with_project_id_admin_not_member(test_client, mock_keycloak):
+def test_admin_route_with_project_id_admin_not_member(
+    test_client, mock_keycloak, mock_virtual_lab_api
+):
     mock_keycloak([ADMIN_GROUP])
+    vlab_route = mock_virtual_lab_api(UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID)
 
     data = _post(test_client, "/admin/resource", headers=NON_MEMBER_HEADERS)
+    assert data == {
+        "virtual_lab_id": UNRELATED_VIRTUAL_LAB_ID,
+        "project_id": UNRELATED_PROJECT_ID,
+        "is_authorized": False,
+        "is_service_admin": True,
+    }
+    # the token of the admin is forwarded to virtual-lab-manager
+    assert vlab_route.calls.last.request.headers["Authorization"] == f"Bearer {TOKEN}"
+
+    # the virtual lab is taken from virtual-lab-manager
+    data = _post(test_client, "/admin/resource", headers={"project-id": UNRELATED_PROJECT_ID})
     assert data["project_id"] == UNRELATED_PROJECT_ID
     assert data["virtual_lab_id"] == UNRELATED_VIRTUAL_LAB_ID
 
-    # the virtual lab can't be derived from the groups
+
+def test_admin_route_with_project_id_admin_member(test_client, mock_keycloak, mock_virtual_lab_api):
+    mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
+    mock_virtual_lab_api(PROJECT_ID, VIRTUAL_LAB_ID)
+
+    data = _post(test_client, "/admin/resource", headers={"project-id": PROJECT_ID})
+    assert data == {
+        "virtual_lab_id": VIRTUAL_LAB_ID,
+        "project_id": PROJECT_ID,
+        "is_authorized": True,
+        "is_service_admin": True,
+    }
+
+
+def test_admin_route_with_project_id_virtual_lab_mismatch(
+    test_client, mock_keycloak, mock_virtual_lab_api
+):
+    mock_keycloak([ADMIN_GROUP])
+    mock_virtual_lab_api(UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID)
+
+    data = _post(
+        test_client,
+        "/admin/resource",
+        headers={"virtual-lab-id": VIRTUAL_LAB_ID, "project-id": UNRELATED_PROJECT_ID},
+        expected_status_code=HTTPStatus.FORBIDDEN,
+    )
+    assert data["message"] == AuthErrorReason.VIRTUAL_LAB_MISMATCH
+
+
+@pytest.mark.parametrize("status_code", [HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND])
+def test_admin_route_with_project_id_project_not_found(
+    test_client, mock_keycloak, mock_virtual_lab_api, status_code
+):
+    mock_keycloak([ADMIN_GROUP])
+    mock_virtual_lab_api(UNRELATED_PROJECT_ID, status_code=status_code)
+
     data = _post(
         test_client,
         "/admin/resource",
         headers={"project-id": UNRELATED_PROJECT_ID},
         expected_status_code=HTTPStatus.FORBIDDEN,
     )
+    assert data["message"] == AuthErrorReason.PROJECT_NOT_FOUND
+    assert data["error_code"] == ApiErrorCode.NOT_AUTHORIZED
+
+
+def test_admin_route_with_project_id_virtual_lab_api_error(
+    test_client, mock_keycloak, mock_virtual_lab_api
+):
+    mock_keycloak([ADMIN_GROUP])
+    mock_virtual_lab_api(UNRELATED_PROJECT_ID, status_code=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    _post(
+        test_client,
+        "/admin/resource",
+        headers={"project-id": UNRELATED_PROJECT_ID},
+        expected_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+    )
+
+
+@pytest.mark.parametrize("headers", [{}, {"virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID}])
+def test_admin_route_with_project_id_missing(test_client, mock_keycloak, headers):
+    mock_keycloak([ADMIN_GROUP])
+
+    # virtual-lab-manager isn't called
+    data = _post(
+        test_client, "/admin/resource", headers=headers, expected_status_code=HTTPStatus.FORBIDDEN
+    )
     assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
+
+
+def test_admin_route_with_project_id_auth_disabled(test_client, monkeypatch):
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+
+    # virtual-lab-manager isn't called
+    data = _post(test_client, "/admin/resource", headers={"project-id": PROJECT_ID})
+    assert data["project_id"] == PROJECT_ID
+    assert data["virtual_lab_id"] == str(settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID)
+
+    data = _post(test_client, "/admin/resource", headers=MEMBER_HEADERS)
+    assert data["virtual_lab_id"] == VIRTUAL_LAB_ID
 
     data = _post(test_client, "/admin/resource", expected_status_code=HTTPStatus.FORBIDDEN)
     assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
+
+
+def test_user_route_auth_disabled(test_client, monkeypatch):
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+
+    # the virtual lab can't be derived from the groups when only the project-id is given
+    data = _get(test_client, "/user", headers={"project-id": PROJECT_ID})
+    assert data["project_id"] == PROJECT_ID
+    assert data["virtual_lab_id"] == str(settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID)
+
+    data = _get(test_client, "/user", headers=MEMBER_HEADERS)
+    assert data["virtual_lab_id"] == VIRTUAL_LAB_ID
+
+    data = _get(test_client, "/user")
+    assert data["project_id"] is None
+    assert data["virtual_lab_id"] is None
 
 
 def test_admin_route_with_project_id_not_admin(test_client, mock_keycloak):

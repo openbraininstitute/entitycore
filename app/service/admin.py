@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 
 from fastapi import UploadFile
 from starlette.responses import RedirectResponse
@@ -11,7 +12,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientProtocol
-from app.errors import ApiErrorCode, ensure_result
+from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilter
 from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
@@ -60,9 +61,15 @@ def _get_entity_and_vlab(
         # No virtual-lab API available in local dev: resolve from headers or the fallback.
         virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
         return entity, virtual_lab_id
-    vlab_proj_mapping = virtual_lab_client.get_virtual_lab_by_project(
+    vlab_proj_mapping = virtual_lab_client.find_virtual_lab_by_project(
         project_id=entity.authorized_project_id
     )
+    if vlab_proj_mapping is None:
+        raise ApiError(
+            message="Virtual lab id not found from project id in virtual-lab-manager.",
+            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     return entity, vlab_proj_mapping.virtual_lab_id
 
 

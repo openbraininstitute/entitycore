@@ -19,7 +19,7 @@ from types_boto3_s3 import S3Client
 
 import app.dependencies.db as db_module
 from app.application import app
-from app.config import storages
+from app.config import settings, storages
 from app.db.model import (
     Agent,
     AnalysisNotebookEnvironment,
@@ -93,6 +93,7 @@ from .utils import (
     USER_SUB_ID_1,
     USER_SUB_ID_2,
     USER_SUB_ID_3,
+    VIRTUAL_LAB_API_TEST_URL,
     VIRTUAL_LAB_ID,
     ClientProxies,
     ClientProxy,
@@ -411,6 +412,29 @@ def _override_embedding_generation(monkeypatch):
     monkeypatch.setattr("app.service.species.generate_embedding", mock_generate_embedding)
     monkeypatch.setattr("app.service.strain.generate_embedding", mock_generate_embedding)
     monkeypatch.setattr("app.service.brain_region.generate_embedding", mock_generate_embedding)
+
+
+@pytest.fixture
+def virtual_lab_api_url(monkeypatch):
+    monkeypatch.setattr(settings, "VIRTUAL_LAB_API_URL", VIRTUAL_LAB_API_TEST_URL)
+    return VIRTUAL_LAB_API_TEST_URL
+
+
+@pytest.fixture
+def mock_virtual_lab_api(httpx2_mock, virtual_lab_api_url):
+    """Return a function mocking the virtual lab of a project in virtual-lab-manager."""
+
+    def _mock(project_id=PROJECT_ID, virtual_lab_id=VIRTUAL_LAB_ID, status_code=200):
+        url = f"{virtual_lab_api_url}/virtual-labs/projects/{project_id}/virtual-lab"
+        json = {"data": {"project_id": str(project_id), "virtual_lab_id": str(virtual_lab_id)}}
+        return httpx2_mock.get(url).respond(status_code, json=json)
+
+    return _mock
+
+
+@pytest.fixture
+def mock_virtual_lab_project_mapping(mock_virtual_lab_api):
+    return mock_virtual_lab_api()
 
 
 @pytest.fixture(scope="session")

@@ -8,7 +8,12 @@ from app.db.model import (
     EMCellMesh,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -193,6 +198,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: EMCellMeshCreate,
+    expand: ExpandDep = frozenset(),
+) -> EMCellMeshRead:
+    return router_create_one(
+        db=db,
+        apply_operations=_load,
+        user_context=user_context,
+        json_model=json_model,
+        db_model_class=EMCellMesh,
+        response_schema_class=EMCellMeshRead,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: EMCellMeshCreate,
     expand: ExpandDep = frozenset(),

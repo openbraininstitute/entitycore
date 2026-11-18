@@ -13,7 +13,12 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 import app.queries.common
 from app.config import settings
 from app.db.model import BrainAtlas, BrainAtlasRegion, Contribution
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     PaginationQuery,
@@ -227,6 +232,23 @@ def create_one(
     db: SessionDep,
     json_model: BrainAtlasCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> BrainAtlasRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=BrainAtlas,
+        response_schema_class=BrainAtlasRead,
+        apply_operations=_load_brain_atlas,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: BrainAtlasCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> BrainAtlasRead:
     return app.queries.common.router_create_one(

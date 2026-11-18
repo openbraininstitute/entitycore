@@ -18,6 +18,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_entity_delete_one,
     check_entity_read_many,
@@ -296,3 +297,14 @@ def test_aind_ephys_result_directory_upload(client, task_result_json_data, task_
         "preprocessed_recording/traces_cached_seg0.raw",
         "binary_recording.json",
     }
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

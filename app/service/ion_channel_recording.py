@@ -9,7 +9,12 @@ from app.db.model import (
     IonChannelRecording,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -99,6 +104,23 @@ def create_one(
     db: SessionDep,
     json_model: IonChannelRecordingCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> IonChannelRecordingRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=IonChannelRecording,
+        response_schema_class=IonChannelRecordingRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: IonChannelRecordingCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> IonChannelRecordingRead:
     return router_create_one(

@@ -77,6 +77,9 @@ def create_one(
     )
 
 
+admin_create_one = create_one
+
+
 def read_many(
     *,
     db: SessionDep,

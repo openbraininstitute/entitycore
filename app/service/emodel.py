@@ -11,7 +11,12 @@ from app.db.model import (
     IonChannelModel,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -105,6 +110,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    emodel: EModelCreate,
+    expand: ExpandDep = frozenset(),
+) -> EModelReadExpanded:
+    return router_create_one(
+        db=db,
+        user_context=user_context,
+        db_model_class=EModel,
+        json_model=emodel,
+        response_schema_class=EModelReadExpanded,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     emodel: EModelCreate,
     expand: ExpandDep = frozenset(),

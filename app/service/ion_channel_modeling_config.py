@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import IonChannelModelingConfig
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -85,6 +90,23 @@ def create_one(
     db: SessionDep,
     json_model: IonChannelModelingConfigCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> IonChannelModelingConfigRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=IonChannelModelingConfig,
+        response_schema_class=IonChannelModelingConfigRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: IonChannelModelingConfigCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> IonChannelModelingConfigRead:
     return router_create_one(

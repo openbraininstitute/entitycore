@@ -12,7 +12,12 @@ from app.db.auth import (
     constrain_to_writable_entities,
 )
 from app.db.model import Contribution, Entity
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -22,6 +27,7 @@ from app.logger import L
 from app.queries import crud
 from app.queries.factory import query_params_factory
 from app.queries.utils import is_user_authorized_for_deletion
+from app.schemas.auth import UserContextWithProjectId
 from app.schemas.contribution import (
     ContributionAdminUpdate,
     ContributionCreate,
@@ -150,8 +156,9 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContextWithProjectId,
     db: SessionDep,
     contribution: ContributionCreate,
 ) -> ContributionRead:
@@ -173,6 +180,22 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    contribution: ContributionCreate,
+) -> ContributionRead:
+    return _create_one(user_context=user_context, db=db, contribution=contribution)
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
+    db: SessionDep,
+    contribution: ContributionCreate,
+) -> ContributionRead:
+    return _create_one(user_context=user_context, db=db, contribution=contribution)
 
 
 def update_one(

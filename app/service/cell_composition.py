@@ -8,7 +8,12 @@ from app.db.model import (
     CellComposition,
     Contribution,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -49,6 +54,23 @@ def _load_from_db(query: sa.Select):
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: CellCompositionCreate,
+    expand: ExpandDep = frozenset(),
+) -> CellCompositionRead:
+    return router_create_one(
+        db=db,
+        user_context=user_context,
+        db_model_class=CellComposition,
+        json_model=json_model,
+        response_schema_class=CellCompositionRead,
+        apply_operations=_load_from_db,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: CellCompositionCreate,
     expand: ExpandDep = frozenset(),

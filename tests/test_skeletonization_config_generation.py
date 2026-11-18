@@ -22,6 +22,7 @@ from .utils import (
     check_activity_update_one,
     check_activity_update_one__fail_if_generated_ids_exists,
     check_activity_update_one__fail_if_generated_ids_unauthorized,
+    check_admin_create_one,
     check_creation_fields,
     check_missing,
     check_nested_entity_read_response,
@@ -97,6 +98,17 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
 def test_create_one(clients, json_data):
     data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_read_one(clients, json_data, model_id):

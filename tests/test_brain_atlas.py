@@ -7,7 +7,7 @@ from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.db.types import EntityType, StorageType
 
 from . import utils
-from .utils import MISSING_ID, assert_request, check_entity_read_many
+from .utils import MISSING_ID, assert_request, check_admin_create_one, check_entity_read_many
 
 ROUTE = "/brain-atlas"
 ADMIN_ROUTE = "/admin/brain-atlas"
@@ -345,6 +345,17 @@ def test_update_one(clients, json_data):
 def test_create_one(client, json_data):
     data = utils.assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_user_read_one(client, model, json_data):

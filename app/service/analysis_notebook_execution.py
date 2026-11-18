@@ -4,7 +4,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import AnalysisNotebookExecution
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -76,6 +81,21 @@ def create_one(
     db: SessionDep,
     json_model: AnalysisNotebookExecutionCreate,
     user_context: UserContextWithProjectIdDep,
+) -> AnalysisNotebookExecutionRead:
+    return router_create_activity_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=AnalysisNotebookExecution,
+        response_schema_class=AnalysisNotebookExecutionRead,
+        apply_operations=_load,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AnalysisNotebookExecutionCreate,
+    user_context: AdminContextWithProjectIdDep,
 ) -> AnalysisNotebookExecutionRead:
     return router_create_activity_one(
         db=db,

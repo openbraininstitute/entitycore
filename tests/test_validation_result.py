@@ -8,6 +8,7 @@ from app.db.model import ValidationResult
 from .utils import (
     USER_SUB_ID_1,
     assert_request,
+    check_admin_create_one,
     check_entity_delete_one,
     check_entity_read_many,
     check_entity_update_one,
@@ -146,6 +147,17 @@ def test_search_description(client, create):
     data = assert_request(client.get, url=ROUTE, params={"search": "hyperpolarizing"}).json()
 
     assert [item["name"] for item in data["data"]] == ["rebound"]
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_create_one__public(client, public_json_data):

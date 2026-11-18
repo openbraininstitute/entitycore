@@ -94,6 +94,19 @@ def create_one(
     )
 
 
+def admin_create_one(
+    json_model: ConsortiumCreate, db: SessionDep, user_context: AdminContextDep
+) -> ConsortiumRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        db_model_class=Consortium,
+        json_model=json_model,
+        response_schema_class=ConsortiumRead,
+        user_context=user_context,
+        apply_operations=_load,
+    )
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

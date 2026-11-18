@@ -13,7 +13,12 @@ from app.db.model import (
     Contribution,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -102,6 +107,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: CellMorphologyCreate,
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyRead:
+    return router_create_one(
+        db=db,
+        user_context=user_context,
+        db_model_class=CellMorphology,
+        json_model=json_model,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: CellMorphologyCreate,
     expand: ExpandDep = frozenset(),

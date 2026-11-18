@@ -62,14 +62,17 @@ from app.db.types import (
     TaskResultType,
 )
 from app.dependencies import auth
+from app.errors import AuthErrorReason
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
 
 from . import utils
 from .utils import (
+    ADMIN_NOT_MEMBER_SUB_ID,
     ADMIN_SUB_ID,
     AUTH_HEADER_ADMIN,
+    AUTH_HEADER_ADMIN_NOT_MEMBER,
     AUTH_HEADER_MAINTAINER_1,
     AUTH_HEADER_MAINTAINER_2,
     AUTH_HEADER_MAINTAINER_3,
@@ -80,6 +83,7 @@ from .utils import (
     PROJECT_HEADERS,
     PROJECT_ID,
     TOKEN_ADMIN,
+    TOKEN_ADMIN_NOT_MEMBER,
     TOKEN_MAINTAINER_1,
     TOKEN_MAINTAINER_2,
     TOKEN_MAINTAINER_3,
@@ -369,6 +373,21 @@ def _without_project(user_context: UserContext) -> UserContext:
     return user_context.model_copy(update={"virtual_lab_id": None, "project_id": None})
 
 
+def _admin_not_member_context(project_context):
+    """Return the context of an admin without project groups, as returned by Keycloak."""
+    is_authorized = project_context.virtual_lab_id is None and project_context.project_id is None
+    return UserContext(
+        profile=UserProfile(subject=UUID(ADMIN_NOT_MEMBER_SUB_ID), name="Admin Not Member"),
+        expiration=None,
+        is_authorized=is_authorized,
+        is_service_admin=True,
+        # the virtual lab can't be derived from the groups when only the project-id is given
+        virtual_lab_id=project_context.virtual_lab_id,
+        project_id=project_context.project_id,
+        auth_error_reason=None if is_authorized else AuthErrorReason.NOT_AUTHORIZED_PROJECT,
+    )
+
+
 @pytest.fixture
 def _override_check_user_info(
     monkeypatch,
@@ -405,6 +424,8 @@ def _override_check_user_info(
     }
 
     def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
+        if token.credentials == TOKEN_ADMIN_NOT_MEMBER:
+            return _admin_not_member_context(project_context)
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
@@ -476,6 +497,12 @@ def client_admin_with_project(client_no_auth):
 
 
 @pytest.fixture
+def client_admin_not_member(client_no_auth):
+    """Return a web client instance, authenticated as service admin without project groups."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_ADMIN_NOT_MEMBER)
+
+
+@pytest.fixture
 def client_user_1(client_no_auth):
     """Return a web client instance, authenticated as regular user with a specific project-id."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1 | PROJECT_HEADERS)
@@ -542,6 +569,7 @@ def clients(
     client_no_project,
     client_admin,
     client_admin_with_project,
+    client_admin_not_member,
     client_maintainer_1,
     client_maintainer_2,
     client_maintainer_3,
@@ -553,6 +581,7 @@ def clients(
         no_project=client_no_project,
         admin=client_admin,
         admin_with_project=client_admin_with_project,
+        admin_not_member=client_admin_not_member,
         maintainer_1=client_maintainer_1,
         maintainer_2=client_maintainer_2,
         maintainer_3=client_maintainer_3,

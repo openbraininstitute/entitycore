@@ -11,6 +11,7 @@ from tests.utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one_without_project,
     check_global_delete_one,
 )
 
@@ -298,3 +299,9 @@ def test_create_person_does_not_accept_sub_id(client, json_data):
     ).json()
     # sub_id in the payload is ignored; it can only be set programmatically
     assert data["sub_id"] is None
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

@@ -8,7 +8,12 @@ from app.db.model import (
     Contribution,
     SimulatableExtracellularRecordingArray,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -96,6 +101,23 @@ def create_one(
     db: SessionDep,
     json_model: SimulatableExtracellularRecordingArrayCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> SimulatableExtracellularRecordingArrayRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=SimulatableExtracellularRecordingArray,
+        response_schema_class=SimulatableExtracellularRecordingArrayRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: SimulatableExtracellularRecordingArrayCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> SimulatableExtracellularRecordingArrayRead:
     return router_create_one(

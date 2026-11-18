@@ -15,6 +15,7 @@ from .utils import (
     add_contribution,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_creation_fields,
     check_entity_delete_one,
@@ -100,6 +101,17 @@ def test_update_one_duplicate_name_fails(client, json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_create_one_duplicate_name_same_project_fails(client, json_data):

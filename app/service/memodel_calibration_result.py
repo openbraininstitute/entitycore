@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, MEModelCalibrationResult
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -85,6 +90,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    json_model: MEModelCalibrationResultCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> MEModelCalibrationResultRead:
+    return router_create_one(
+        db=db,
+        user_context=user_context,
+        db_model_class=MEModelCalibrationResult,
+        json_model=json_model,
+        response_schema_class=MEModelCalibrationResultRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     json_model: MEModelCalibrationResultCreate,
     db: SessionDep,
     expand: ExpandDep = frozenset(),

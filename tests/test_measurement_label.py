@@ -3,7 +3,7 @@ import pytest
 from app.db.model import MeasurementLabel
 from app.db.types import EntityType
 
-from .utils import check_creation_fields, check_missing
+from .utils import check_admin_create_one_without_project, check_creation_fields, check_missing
 from tests.utils import (
     USER_SUB_ID_1,
     add_all_db,
@@ -72,6 +72,12 @@ def test_create_one(client, client_admin):
     assert len(data) == 1
     assert data == [items[1]]
     check_creation_fields(data[0])
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )
 
 
 def test_read_one(clients, json_data):

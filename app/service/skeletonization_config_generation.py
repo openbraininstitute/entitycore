@@ -4,7 +4,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import SkeletonizationConfigGeneration
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -80,6 +85,21 @@ def create_one(
     db: SessionDep,
     json_model: CreateSchema,
     user_context: UserContextWithProjectIdDep,
+) -> ReadSchema:
+    return router_create_activity_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=DBModel,
+        response_schema_class=ReadSchema,
+        apply_operations=_load,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: CreateSchema,
+    user_context: AdminContextWithProjectIdDep,
 ) -> ReadSchema:
     return router_create_activity_one(
         db=db,

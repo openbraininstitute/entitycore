@@ -9,6 +9,7 @@ from .utils import (
     PROJECT_ID,
     add_all_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -60,6 +61,17 @@ def test_create_one(client, subject_id, license_id, brain_region_id, user_id, js
 
     db_model = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
     assert db_model == data
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 @pytest.fixture

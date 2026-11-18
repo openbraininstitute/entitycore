@@ -21,7 +21,6 @@ from app.queries.common import (
     router_read_many,
     router_read_one,
     router_update_one,
-    router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.em_dense_reconstruction_dataset import (
@@ -29,7 +28,6 @@ from app.schemas.em_dense_reconstruction_dataset import (
     EMDenseReconstructionDatasetCreate,
     EMDenseReconstructionDatasetRead,
 )
-from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
 ExpandDep = Annotated[
@@ -179,7 +177,7 @@ def admin_read_one(
     )
 
 
-def create_one(
+def admin_create_one(
     user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: EMDenseReconstructionDatasetCreate,
@@ -196,7 +194,7 @@ def create_one(
     )
 
 
-def update_one(
+def admin_update_one(
     user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
@@ -213,20 +211,4 @@ def update_one(
         apply_operations=_load,
         check_authorized_project=False,
         expand=expand,
-    )
-
-
-admin_update_one = update_one
-
-
-def delete_one(
-    user_context: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> DeleteResponse:
-    return router_user_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=EMDenseReconstructionDataset,
-        user_context=user_context,
     )

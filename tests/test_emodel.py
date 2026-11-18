@@ -13,6 +13,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_entity_delete_one,
     check_entity_read_many,
     check_entity_update_one,
@@ -627,3 +628,14 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, user_id):
     assert "generated_from_derivations" not in src
     assert len(src["used_by_derivations"]) == 1
     assert src["used_by_derivations"][0]["generated"]["id"] == generated_id
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

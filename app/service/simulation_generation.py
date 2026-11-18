@@ -4,7 +4,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import SimulationGeneration
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -74,6 +79,21 @@ def create_one(
     db: SessionDep,
     json_model: SimulationGenerationCreate,
     user_context: UserContextWithProjectIdDep,
+) -> SimulationGenerationRead:
+    return router_create_activity_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=SimulationGeneration,
+        response_schema_class=SimulationGenerationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: SimulationGenerationCreate,
+    user_context: AdminContextWithProjectIdDep,
 ) -> SimulationGenerationRead:
     return router_create_activity_one(
         db=db,

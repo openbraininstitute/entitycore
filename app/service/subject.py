@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Subject
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -74,6 +79,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: SubjectCreate,
+    expand: ExpandDep = frozenset(),
+) -> SubjectRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=Subject,
+        user_context=user_context,
+        response_schema_class=SubjectRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     json_model: SubjectCreate,
     expand: ExpandDep = frozenset(),

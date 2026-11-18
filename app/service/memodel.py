@@ -16,7 +16,12 @@ from app.db.model import (
     MEModelCalibrationResult,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -121,6 +126,23 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = frozenset
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    memodel: MEModelCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> MEModelRead:
+    return router_create_one(
+        db=db,
+        db_model_class=MEModel,
+        user_context=user_context,
+        response_schema_class=MEModelRead,
+        json_model=memodel,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     memodel: MEModelCreate,
     db: SessionDep,
     expand: ExpandDep = frozenset(),

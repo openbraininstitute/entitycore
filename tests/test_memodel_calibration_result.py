@@ -8,6 +8,7 @@ from app.db.model import MEModelCalibrationResult
 from .utils import (
     USER_SUB_ID_1,
     assert_request,
+    check_admin_create_one,
     check_entity_delete_one,
     check_entity_read_many,
     check_entity_update_one,
@@ -93,6 +94,17 @@ def test_create_one(client: TestClient, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_read_many(clients, public_json_data):

@@ -9,6 +9,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_creation_fields,
     check_entity_delete_one,
@@ -63,6 +64,17 @@ def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
     assert data["recording_arrays"] == []
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_create_one_with_recording_arrays(client, json_data, root_circuit):

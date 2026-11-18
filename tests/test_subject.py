@@ -10,6 +10,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_entity_delete_one,
     check_entity_read_many,
@@ -81,6 +82,17 @@ def test_create_one(client, json_data, json_data_partial):
     # Test create subject without strain
     data = assert_request(client.post, url=ROUTE, json=json_data_partial).json()
     _assert_read_response(data, json_data_partial)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_update_one(clients, json_data):

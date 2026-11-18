@@ -6,6 +6,7 @@ import pytest
 from .utils import (
     assert_request,
     assert_response,
+    check_admin_create_one,
     check_missing,
     create_cell_morphology_id,
 )
@@ -801,3 +802,14 @@ def test_update_authorization_patterns_with_measurement_kinds(
         json=admin_update_payload,
     ).json()
     assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

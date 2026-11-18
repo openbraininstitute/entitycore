@@ -94,6 +94,19 @@ def create_one(
     )
 
 
+def admin_create_one(
+    organization: OrganizationCreate, db: SessionDep, user_context: AdminContextDep
+) -> OrganizationRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        db_model_class=Organization,
+        json_model=organization,
+        response_schema_class=OrganizationRead,
+        user_context=user_context,
+        apply_operations=_load,
+    )
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

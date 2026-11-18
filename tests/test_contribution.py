@@ -7,6 +7,7 @@ from .utils import (
     MISSING_ID_COMPACT,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_creation_fields,
     create_cell_morphology_id,
     create_person,
@@ -594,3 +595,14 @@ def test_filtering(client, models):
 
     data = req({"agent__type": "organization", "agent__pref_label__ilike": "pref_label"})
     assert len(data) == 6
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

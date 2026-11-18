@@ -141,6 +141,12 @@ def test_create_one(client_admin, json_data):
     _assert_read_response(data, json_data)
 
 
+def test_admin_create_one(db, clients, json_data):
+    utils.check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )
+
+
 def test_read_one(clients, json_data):
     utils.check_global_read_one(
         route=ROUTE,

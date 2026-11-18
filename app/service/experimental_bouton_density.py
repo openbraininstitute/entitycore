@@ -13,7 +13,12 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -197,6 +202,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    json_model: ExperimentalBoutonDensityCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> ExperimentalBoutonDensityRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=ExperimentalBoutonDensity,
+        response_schema_class=ExperimentalBoutonDensityRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     json_model: ExperimentalBoutonDensityCreate,
     db: SessionDep,
     expand: ExpandDep = frozenset(),

@@ -8,7 +8,12 @@ from app.db.model import (
     AnalysisNotebookResult,
     Contribution,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -83,6 +88,23 @@ def create_one(
     db: SessionDep,
     json_model: AnalysisNotebookResultCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> AnalysisNotebookResultRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=AnalysisNotebookResult,
+        response_schema_class=AnalysisNotebookResultRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AnalysisNotebookResultCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookResultRead:
     return router_create_one(

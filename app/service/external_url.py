@@ -70,6 +70,21 @@ def create_one(
     )
 
 
+def admin_create_one(
+    db: SessionDep,
+    json_model: ExternalUrlCreate,
+    user_context: AdminContextDep,  # everybody can create
+) -> ExternalUrlRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=ExternalUrl,
+        response_schema_class=ExternalUrlRead,
+        apply_operations=_load,
+    )
+
+
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,

@@ -7,6 +7,7 @@ from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     assert_request,
+    check_admin_create_one_without_project,
     check_creation_fields,
     check_global_delete_one,
     check_global_read_many,
@@ -181,3 +182,9 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

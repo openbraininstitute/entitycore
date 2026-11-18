@@ -67,7 +67,7 @@ For non-trivial designs, write a design record first (see `docs/design/README.md
 4. Asset labels → `app/db/types.py` (`AssetLabel`, `ALLOWED_ASSET_LABELS_PER_ENTITY`; new `ContentType` also needs `CONTENT_TYPE_TO_SUFFIX`), then `make update-asset-labels`
 5. Schema → `app/schemas/<entity>.py`
 6. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
-7. Service → `app/service/<entity>.py`
+7. Service → `app/service/<entity>.py` (also `admin_create_one`, with `AdminContextWithProjectIdDep`)
 8. Router → `app/routers/<entity>.py` (`create_user_router` + `register_default_admin_routes`)
 9. Register router → `app/routers/__init__.py` (import + `authenticated_routers`)
 10. Migration → `make migration MESSAGE="Add <entity>"` (review both the schema and "Update triggers" revisions)

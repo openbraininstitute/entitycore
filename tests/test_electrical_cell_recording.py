@@ -26,6 +26,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -60,6 +61,17 @@ def test_create_one(
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["etypes"] == []
+
+
+def test_admin_create_one(db, clients, electrical_cell_recording_json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=electrical_cell_recording_json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_update_one(clients, electrical_cell_recording_json_data):

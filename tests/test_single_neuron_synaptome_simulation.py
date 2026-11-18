@@ -19,6 +19,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -166,6 +167,17 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["authorized_public"] is False
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_update_one(clients, public_json_data):

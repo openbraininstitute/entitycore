@@ -122,6 +122,7 @@ def test_entity_route_methods(entity_routes):
         "delete_one",
         "admin_read_one",
         "admin_read_many",
+        "admin_create_one",
         "admin_update_one",
         "admin_delete_one",
         "admin_delete_entity_asset",
@@ -138,12 +139,18 @@ def test_entity_route_methods(entity_routes):
         "upload_entity_asset",
     }
 
-    # skip = {
-    #    "me-type-density",
-    # }
-    skip = set()
+    # the writes of these entities are reserved to admins, and exposed only as admin routes
+    admin_only_writes = {EntityRoute.em_dense_reconstruction_dataset.value}
+    _assert_routes(entity_routes, expected_method_names, skip=admin_only_writes)
 
-    _assert_routes(entity_routes, expected_method_names, skip)
+    user_writes = {"create_one", "update_one", "delete_one"}
+    _assert_routes(
+        {name: entity_routes[name] for name in admin_only_writes},
+        expected_method_names - user_writes,
+        skip=set(),
+    )
+    for name in admin_only_writes:
+        assert not user_writes & {route.name for route in entity_routes[name]}
 
 
 def test_global_route_methods(global_routes):
@@ -155,6 +162,7 @@ def test_global_route_methods(global_routes):
         "delete_one",
         "admin_read_one",
         "admin_read_many",
+        "admin_create_one",
         "admin_update_one",
         "admin_delete_one",
     }
@@ -172,6 +180,7 @@ def test_activity_route_methods(activity_routes):
         "delete_one",
         "admin_read_one",
         "admin_read_many",
+        "admin_create_one",
         "admin_update_one",
         "admin_delete_one",
     ]

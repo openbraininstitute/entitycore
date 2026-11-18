@@ -10,7 +10,12 @@ from app.db.model import (
     Contribution,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -24,6 +29,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContextWithProjectId
 from app.schemas.cell_morphology_protocol import (
     CellMorphologyProtocolCreate,
     CellMorphologyProtocolRead,
@@ -82,11 +88,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContextWithProjectId,
     db: SessionDep,
-    json_model: Annotated[CellMorphologyProtocolCreate, Body()],
-    expand: ExpandDep = frozenset(),
+    json_model: CellMorphologyProtocolCreate,
+    expand: ExpandPaths,
 ) -> CellMorphologyProtocolRead:
     db_model_class = CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS[json_model.generation_type]
     return router_create_one(
@@ -98,6 +105,24 @@ def create_one(
         apply_operations=_load_from_db,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: Annotated[CellMorphologyProtocolCreate, Body()],
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyProtocolRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: Annotated[CellMorphologyProtocolCreate, Body()],
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyProtocolRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
 
 
 def _read_many(

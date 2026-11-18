@@ -6,7 +6,12 @@ from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Ion, IonChannelModel, Subject
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -203,6 +208,21 @@ def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+) -> IonChannelModelRead:
+    return router_create_one(
+        db=db,
+        apply_operations=_load_minimal,
+        user_context=user_context,
+        json_model=ion_channel_model,
+        db_model_class=IonChannelModel,
+        response_schema_class=IonChannelModelRead,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
     ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
 ) -> IonChannelModelRead:

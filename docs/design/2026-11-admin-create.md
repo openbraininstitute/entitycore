@@ -30,24 +30,27 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 `POST /admin/<route>` for every entity and activity, with the same body and response as `POST /<route>`, and `expand` for entities.
 
 - `project-id` is required, `virtual-lab-id` is optional, as in the user routes.
-- The project is checked with virtual-lab-manager, using the existing admin client (`AdminVirtualLabClient.get_virtual_lab_by_project`). An unknown project is rejected; when `virtual-lab-id` is given, it must be the virtual lab of the project.
+- The project is checked with virtual-lab-manager, using the existing admin client (`AdminVirtualLabClient.find_virtual_lab_by_project`). An unknown project is rejected; when `virtual-lab-id` is given, it must be the virtual lab of the project. virtual-lab-manager returns 403 also for unknown or deleted projects, so both 403 and 404 are treated as an unknown project.
+- With `APP_DISABLE_AUTH`, virtual-lab-manager isn't called: the virtual lab is taken from `virtual-lab-id`, or `APP_DISABLE_AUTH_VIRTUAL_LAB_ID` when only `project-id` is given. The user routes use the same fallback.
 - `created_by` and `updated_by` are the admin calling the endpoint.
 - The create logic is the same as the user routes, including the checks that the referenced entities are public or in the same project, and the database triggers.
-- `admin_create_one` is added to the `AdminCrudService` protocol and registered by `register_default_admin_routes`. The resources without a project (global resources, agents, publications, external URLs) define `admin_create_one = create_one`: same behaviour as their user create, which is already admin-only or unrestricted, so all the admin routes have the same operations.
+- `admin_create_one` is added to the `AdminCrudService` protocol and registered by `register_default_admin_routes`, so all the admin routes have the same operations.
+- The global resources define `admin_create_one = create_one`, because their user create already requires the admin role. The agents, publications and external URLs, whose user create is open to any user, define an `admin_create_one` with the admin role: an alias would make the admin route depend on the project membership. Both ignore the project headers.
+- Contributions, derivations and measurement annotations have no project, but their create checks the referenced entities against the project in the headers, so their `admin_create_one` validates the project as the entities and activities do.
 - Services whose `create_one` has extra logic share it with `admin_create_one` through a private function.
 
 ### Admin contexts
 
 No new context types: the admin dependencies return the existing schemas, and differ from the user ones only in the checks done before returning.
 
-- `AdminContextWithProjectIdDep` returns `UserContextWithProjectId`, with `virtual_lab_id` and `project_id` always set, as for the user create. It checks the admin role and validates the project as described above, instead of the Keycloak membership. It keeps its name and replaces the current implementation, used only by `em_dense_reconstruction_dataset`. It's used only by the admin create of the entities and activities.
-- `AdminContextDep` returns `UserContextBase`, without `virtual_lab_id`, `project_id` and the Keycloak project groups. The admin read, update, delete and asset routes take the project from the stored entity, so their code can't use the project headers by mistake. The headers are ignored, not rejected. The query helpers accept `UserContextBase` where they only need the profile.
-- The admin asset routes keep resolving the virtual lab from the project of the entity with virtual-lab-manager. With `APP_DISABLE_AUTH` they use `APP_DISABLE_AUTH_VIRTUAL_LAB_ID` instead of the `virtual-lab-id` header.
+- `AdminContextWithProjectIdDep` returns `UserContextWithProjectId`, with `virtual_lab_id` and `project_id` always set, as for the user create. It checks the admin role and validates the project as described above, instead of the Keycloak membership. It keeps its name and replaces the current implementation, used only by `em_dense_reconstruction_dataset`. It's used only by the admin create of the entities, activities, contributions, derivations and measurement annotations.
+- `AdminContextDep` is unchanged. The admin read, update, delete and asset routes take the project from the stored entity, and ignore the project headers. Returning a context without the project fields is deferred (see Follow-ups): the admin create doesn't need it.
+- The admin asset routes keep resolving the virtual lab from the project of the entity with virtual-lab-manager. When the project isn't found there, they return the same error as the user asset routes (422 `ASSET_VIRTUAL_LAB_ID_NOT_FOUND`) instead of 500.
 - A separate admin type with the same fields as `UserContextWithProjectId` was considered and not needed: no code receiving it relies on the project membership.
 
 ### Resources with admin-only writes
 
-`create_user_router` accepts the `operations` to register as user routes, all by default. `em_dense_reconstruction_dataset`, whose user create, update and delete already require the admin role, keeps only the user read routes; its create moves to `POST /admin/em-dense-reconstruction-dataset` with the behaviour above, and update and delete are available only through the existing admin routes.
+`create_user_router` accepts the `operations` to register as user routes, all by default. Its service protocol requires only the read operations. `em_dense_reconstruction_dataset`, whose user create, update and delete already require the admin role, keeps only the user read routes; its create moves to `POST /admin/em-dense-reconstruction-dataset` with the behaviour above, and update and delete are available only through the existing admin routes.
 
 ## Alternatives considered
 
@@ -62,6 +65,7 @@ No new context types: the admin dependencies return the existing schemas, and di
 
 - Service admins can send the headers of a project they don't belong to on the admin routes. Admin create needs this. The other admin routes keep ignoring the headers.
 - Admin create depends on virtual-lab-manager: it fails when the project is unknown or the service is unavailable.
+- The error for a missing `project-id` on the create endpoints says "The header project-id is required". On the user routes `virtual-lab-id` was never needed: it's derived from the Keycloak groups, and a user who isn't a member is rejected earlier.
 - On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache. This goes away when those writes move to the admin routes (see Follow-ups).
 - `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed. They were used only by migration scripts through entitysdk `register_entity`, which needs `admin=True` to use the admin route.
 - The resources without a project get a `POST /admin/<route>` behaving as their user create.
@@ -71,4 +75,6 @@ No new context types: the admin dependencies return the existing schemas, and di
 - entitysdk: add `admin=True` to `register_entity`, to use `POST /admin/<route>`. Needed by the admin create endpoints and by the move of the `em_dense_reconstruction_dataset` create.
 - entitycore: move the writes restricted to admins of the global resources and agents to the admin routes, as for `em_dense_reconstruction_dataset`. The global resources (brain regions and hierarchies, etypes, mtypes, ion channels, licenses, measurement labels, roles, species, strains) keep only the user read routes. Consortia, organizations, persons, publications and external URLs keep the user read and create routes, and their update and delete move to the admin routes. Then `AdminContextDep` is used only on the admin routes, and the token is verified once per request. The old routes are removed without a transition period: no active client uses them, and entitysdk users switch to `admin=True`.
 - Admin create for the associations (etype and mtype classifications, scientific artifact links).
+- entitycore: `AdminContextDep` returns a context without the project fields, so that the admin read, update, delete and asset routes can't use the project headers by mistake. Deferred from the admin create because it touches most services and the shared query helpers, and it's better decided together with a consistent signature of the read helpers (`router_read_one` takes an optional context, `router_read_many` a project id and a flag).
+- virtual-lab-api: return 404 instead of 403 for an unknown project in `GET /virtual-labs/projects/{project_id}/virtual-lab`.
 - entitycore: public OpenAPI docs for the admin and debug routes, at `/admin/docs` and `/admin/openapi.json`, generated from the same app; `/openapi.json` keeps excluding them. Calling the endpoints still requires the service admin role.

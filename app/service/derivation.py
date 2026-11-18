@@ -11,7 +11,12 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
 from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -50,7 +55,7 @@ from app.types import EntityRoute
 from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:
-    from app.schemas.auth import UserContext
+    from app.schemas.auth import UserContext, UserContextWithProjectId
 
 
 def _load(query: sa.Select):
@@ -358,10 +363,11 @@ def admin_read_many_from_entity(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: DerivationCreate,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextWithProjectId,
 ) -> DerivationRead:
     """Create a new derivation from a readable entity (used) to a writable entity (generated).
 
@@ -397,6 +403,24 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: DerivationCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> DerivationRead:
+    """Create a new derivation, see `_create_one`."""
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: DerivationCreate,
+    user_context: AdminContextWithProjectIdDep,
+) -> DerivationRead:
+    """Create a new derivation in any project, see `_create_one`."""
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def delete_one(

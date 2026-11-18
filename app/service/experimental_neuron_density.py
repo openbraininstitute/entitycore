@@ -13,7 +13,12 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -193,6 +198,23 @@ def admin_read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    json_model: ExperimentalNeuronDensityCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> ExperimentalNeuronDensityRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=ExperimentalNeuronDensity,
+        response_schema_class=ExperimentalNeuronDensityRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextWithProjectIdDep,
     json_model: ExperimentalNeuronDensityCreate,
     db: SessionDep,
     expand: ExpandDep = frozenset(),

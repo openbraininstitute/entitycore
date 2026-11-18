@@ -66,6 +66,9 @@ def create_one(json_model: RoleCreate, db: SessionDep, user_context: AdminContex
     )
 
 
+admin_create_one = create_one
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

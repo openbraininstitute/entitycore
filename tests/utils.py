@@ -45,7 +45,11 @@ from app.db.model import (
     Subject,
 )
 from app.db.types import EntityLifecycleStatus, EntityType, ExecutorType, StorageType
+from app.db.utils import RESOURCE_TYPE_TO_CLASS
+from app.errors import AuthErrorReason
 from app.routers.asset import EntityRoute
+from app.types import ResourceRoute
+from app.utils.routers import route_to_type
 from app.utils.uuid import create_uuid
 
 DateTimeAdapter = TypeAdapter(datetime)
@@ -57,6 +61,7 @@ ADMIN_SUB_ID = "00000000-0000-0000-0000-000000000000"
 USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"
 USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
 USER_SUB_ID_3 = "00000000-0000-0000-0000-000000000002"
+ADMIN_NOT_MEMBER_SUB_ID = "00000000-0000-0000-0000-000000000004"
 
 TOKEN_ADMIN = "I'm admin"  # ruff:ignore[hardcoded-password-string]
 TOKEN_USER_1 = "I'm user 1"  # ruff:ignore[hardcoded-password-string]
@@ -66,6 +71,7 @@ TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # ruff:ignore[hardcoded-password-string
 TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # ruff:ignore[hardcoded-password-string]
 TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # ruff:ignore[hardcoded-password-string]
 TOKEN_USER_1_TWO_PROJECTS = "I'm user 1 two projects"  # ruff:ignore[hardcoded-password-string]
+TOKEN_ADMIN_NOT_MEMBER = "I'm admin not member"  # ruff:ignore[hardcoded-password-string]
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}
@@ -75,6 +81,7 @@ AUTH_HEADER_MAINTAINER_1 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_1}"}
 AUTH_HEADER_MAINTAINER_2 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_2}"}
 AUTH_HEADER_MAINTAINER_3 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_3}"}
 AUTH_HEADER_USER_1_TWO_PROJECTS = {"Authorization": f"Bearer {TOKEN_USER_1_TWO_PROJECTS}"}
+AUTH_HEADER_ADMIN_NOT_MEMBER = {"Authorization": f"Bearer {TOKEN_ADMIN_NOT_MEMBER}"}
 
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"
@@ -202,6 +209,7 @@ class ClientProxies(NamedTuple):
     no_project: ClientProxy
     admin: ClientProxy
     admin_with_project: ClientProxy
+    admin_not_member: ClientProxy
     maintainer_1: ClientProxy
     maintainer_2: ClientProxy
     maintainer_3: ClientProxy
@@ -2055,3 +2063,100 @@ def s3_multipart_upload_exists(s3_client, upload_id, bucket):
     response = s3_client.list_multipart_uploads(Bucket=bucket)
     upload_ids = {u["UploadId"] for u in response.get("Uploads", [])}
     return upload_id in upload_ids
+
+
+def check_admin_create_one(
+    *,
+    db,
+    clients: ClientProxies,
+    route: str,
+    admin_route: str,
+    json_data: dict,
+    mock_virtual_lab_api,
+) -> dict:
+    """Check the admin create in PROJECT_ID by an admin who isn't a member of the project.
+
+    Args:
+        db: the database session.
+        clients: the test clients.
+        route: the user route, used to check that the created resource is readable.
+        admin_route: the admin route.
+        json_data: the payload, valid for a resource in PROJECT_ID.
+        mock_virtual_lab_api: the fixture mocking virtual-lab-manager.
+
+    Returns:
+        the created resource.
+    """
+    mock_virtual_lab_api(PROJECT_ID, VIRTUAL_LAB_ID)
+    mock_virtual_lab_api(MISSING_ID, status_code=403)
+    admin = clients.admin_not_member
+
+    def _post_error(client, headers, expected_reason):
+        data = assert_request(
+            client.post, url=admin_route, json=json_data, headers=headers, expected_status_code=403
+        ).json()
+        assert data["message"] == expected_reason
+
+    _post_error(clients.user_1, PROJECT_HEADERS, AuthErrorReason.ADMIN_REQUIRED)
+    _post_error(admin, {}, AuthErrorReason.PROJECT_REQUIRED)
+    _post_error(admin, {"project-id": MISSING_ID}, AuthErrorReason.PROJECT_NOT_FOUND)
+    _post_error(
+        admin,
+        {"virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID, "project-id": PROJECT_ID},
+        AuthErrorReason.VIRTUAL_LAB_MISMATCH,
+    )
+
+    data = assert_request(
+        admin.post, url=admin_route, json=json_data, headers={"project-id": PROJECT_ID}
+    ).json()
+    row = _check_created_by_admin_not_member(db, admin_route, data)
+    # the associations, e.g. contributions, have no project
+    if hasattr(row, "authorized_project_id"):
+        assert str(row.authorized_project_id) == PROJECT_ID
+
+    read_data = assert_request(clients.user_1.get, url=f"{route}/{data['id']}").json()
+    assert read_data["id"] == data["id"]
+    return data
+
+
+def check_admin_create_one_without_project(
+    *,
+    db,
+    clients: ClientProxies,
+    admin_route: str,
+    json_data: dict,
+) -> dict:
+    """Check the admin create of a resource without a project, ignoring the project headers.
+
+    Args:
+        db: the database session.
+        clients: the test clients.
+        admin_route: the admin route.
+        json_data: the payload.
+
+    Returns:
+        the created resource.
+    """
+    data = assert_request(
+        clients.user_1.post, url=admin_route, json=json_data, expected_status_code=403
+    ).json()
+    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
+
+    data = assert_request(
+        clients.admin_not_member.post,
+        url=admin_route,
+        json=json_data,
+        headers=UNRELATED_PROJECT_HEADERS,
+    ).json()
+    row = _check_created_by_admin_not_member(db, admin_route, data)
+    assert not hasattr(row, "authorized_project_id")
+    return data
+
+
+def _check_created_by_admin_not_member(db, admin_route: str, data: dict):
+    """Check in the db that the admin is the creator, since not all the responses include it."""
+    route = ResourceRoute(admin_route.removeprefix("/admin/"))
+    row = db.get(RESOURCE_TYPE_TO_CLASS[route_to_type(route)], uuid.UUID(data["id"]))
+    assert str(row.created_by_id) == ADMIN_NOT_MEMBER_SUB_ID
+    assert str(row.updated_by_id) == ADMIN_NOT_MEMBER_SUB_ID
+    return row

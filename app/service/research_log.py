@@ -8,7 +8,12 @@ from app.db.model import (
     Contribution,
     ResearchLog,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    AdminContextWithProjectIdDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -83,6 +88,23 @@ def create_one(
     db: SessionDep,
     json_model: ResearchLogCreate,
     user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> ResearchLogRead:
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=ResearchLog,
+        response_schema_class=ResearchLogRead,
+        apply_operations=_load,
+        expand=expand,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: ResearchLogCreate,
+    user_context: AdminContextWithProjectIdDep,
     expand: ExpandDep = frozenset(),
 ) -> ResearchLogRead:
     return router_create_one(

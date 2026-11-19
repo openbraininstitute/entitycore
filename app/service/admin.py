@@ -36,6 +36,7 @@ from app.service.asset import (
     multipart_upload_complete_unverified,
     multipart_upload_initiate_unverified,
     register_entity_asset_unverified,
+    replace_entity_asset_unverified,
     upload_and_create_entity_asset,
 )
 from app.types import EntityRoute, ResourceRoute
@@ -191,6 +192,34 @@ def upload_entity_asset(
         file=file,
         label=label,
         meta=meta,
+    )
+
+
+def replace_entity_asset(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    storage_client_factory: StorageClientFactory,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    file: UploadFile,
+    if_match: str | None,
+) -> AssetRead:
+    """Replace an asset's content through the admin flow: any project, public or not."""
+    entity = crud.get_identifiable_one(
+        db=repos.db,
+        db_model_class=ENTITY_TYPE_TO_CLASS[entity_type],
+        id_=entity_id,
+    )
+    return replace_entity_asset_unverified(
+        repos,
+        entity=entity,
+        entity_type=entity_type,
+        user_profile=user_context.profile,
+        asset_id=asset_id,
+        storage_client_factory=storage_client_factory,
+        file=file,
+        if_match=if_match,
     )
 
 

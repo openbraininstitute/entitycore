@@ -5,7 +5,7 @@ import os
 import threading
 import uuid
 from pathlib import Path
-from typing import IO, Protocol, TypedDict
+from typing import IO, NamedTuple, Protocol, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
@@ -145,13 +145,22 @@ def get_s3_client(storage: StorageUnion) -> S3Client:
     return clients[storage.type]
 
 
-def upload_to_s3_single_part(
+class S3Put(NamedTuple):
+    """What S3 sent back for a ``put_object``."""
+
+    sha256_hex: str
+    # The version this write made. ``None`` on a bucket without versioning.
+    version_id: str | None
+
+
+def put_object_checked(
     s3_client: S3Client,
     file_obj: IO,
     bucket_name: str,
     s3_key: str,
-) -> str | None:
-    """Upload an object via ``put_object`` and return its SHA256 digest in hex.
+    content_type: str | None = None,
+) -> S3Put | None:
+    """Upload an object with ``put_object`` and return its SHA256 digest (hex) and version.
 
     S3 computes the checksum server-side (``ChecksumAlgorithm=SHA256``), avoiding a
     second read of the payload. Only use for files within ``API_ASSET_POST_MAX_SIZE``.
@@ -161,17 +170,22 @@ def upload_to_s3_single_part(
         file_obj: file-like object positioned at the start of the content.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+        content_type: saved as the object's Content-Type, so downloads get it back.
+            Without it, S3 stores ``binary/octet-stream``.
 
     Returns:
-        SHA256 hex digest, or ``None`` if the upload failed.
+        The digest and the version id, or ``None`` if the upload failed.
     """
+    params: dict = {
+        "Body": file_obj,
+        "Bucket": bucket_name,
+        "Key": s3_key,
+        "ChecksumAlgorithm": "SHA256",
+    }
+    if content_type:
+        params["ContentType"] = content_type
     try:
-        response = s3_client.put_object(
-            Body=file_obj,
-            Bucket=bucket_name,
-            Key=s3_key,
-            ChecksumAlgorithm="SHA256",
-        )
+        response = s3_client.put_object(**params)
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
         return None
@@ -180,7 +194,24 @@ def upload_to_s3_single_part(
         L.error("S3 did not return a SHA256 checksum for s3://{}/{}", bucket_name, s3_key)
         return None
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
-    return base64.b64decode(checksum_b64).hex()
+    return S3Put(
+        sha256_hex=base64.b64decode(checksum_b64).hex(), version_id=response.get("VersionId")
+    )
+
+
+def upload_to_s3_single_part(
+    s3_client: S3Client,
+    file_obj: IO,
+    bucket_name: str,
+    s3_key: str,
+    content_type: str | None = None,
+) -> str | None:
+    """Upload an object with ``put_object`` and return its SHA256 digest in hex.
+
+    Thin wrapper around ``put_object_checked``. Returns ``None`` if the upload failed.
+    """
+    put = put_object_checked(s3_client, file_obj, bucket_name, s3_key, content_type)
+    return None if put is None else put.sha256_hex
 
 
 def delete_objects_batch(
@@ -301,7 +332,11 @@ def _apply_presigned_url_netloc(url: str) -> str:
 
 
 def generate_presigned_url(
-    s3_client: S3Client, operation: str, bucket_name: str, s3_key: str
+    s3_client: S3Client,
+    operation: str,
+    bucket_name: str,
+    s3_key: str,
+    response_content_type: str | None = None,
 ) -> str | None:
     """Generate and return a presigned URL for an S3 object.
 
@@ -310,12 +345,18 @@ def generate_presigned_url(
         operation: the `ClientMethod` wanted of the presigned url
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+        response_content_type: for a ``get_object`` URL, the Content-Type S3 should answer
+            with, no matter what the object was stored with (S3's signed
+            ``response-content-type``).
     """
+    params: dict = {"Bucket": bucket_name, "Key": s3_key}
+    if response_content_type:
+        params["ResponseContentType"] = response_content_type
     url = None
     try:
         url = s3_client.generate_presigned_url(
             operation,
-            Params={"Bucket": bucket_name, "Key": s3_key},
+            Params=params,
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
     except Exception:  # ruff:ignore[blind-except]

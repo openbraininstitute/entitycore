@@ -599,6 +599,30 @@ def test_upload_entity_asset_admin(client_admin, entity):
     assert data["label"] == "morphology"
 
 
+@pytest.mark.parametrize("admin", [False, True])
+def test_upload_entity_asset_with_meta(request, client, client_admin, entity, admin):
+    """Multipart forms only carry text: meta goes in as JSON text and comes back as an object."""
+    if admin:  # only the admin route asks the virtual-lab API
+        request.getfixturevalue("mock_virtual_lab_project_mapping")
+    url = f"{'/admin' if admin else ''}{route(entity.type)}/{entity.id}/assets"
+    uploader = client_admin if admin else client
+
+    def upload(name: str, data: dict):
+        return uploader.post(
+            url,
+            files={"file": (name, io.BytesIO(b"x"), "application/asc")},
+            data={"label": "morphology", **data},
+        )
+
+    response = upload("a.asc", {"meta": '{"logbook_page_id": "p1", "n": 2}'})
+    assert response.status_code == 201, response.text
+    assert response.json()["meta"] == {"logbook_page_id": "p1", "n": 2}
+    # no meta is still fine; text that isn't a JSON object is refused
+    assert upload("b.asc", {}).status_code == 201
+    for bad in ["not json", "[1, 2]"]:
+        assert upload("c.asc", {"meta": bad}).status_code == 422
+
+
 @pytest.mark.usefixtures("virtual_lab_api_url")
 def test_upload_entity_asset_admin_non_authorized(clients, entity):
     response = _upload_entity_asset_admin(
@@ -885,7 +909,7 @@ def test_download_entity_asset(clients, entity, asset):
         follow_redirects=False,
     )
     expected_full_path = _get_expected_full_path(entity, path="morph.asc")
-    expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
+    expected_params = {"X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Signature", "X-Amz-Expires"}
     assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
 
@@ -919,7 +943,7 @@ def test_download_entity_asset(clients, entity, asset):
         follow_redirects=False,
     )
     expected_full_path = _get_expected_full_path(entity, path="morph.asc")
-    expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
+    expected_params = {"X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Signature", "X-Amz-Expires"}
     assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
 
@@ -1125,6 +1149,17 @@ def test_delete_entity_asset(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_replace_entity_asset_not_replaceable(client, entity, asset):
+    """Assets are immutable unless their label says otherwise."""
+    response = client.put(
+        f"{route(entity.type)}/{entity.id}/assets/{asset.id}",
+        files={"file": ("a.json", b"{}", "application/json")},
+    )
+    assert response.status_code == 409, response.text
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_REPLACEABLE
 
 
 def test_asset_deletion_cascade(db, client, create_entity_asset, s3):

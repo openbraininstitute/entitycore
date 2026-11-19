@@ -1,10 +1,11 @@
+import dataclasses
 from collections import defaultdict
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from typing import NamedTuple
 
 from sqlalchemy import event
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, SessionTransaction
 from sqlalchemy.orm.session import object_session
 
 from app.config import settings, storages
@@ -170,3 +171,78 @@ def delete_assets_from_storage(session: Session):
 def cleanup_storage_deletes(session: Session):
     """Clear pending storage deletions after a transaction rollback."""
     session.info.pop(ASSETS_TO_DELETE_KEY, None)
+
+
+STORAGE_UNDOS_KEY = "storage_writes_to_undo"
+
+
+@dataclasses.dataclass(frozen=True)
+class StorageUndo:
+    """A write to take back: the S3 version it made.
+
+    The bucket keeps old versions, so deleting ours makes the previous one current again.
+    It never touches a newer write: if someone wrote after us, theirs stays current and ours
+    just drops out of the history. One request, no bytes through the service.
+    """
+
+    storage_type: StorageType
+    s3_key: str
+    version_id: str
+    transaction: SessionTransaction | None = None
+
+
+def undo_storage_write_unless_committed(session: Session, undo: StorageUndo) -> None:
+    """Restore the object if the current transaction doesn't commit.
+
+    S3 can't roll back with the database, so we undo the write ourselves (a compensating
+    action, saga pattern). This covers a rollback after an error, a failed commit, and a
+    session closed without committing. The undo sits on the innermost transaction (the
+    request's), and its commit drops it.
+
+    Limit: a write made inside a savepoint is kept once the savepoint is released, even if an
+    outer transaction rolls back later. No route writes to S3 inside a savepoint today.
+    Upgrade: hand the undo to the parent transaction on release.
+    """
+    transaction = session.get_nested_transaction() or session.get_transaction()
+    if transaction is None:
+        # No transaction to wait for, so nothing can roll back the row either.
+        return
+    session.info.setdefault(STORAGE_UNDOS_KEY, []).append(
+        dataclasses.replace(undo, transaction=transaction)
+    )
+
+
+def _undos_of(session: Session, transaction: SessionTransaction | None) -> list[StorageUndo]:
+    """Remove and return the session's undos that belong to ``transaction``."""
+    undos: list[StorageUndo] = session.info.get(STORAGE_UNDOS_KEY, [])
+    mine = [u for u in undos if u.transaction is transaction]
+    if mine:
+        session.info[STORAGE_UNDOS_KEY] = [u for u in undos if u.transaction is not transaction]
+    return mine
+
+
+@event.listens_for(Session, "after_commit")
+def keep_committed_storage_writes(session: Session):
+    """The transaction committed, so its writes stay: drop their undos."""
+    # The committing transaction is still the session's current one here.
+    committed = session.get_nested_transaction() or session.get_transaction()
+    _undos_of(session, committed)
+
+
+@event.listens_for(Session, "after_transaction_end")
+def undo_uncommitted_storage_writes(session: Session, transaction: SessionTransaction):
+    """Take back the S3 writes of a transaction that ended without a commit.
+
+    Never raises: a failed undo is just logged. The row then has the old version and the
+    object the new one, until the asset is replaced again.
+    """
+    for undo in _undos_of(session, transaction):
+        storage = storages[undo.storage_type]
+        try:
+            # Needs s3:DeleteObjectVersion, which the service's role has.
+            get_s3_client(storage).delete_object(
+                Bucket=storage.bucket, Key=undo.s3_key, VersionId=undo.version_id
+            )
+            L.warning("Took back s3 write {}: its transaction did not commit", undo.s3_key)
+        except Exception:  # ruff:ignore[blind-except]
+            L.exception("Failed to take back s3 write {}", undo.s3_key)

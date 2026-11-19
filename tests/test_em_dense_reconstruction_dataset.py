@@ -2,6 +2,7 @@ import pytest
 
 from app.db.model import EMDenseReconstructionDataset
 from app.db.types import EntityType
+from app.errors import AuthErrorReason
 
 from .utils import (
     PROJECT_ID,
@@ -56,7 +57,7 @@ def test_create_one(client, client_admin, client_admin_with_project, json_data):
     data = assert_request(
         client_admin.post, url=ROUTE, json=json_data, expected_status_code=403
     ).json()
-    assert data["message"] == "The headers virtual-lab-id and project-id are required"
+    assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
 
     data = assert_request(client_admin_with_project.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)

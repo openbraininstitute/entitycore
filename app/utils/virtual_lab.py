@@ -7,15 +7,19 @@ import httpx2
 
 from app.config import settings
 from app.errors import ApiError, ApiErrorCode
+from app.logger import L
 from app.schemas.auth import UserContext
 from app.schemas.virtual_lab import ProjectVirtualLabMapping
 from app.utils.http import make_http_request
+
+# virtual-lab-manager returns 403 also for unknown or deleted projects, instead of 404
+PROJECT_NOT_FOUND_STATUS_CODES: set[int] = {HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND}
 
 
 class AdminVirtualLabClientProtocol(Protocol):
     """Interface used by the service layer to resolve a virtual lab from a project."""
 
-    def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping: ...
+    def find_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping | None: ...
 
     def close(self) -> None: ...
 
@@ -35,24 +39,34 @@ class VirtualLabClient:
 
 
 class AdminVirtualLabClient(VirtualLabClient):
-    def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping:
+    def find_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping | None:
+        """Return the virtual lab of the project, or None if the project isn't found."""
         response = make_http_request(
             url=f"/virtual-labs/projects/{project_id}/virtual-lab",
             http_client=self._http_client,
             method="GET",
+            ignored_errors=PROJECT_NOT_FOUND_STATUS_CODES,
         )
+        if response.status_code in PROJECT_NOT_FOUND_STATUS_CODES:
+            # a 403 may also mean that the token was rejected, see virtual-lab-api#218
+            L.warning(
+                "Project {} not found in virtual-lab-manager: HTTP status {}",
+                project_id,
+                response.status_code,
+            )
+            return None
         return ProjectVirtualLabMapping.model_validate(response.json()["data"])
 
 
 class DisabledAuthVirtualLabClient:
     """No-op admin client used when ``APP_DISABLE_AUTH`` is enabled.
 
-    The virtual lab API is neither reachable nor authenticated in local dev, so the virtual lab
-    id is resolved via ``resolve_virtual_lab_id`` instead. This client exists only to satisfy the
+    The virtual lab API is neither reachable nor authenticated in local dev, so the callers use
+    ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID`` instead. This client exists only to satisfy the
     dependency and raises if it is ever actually used.
     """
 
-    def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping:  # ruff:ignore[no-self-use, unused-method-argument]
+    def find_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping | None:  # ruff:ignore[no-self-use, unused-method-argument]
         msg = "Virtual lab API is not available when APP_DISABLE_AUTH is enabled."
         raise RuntimeError(msg)
 

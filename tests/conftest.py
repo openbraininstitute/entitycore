@@ -364,6 +364,11 @@ def user_context_maintainer_3():
     )
 
 
+def _without_project(user_context: UserContext) -> UserContext:
+    """Return the context of the same user, authenticated without project headers."""
+    return user_context.model_copy(update={"virtual_lab_id": None, "project_id": None})
+
+
 @pytest.fixture
 def _override_check_user_info(
     monkeypatch,
@@ -379,7 +384,8 @@ def _override_check_user_info(
     user_context_maintainer_2,
     user_context_maintainer_3,
 ):
-    # map (token, project-id) to the expected user_context
+    # map (token, project-id) to the expected user_context.
+    # The admin routes ignore the project headers, so every token needs an entry without project.
     mapping = {
         (TOKEN_ADMIN, None): user_context_admin,
         (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
@@ -388,9 +394,13 @@ def _override_check_user_info(
         (TOKEN_USER_1_TWO_PROJECTS, UUID(PROJECT_ID)): user_context_user_1_two_projects,
         (TOKEN_USER_1_TWO_PROJECTS, None): user_context_user_1_two_projects_no_project,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_USER_2, None): _without_project(user_context_user_2),
         (TOKEN_USER_3, UUID(PROJECT_ID)): user_context_user_3,
+        (TOKEN_USER_3, None): _without_project(user_context_user_3),
         (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
+        (TOKEN_MAINTAINER_1, None): _without_project(user_context_maintainer_1),
         (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
+        (TOKEN_MAINTAINER_2, None): _without_project(user_context_maintainer_2),
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 

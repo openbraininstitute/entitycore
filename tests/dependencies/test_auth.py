@@ -55,8 +55,6 @@ EXPECTED_AUTH_ERROR_STATUS = {
     AuthErrorReason.NOT_AUTHORIZED_USER: NOT_AUTHORIZED,
     AuthErrorReason.NOT_AUTHORIZED_PROJECT: NOT_AUTHORIZED,
     AuthErrorReason.PROJECT_REQUIRED: NOT_AUTHORIZED,
-    AuthErrorReason.PROJECT_NOT_FOUND: NOT_AUTHORIZED,
-    AuthErrorReason.VIRTUAL_LAB_MISMATCH: NOT_AUTHORIZED,
     AuthErrorReason.ADMIN_REQUIRED: NOT_AUTHORIZED,
 }
 
@@ -94,12 +92,13 @@ def _make_test_app() -> FastAPI:
         """User route restricted to admins, like the create of the global resources."""
         return _context_json(user_context)
 
-    @admin_router.get("/resource")
-    def admin_endpoint(user_context: AdminContextDep):
+    @user_router.post("/user-admin-with-project")
+    def user_admin_with_project_endpoint(user_context: AdminContextWithProjectIdDep):
+        """User route restricted to admins members of the project in the headers."""
         return _context_json(user_context)
 
-    @admin_router.post("/resource")
-    def admin_create_endpoint(user_context: AdminContextWithProjectIdDep):
+    @admin_router.get("/resource")
+    def admin_endpoint(user_context: AdminContextDep):
         return _context_json(user_context)
 
     test_app.include_router(user_router, dependencies=[Depends(test_module.user_verified)])
@@ -151,51 +150,43 @@ def _post(client, url, headers=None, expected_status_code=HTTPStatus.OK):
     return response.json()
 
 
-def test_admin_route_admin_not_member(test_client, mock_keycloak):
-    mock_keycloak([ADMIN_GROUP])
+@pytest.mark.parametrize("headers", [{}, NON_MEMBER_HEADERS, {"project-id": UNRELATED_PROJECT_ID}])
+def test_admin_route_admin_not_member(test_client, mock_keycloak, headers):
+    keycloak_route = mock_keycloak([ADMIN_GROUP])
 
-    data = _get(test_client, "/admin/resource", headers=NON_MEMBER_HEADERS)
+    # the project headers are ignored: the context describes only the caller
+    data = _get(test_client, "/admin/resource", headers=headers)
     assert data == {
-        "virtual_lab_id": UNRELATED_VIRTUAL_LAB_ID,
-        "project_id": UNRELATED_PROJECT_ID,
-        # is_authorized reports the project membership: the admin is accepted because of the role
-        "is_authorized": False,
+        "virtual_lab_id": None,
+        "project_id": None,
+        "is_authorized": True,
         "is_service_admin": True,
     }
+    assert keycloak_route.call_count == 1
 
-    # only the project-id: the virtual lab can't be derived from the groups
-    data = _get(test_client, "/admin/resource", headers={"project-id": UNRELATED_PROJECT_ID})
-    assert data["project_id"] == UNRELATED_PROJECT_ID
+
+def test_admin_route_cache_ignores_project_headers(test_client, mock_keycloak):
+    keycloak_route = mock_keycloak([ADMIN_GROUP])
+
+    _get(test_client, "/admin/resource")
+    _get(test_client, "/admin/resource", headers=NON_MEMBER_HEADERS)
+    _get(test_client, "/admin/resource", headers=MEMBER_HEADERS)
+    # the cached context is reused, because the cache key doesn't depend on the headers
+    assert keycloak_route.call_count == 1
+
+
+def test_admin_route_auth_disabled(test_client, monkeypatch):
+    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
+
+    data = _get(test_client, "/admin/resource", headers=MEMBER_HEADERS)
+    assert data["project_id"] is None
     assert data["virtual_lab_id"] is None
 
 
-def test_admin_route_with_project_id_admin_not_member(
-    test_client, mock_keycloak, mock_virtual_lab_api
-):
-    mock_keycloak([ADMIN_GROUP])
-    vlab_route = mock_virtual_lab_api(UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID)
-
-    data = _post(test_client, "/admin/resource", headers=NON_MEMBER_HEADERS)
-    assert data == {
-        "virtual_lab_id": UNRELATED_VIRTUAL_LAB_ID,
-        "project_id": UNRELATED_PROJECT_ID,
-        "is_authorized": False,
-        "is_service_admin": True,
-    }
-    # the token of the admin is forwarded to virtual-lab-manager
-    assert vlab_route.calls.last.request.headers["Authorization"] == f"Bearer {TOKEN}"
-
-    # the virtual lab is taken from virtual-lab-manager
-    data = _post(test_client, "/admin/resource", headers={"project-id": UNRELATED_PROJECT_ID})
-    assert data["project_id"] == UNRELATED_PROJECT_ID
-    assert data["virtual_lab_id"] == UNRELATED_VIRTUAL_LAB_ID
-
-
-def test_admin_route_with_project_id_admin_member(test_client, mock_keycloak, mock_virtual_lab_api):
+def test_user_route_admin_with_project_id(test_client, mock_keycloak):
     mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
-    mock_virtual_lab_api(PROJECT_ID, VIRTUAL_LAB_ID)
 
-    data = _post(test_client, "/admin/resource", headers={"project-id": PROJECT_ID})
+    data = _post(test_client, "/user-admin-with-project", headers={"project-id": PROJECT_ID})
     assert data == {
         "virtual_lab_id": VIRTUAL_LAB_ID,
         "project_id": PROJECT_ID,
@@ -204,75 +195,49 @@ def test_admin_route_with_project_id_admin_member(test_client, mock_keycloak, mo
     }
 
 
-def test_admin_route_with_project_id_virtual_lab_mismatch(
-    test_client, mock_keycloak, mock_virtual_lab_api
-):
+def test_user_route_admin_with_project_id_not_member(test_client, mock_keycloak):
     mock_keycloak([ADMIN_GROUP])
-    mock_virtual_lab_api(UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID)
 
     data = _post(
         test_client,
-        "/admin/resource",
-        headers={"virtual-lab-id": VIRTUAL_LAB_ID, "project-id": UNRELATED_PROJECT_ID},
+        "/user-admin-with-project",
+        headers=NON_MEMBER_HEADERS,
         expected_status_code=HTTPStatus.FORBIDDEN,
     )
-    assert data["message"] == AuthErrorReason.VIRTUAL_LAB_MISMATCH
+    assert data["message"] == AuthErrorReason.NOT_AUTHORIZED_PROJECT
 
 
-@pytest.mark.parametrize("status_code", [HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND])
-def test_admin_route_with_project_id_project_not_found(
-    test_client, mock_keycloak, mock_virtual_lab_api, status_code
-):
-    mock_keycloak([ADMIN_GROUP])
-    mock_virtual_lab_api(UNRELATED_PROJECT_ID, status_code=status_code)
+def test_user_route_admin_with_project_id_missing(test_client, mock_keycloak):
+    mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
 
     data = _post(
         test_client,
-        "/admin/resource",
-        headers={"project-id": UNRELATED_PROJECT_ID},
+        "/user-admin-with-project",
         expected_status_code=HTTPStatus.FORBIDDEN,
-    )
-    assert data["message"] == AuthErrorReason.PROJECT_NOT_FOUND
-    assert data["error_code"] == ApiErrorCode.NOT_AUTHORIZED
-
-
-def test_admin_route_with_project_id_virtual_lab_api_error(
-    test_client, mock_keycloak, mock_virtual_lab_api
-):
-    mock_keycloak([ADMIN_GROUP])
-    mock_virtual_lab_api(UNRELATED_PROJECT_ID, status_code=HTTPStatus.INTERNAL_SERVER_ERROR)
-
-    _post(
-        test_client,
-        "/admin/resource",
-        headers={"project-id": UNRELATED_PROJECT_ID},
-        expected_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-    )
-
-
-@pytest.mark.parametrize("headers", [{}, {"virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID}])
-def test_admin_route_with_project_id_missing(test_client, mock_keycloak, headers):
-    mock_keycloak([ADMIN_GROUP])
-
-    # virtual-lab-manager isn't called
-    data = _post(
-        test_client, "/admin/resource", headers=headers, expected_status_code=HTTPStatus.FORBIDDEN
     )
     assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
 
 
-def test_admin_route_with_project_id_auth_disabled(test_client, monkeypatch):
+def test_user_route_admin_with_project_id_not_admin(test_client, mock_keycloak):
+    mock_keycloak([PROJECT_GROUP])
+
+    data = _post(
+        test_client,
+        "/user-admin-with-project",
+        headers=MEMBER_HEADERS,
+        expected_status_code=HTTPStatus.FORBIDDEN,
+    )
+    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
+
+
+def test_user_route_admin_with_project_id_auth_disabled(test_client, monkeypatch):
     monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
 
-    # virtual-lab-manager isn't called
-    data = _post(test_client, "/admin/resource", headers={"project-id": PROJECT_ID})
+    data = _post(test_client, "/user-admin-with-project", headers={"project-id": PROJECT_ID})
     assert data["project_id"] == PROJECT_ID
     assert data["virtual_lab_id"] == str(settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID)
 
-    data = _post(test_client, "/admin/resource", headers=MEMBER_HEADERS)
-    assert data["virtual_lab_id"] == VIRTUAL_LAB_ID
-
-    data = _post(test_client, "/admin/resource", expected_status_code=HTTPStatus.FORBIDDEN)
+    data = _post(test_client, "/user-admin-with-project", expected_status_code=HTTPStatus.FORBIDDEN)
     assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
 
 
@@ -292,26 +257,11 @@ def test_user_route_auth_disabled(test_client, monkeypatch):
     assert data["virtual_lab_id"] is None
 
 
-def test_admin_route_with_project_id_not_admin(test_client, mock_keycloak):
-    mock_keycloak([PROJECT_GROUP])
-
-    data = _post(
-        test_client,
-        "/admin/resource",
-        headers=MEMBER_HEADERS,
-        expected_status_code=HTTPStatus.FORBIDDEN,
-    )
-    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
-
-
 def test_admin_route_admin_member(test_client, mock_keycloak):
     mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
 
-    data = _get(test_client, "/admin/resource", headers={"project-id": PROJECT_ID})
-    assert data["project_id"] == PROJECT_ID
-    assert data["virtual_lab_id"] == VIRTUAL_LAB_ID
-
-    data = _get(test_client, "/admin/resource")
+    # the project headers are ignored also when the admin is a member of the project
+    data = _get(test_client, "/admin/resource", headers=MEMBER_HEADERS)
     assert data["project_id"] is None
     assert data["virtual_lab_id"] is None
 
@@ -364,13 +314,17 @@ def test_user_routes_admin_not_member(test_client, mock_keycloak, url):
     assert data["message"] == AuthErrorReason.NOT_AUTHORIZED_PROJECT
 
 
-@pytest.mark.parametrize("url", ["/user", "/user-admin-only"])
-def test_user_routes_admin_member(test_client, mock_keycloak, url):
+def test_user_routes_admin_member(test_client, mock_keycloak):
     mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
 
-    data = _get(test_client, url, headers=MEMBER_HEADERS)
+    data = _get(test_client, "/user", headers=MEMBER_HEADERS)
     assert data["project_id"] == PROJECT_ID
     assert data["virtual_lab_id"] == VIRTUAL_LAB_ID
+
+    # the membership is checked at the router level, but the admin context has no project
+    data = _get(test_client, "/user-admin-only", headers=MEMBER_HEADERS)
+    assert data["project_id"] is None
+    assert data["virtual_lab_id"] is None
 
 
 def test_user_route_admin_only_not_admin(test_client, mock_keycloak):
@@ -455,7 +409,6 @@ def _user_context(*, is_authorized, auth_error_reason, expiration):
     ("is_authorized", "auth_error_reason"),
     [
         (True, None),
-        # accepted on the admin routes, so it must not outlive the token
         (False, AuthErrorReason.NOT_AUTHORIZED_PROJECT),
     ],
 )
@@ -512,7 +465,6 @@ def test_unauthorized_context_rejected(
 ):
     """Any unauthorized context returned by the Keycloak check is rejected.
 
-    The only exception is NOT_AUTHORIZED_PROJECT for service admins on the admin routes.
     It covers every member of AuthErrorReason, also the ones added later.
     """
 
@@ -531,23 +483,12 @@ def test_unauthorized_context_rejected(
     reason = auth_error_reason or AuthErrorReason.UNKNOWN
     expected_status_code, expected_error_code = EXPECTED_AUTH_ERROR_STATUS[reason]
 
-    response = test_client.get("/user", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
-    assert response.status_code == expected_status_code
-    assert response.json()["message"] == reason
-    assert response.json()["error_code"] == expected_error_code
-
-    response = test_client.get("/admin/resource", headers=AUTH_HEADER | NON_MEMBER_HEADERS)
-    if reason != AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+    for url in ["/user", "/admin/resource"]:
         # the auth error is checked before the role
+        response = test_client.get(url, headers=AUTH_HEADER | NON_MEMBER_HEADERS)
         assert response.status_code == expected_status_code
         assert response.json()["message"] == reason
         assert response.json()["error_code"] == expected_error_code
-    elif is_service_admin:
-        assert response.status_code == HTTPStatus.OK
-        assert response.json()["is_authorized"] is False
-    else:
-        assert response.status_code == HTTPStatus.FORBIDDEN
-        assert response.json()["message"] == AuthErrorReason.ADMIN_REQUIRED
 
 
 def test_auth_error_status():

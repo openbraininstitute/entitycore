@@ -1,7 +1,6 @@
 import hashlib
 import threading
 import time
-from collections.abc import Collection
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -15,7 +14,6 @@ from starlette.requests import Request
 from app.config import settings
 from app.context import request_context_provider
 from app.dependencies.security import TokenDep
-from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.logger import L
 from app.schemas.auth import (
@@ -43,8 +41,6 @@ AUTH_ERROR_STATUS: dict[AuthErrorReason, tuple[int, ApiErrorCode]] = {
     AuthErrorReason.NOT_AUTHORIZED_USER: (403, ApiErrorCode.NOT_AUTHORIZED),
     AuthErrorReason.NOT_AUTHORIZED_PROJECT: (403, ApiErrorCode.NOT_AUTHORIZED),
     AuthErrorReason.PROJECT_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
-    AuthErrorReason.PROJECT_NOT_FOUND: (403, ApiErrorCode.NOT_AUTHORIZED),
-    AuthErrorReason.VIRTUAL_LAB_MISMATCH: (403, ApiErrorCode.NOT_AUTHORIZED),
     AuthErrorReason.ADMIN_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
 }
 
@@ -86,7 +82,7 @@ def _get_cache_ttu(_key: CacheKey, value: UserContext, now: float) -> float:
     expiration = now + settings.AUTH_CACHE_MAX_TTL
     if value.expiration and value.expiration > now:
         # consider the token expiration also when the user isn't authorized for the project,
-        # because service admins are accepted in that case by the admin routes
+        # so that a cached context never outlives the token
         expiration = min(expiration, value.expiration)
     L.opt(lazy=True).debug(
         "Setting cache expiration to {} for {}",
@@ -214,7 +210,7 @@ def _authenticate(
 
     Only a missing or invalid token raises an error here. The other errors, including the missing
     membership of the virtual lab and project in the headers, are in `auth_error_reason` of the
-    returned context, and the calling dependency decides which ones to accept.
+    returned context, and the calling dependency raises them.
 
     Args:
         project_context: virtual-lab-id and project-id from the headers.
@@ -257,15 +253,13 @@ def _authenticate(
     return user_context
 
 
-def _raise_for_auth_error(
-    user_context: UserContext, *, allowed: Collection[AuthErrorReason] = ()
-) -> None:
-    """Raise an error if the user isn't authorized, unless the reason is in `allowed`."""
-    if not user_context.is_authorized and user_context.auth_error_reason not in allowed:
+def _raise_for_auth_error(user_context: UserContext) -> None:
+    """Raise an error if the user isn't authorized."""
+    if not user_context.is_authorized:
         raise _auth_error(user_context.auth_error_reason or AuthErrorReason.UNKNOWN)
 
 
-def _require_service_admin(user_context: UserContext) -> None:
+def _require_service_admin(user_context: UserContextBase) -> None:
     """Raise an error if the authenticated user doesn't have the service admin role."""
     if not user_context.is_service_admin:
         raise _auth_error(AuthErrorReason.ADMIN_REQUIRED)
@@ -282,12 +276,9 @@ def user_verified(
     token: TokenDep,
     request: Request,
 ) -> UserContext:
-    """Ensure that the user is authenticated and authorized.
+    """Ensure that the user is authenticated and a member of the project in the headers.
 
-    The user must be a member of the virtual_lab_id and project_id claimed in the headers.
-    If only the virtual_lab_id specified, the user must be a member of the virtual_lab_id.
-    If neither is specified, it's enough that the auth token is valid.
-    Service admins have no exception: this dependency is used by the user routes.
+    The membership of virtual-lab-id and project-id is checked only when they're given.
     """
     user_context = _authenticate(project_context=project_context, token=token, request=request)
     _raise_for_auth_error(user_context)
@@ -295,23 +286,17 @@ def user_verified(
 
 
 def user_with_service_admin_role(
-    project_context: Annotated[OptionalProjectContext, Header()],
     token: TokenDep,
     request: Request,
 ) -> UserContext:
-    """Ensure that the user is authenticated and has a service admin role.
+    """Ensure that the user is authenticated and has the service admin role.
 
-    Unlike `user_verified`, the admin doesn't need to be a member of the virtual_lab_id and
-    project_id claimed in the headers. In that case, `is_authorized` is False in the returned
-    context, because it reports the membership. When only the project_id is given and the admin
-    isn't a member, the virtual_lab_id of the returned context is None.
-
-    The membership is skipped only on the admin routes: the user routes depend on
-    `user_verified` at the router level, so service admins have no special privilege there.
+    The project headers are ignored: admins don't need to be members of any project.
     """
-    user_context = _authenticate(project_context=project_context, token=token, request=request)
-    # admins don't need to be members of the virtual lab and project in the headers
-    _raise_for_auth_error(user_context, allowed={AuthErrorReason.NOT_AUTHORIZED_PROJECT})
+    user_context = _authenticate(
+        project_context=OptionalProjectContext(), token=token, request=request
+    )
+    _raise_for_auth_error(user_context)
     _require_service_admin(user_context)
     return user_context
 
@@ -325,29 +310,14 @@ def user_with_project_id(
 
 
 def user_with_service_admin_role_and_project_id(
-    user_context: AdminContextDep,
-    project_context: Annotated[OptionalProjectContext, Header()],
-    virtual_lab_client: AdminVirtualLabClientDep,
+    user_context: UserContextWithProjectIdDep,
 ) -> UserContextWithProjectId:
-    """Ensure that the user is a service admin, and that the project in the headers exists.
+    """Ensure that the user is a service admin and a member of the project in the headers.
 
-    The project is validated with virtual-lab-manager instead of the Keycloak membership.
+    Used only on the user routes: the admin routes ignore the project headers.
     """
-    if not (project_id := project_context.project_id):
-        raise _auth_error(AuthErrorReason.PROJECT_REQUIRED)
-    if settings.APP_DISABLE_AUTH:
-        # virtual-lab-manager isn't available locally
-        virtual_lab_id = project_context.virtual_lab_id or settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
-    elif mapping := virtual_lab_client.find_virtual_lab_by_project(project_id):
-        virtual_lab_id = mapping.virtual_lab_id
-    else:
-        raise _auth_error(AuthErrorReason.PROJECT_NOT_FOUND)
-    if project_context.virtual_lab_id not in {None, virtual_lab_id}:
-        raise _auth_error(AuthErrorReason.VIRTUAL_LAB_MISMATCH)
-    return UserContextWithProjectId.model_validate(
-        user_context.model_dump(include=set(UserContextBase.model_fields))
-        | {"virtual_lab_id": virtual_lab_id, "project_id": project_id}
-    )
+    _require_service_admin(user_context)
+    return user_context
 
 
 UserContextDep = Annotated[UserContext, Depends(user_verified)]

@@ -43,12 +43,10 @@ from app.service.asset import (
 from app.types import EntityRoute, ResourceRoute
 from app.utils.routers import entity_route_to_type, route_to_type
 from app.utils.s3 import StorageClientFactory
-from app.utils.virtual_lab import resolve_virtual_lab_id
 
 
 def _get_entity_and_vlab(
     repos: RepositoryGroup,
-    user_context: UserContext,
     virtual_lab_client: AdminVirtualLabClientProtocol,
     entity_type: EntityType,
     entity_id: uuid.UUID,
@@ -59,9 +57,8 @@ def _get_entity_and_vlab(
         id_=entity_id,
     )
     if settings.APP_DISABLE_AUTH:
-        # No virtual-lab API available in local dev: resolve from headers or the fallback.
-        virtual_lab_id = resolve_virtual_lab_id(user_context, entity.authorized_project_id)
-        return entity, virtual_lab_id
+        # no virtual-lab API in local dev, and the admin routes ignore the project headers
+        return entity, settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
     vlab_proj_mapping = virtual_lab_client.find_virtual_lab_by_project(
         project_id=entity.authorized_project_id
     )
@@ -194,9 +191,7 @@ def upload_entity_asset(
     meta: dict | None = None,
 ) -> AssetRead:
     """Upload an asset through admin flow."""
-    entity, virtual_lab_id = _get_entity_and_vlab(
-        repos, user_context, virtual_lab_client, entity_type, entity_id
-    )
+    entity, virtual_lab_id = _get_entity_and_vlab(repos, virtual_lab_client, entity_type, entity_id)
     return upload_and_create_entity_asset(
         repos,
         entity=entity,
@@ -218,9 +213,7 @@ def register_entity_asset(
     entity_type: EntityType,
     asset: AssetRegister,
 ) -> AssetRead:
-    entity, virtual_lab_id = _get_entity_and_vlab(
-        repos, user_context, virtual_lab_client, entity_type, entity_id
-    )
+    entity, virtual_lab_id = _get_entity_and_vlab(repos, virtual_lab_client, entity_type, entity_id)
     return register_entity_asset_unverified(
         repos,
         entity=entity,
@@ -240,9 +233,7 @@ def multipart_upload_initiate(
     entity_type: EntityType,
     json_model: MultipartUploadInitiateRequest,
 ) -> AssetReadWithUploadMeta:
-    entity, virtual_lab_id = _get_entity_and_vlab(
-        repos, user_context, virtual_lab_client, entity_type, entity_id
-    )
+    entity, virtual_lab_id = _get_entity_and_vlab(repos, virtual_lab_client, entity_type, entity_id)
     storage = storages[StorageType.aws_s3_internal]
     return multipart_upload_initiate_unverified(
         repos,
@@ -275,9 +266,7 @@ def directory_multipart_upload_initiate(
     entity_type: EntityType,
     json_model: MultipartDirectoryUploadRequest,
 ) -> MultipartDirectoryUploadResponse:
-    entity, virtual_lab_id = _get_entity_and_vlab(
-        repos, user_context, virtual_lab_client, entity_type, entity_id
-    )
+    entity, virtual_lab_id = _get_entity_and_vlab(repos, virtual_lab_client, entity_type, entity_id)
     storage = storages[StorageType.aws_s3_internal]
     return directory_multipart_upload_initiate_unverified(
         repos=repos,

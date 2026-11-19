@@ -1,5 +1,6 @@
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Collection
+from enum import StrEnum, auto
 from typing import Any
 
 from fastapi import APIRouter
@@ -11,13 +12,43 @@ from app.service import admin as admin_service
 from app.types import ResourceRoute
 
 
-def register_default_user_routes(router: APIRouter, service: UserCrudService) -> None:
-    """Attach standard CRUD user routes to a router using the given service."""
-    router.get("")(service.read_many)
-    router.get("/{id_}")(service.read_one)
-    router.post("")(service.create_one)
-    router.patch("/{id_}")(service.update_one)
-    router.delete("/{id_}")(service.delete_one)
+class UserOperation(StrEnum):
+    """Default user operations, named like the service functions implementing them."""
+
+    read_many = auto()
+    read_one = auto()
+    create_one = auto()
+    update_one = auto()
+    delete_one = auto()
+
+
+# HTTP method and path of each operation, relative to the router prefix
+USER_OPERATION_ROUTES: dict[UserOperation, tuple[str, str]] = {
+    UserOperation.read_many: ("GET", ""),
+    UserOperation.read_one: ("GET", "/{id_}"),
+    UserOperation.create_one: ("POST", ""),
+    UserOperation.update_one: ("PATCH", "/{id_}"),
+    UserOperation.delete_one: ("DELETE", "/{id_}"),
+}
+
+
+def register_default_user_routes(
+    router: APIRouter,
+    service: UserCrudService,
+    operations: Collection[UserOperation] = frozenset(UserOperation),
+) -> None:
+    """Attach standard CRUD user routes to a router using the given service.
+
+    Args:
+        router: the router of the resource.
+        service: the service module implementing the operations.
+        operations: the operations to register, all of them by default. The routes are
+            registered in the order of `UserOperation`, independently of the given order.
+    """
+    for operation in UserOperation:
+        if operation in operations:
+            method, path = USER_OPERATION_ROUTES[operation]
+            router.api_route(path, methods=[method])(getattr(service, operation))
 
 
 def register_default_admin_routes(
@@ -40,10 +71,22 @@ def register_default_admin_routes(
 def create_user_router(
     route: str,
     service: UserCrudService,
+    *,
+    operations: Collection[UserOperation] = frozenset(UserOperation),
     before_routes: list[Callable[[APIRouter], Any]] | None = None,
     after_routes: list[Callable[[APIRouter], Any]] | None = None,
 ) -> APIRouter:
-    """Create default APIRouter with CRUD routes."""
+    """Create default APIRouter with CRUD routes.
+
+    Args:
+        route: the route of the resource, used as prefix and tag.
+        service: the service module implementing the operations.
+        operations: the default user operations to register, all of them by default.
+            Resources whose writes are reserved to admins register only the read operations,
+            and expose the writes through the admin routes.
+        before_routes: functions adding routes before the default ones.
+        after_routes: functions adding routes after the default ones.
+    """
     router = APIRouter(
         prefix=f"/{route}",
         tags=[route],
@@ -52,7 +95,7 @@ def create_user_router(
         for route_func in before_routes:
             route_func(router)
 
-    register_default_user_routes(router=router, service=service)
+    register_default_user_routes(router=router, service=service, operations=operations)
 
     if after_routes:
         for route_func in after_routes:

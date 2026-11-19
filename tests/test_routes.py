@@ -7,6 +7,8 @@ import pytest
 from fastapi.routing import iter_route_contexts
 
 from app.application import app
+from app.dependencies.auth import user_verified
+from app.routers import admin, debug
 from app.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
 
 
@@ -175,3 +177,24 @@ def test_activity_route_methods(activity_routes):
     ]
     skip = set()
     _assert_routes(activity_routes, expected_method_names, skip)
+
+
+def _dependency_calls(dependant):
+    for dependency in dependant.dependencies:
+        yield dependency.call
+        yield from _dependency_calls(dependency)
+
+
+@pytest.mark.parametrize("router", [admin.router, debug.router], ids=["admin", "debug"])
+def test_admin_routes_do_not_require_project_membership(router):
+    """The admin routes must not depend on user_verified.
+
+    user_verified requires the membership of the project in the headers also for service admins,
+    while the admin routes accept service admins in any project.
+    """
+    invalid = [
+        f"{next(iter(route.methods))} {route.path}"
+        for route in router.routes
+        if user_verified in set(_dependency_calls(route.dependant))
+    ]
+    assert not invalid

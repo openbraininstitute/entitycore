@@ -1,6 +1,7 @@
 import hashlib
 import threading
 import time
+from collections.abc import Collection
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -32,6 +33,25 @@ AuthHeader: HTTPBearer = HTTPBearer(auto_error=False)
 
 KEYCLOAK_GROUPS_URL = f"{settings.KEYCLOAK_URL}/protocol/openid-connect/userinfo"
 
+# HTTP status code and error code returned for each auth error reason
+AUTH_ERROR_STATUS: dict[AuthErrorReason, tuple[int, ApiErrorCode]] = {
+    AuthErrorReason.AUTH_TOKEN_MISSING: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.AUTH_TOKEN_INVALID: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.AUTH_TOKEN_EXPIRED: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.NOT_AUTHENTICATED_USER: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.UNKNOWN: (401, ApiErrorCode.NOT_AUTHENTICATED),
+    AuthErrorReason.NOT_AUTHORIZED_USER: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.NOT_AUTHORIZED_PROJECT: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.PROJECT_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
+    AuthErrorReason.ADMIN_REQUIRED: (403, ApiErrorCode.NOT_AUTHORIZED),
+}
+
+
+def _auth_error(reason: AuthErrorReason) -> ApiError:
+    """Return the error to be raised for the given auth error reason."""
+    http_status_code, error_code = AUTH_ERROR_STATUS[reason]
+    return ApiError(message=reason, error_code=error_code, http_status_code=http_status_code)
+
 
 def _get_cache_key(
     *,
@@ -62,8 +82,9 @@ def _get_cache_ttu(_key: CacheKey, value: UserContext, now: float) -> float:
         now: current value of the timer function.
     """
     expiration = now + settings.AUTH_CACHE_MAX_TTL
-    if value.is_authorized and value.expiration and value.expiration > now:
-        # consider the token expiration only if the UserContext si authorized
+    if value.expiration and value.expiration > now:
+        # consider the token expiration also when the user isn't authorized for the project,
+        # because service admins are accepted in that case by the admin routes
         expiration = min(expiration, value.expiration)
     L.opt(lazy=True).debug(
         "Setting cache expiration to {} for {}",
@@ -175,16 +196,21 @@ def _enrich_request_context(user_context: UserContext) -> None:
     ctx["user_id"] = str(user_context.profile.subject)
 
 
-def user_verified(
-    project_context: Annotated[OptionalProjectContext, Header()],
-    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
+def _authenticate(
+    project_context: OptionalProjectContext,
+    token: HTTPAuthorizationCredentials | None,
     request: Request,
 ) -> UserContext:
-    """Ensure that the user is authenticated and authorized.
+    """Authenticate the user with KeyCloak, and return the user context.
 
-    The user must be a member of the virtual_lab_id and project_id claimed in the headers.
-    If only the virtual_lab_id specified, the user must be a member of the virtual_lab_id.
-    If neither is specified, it's enough that the auth token is valid.
+    Only a missing or invalid token raises an error here. The other errors, including the missing
+    membership of the virtual lab and project in the headers, are in `auth_error_reason` of the
+    returned context, and the calling dependency decides which ones to accept.
+
+    Args:
+        project_context: virtual-lab-id and project-id from the headers.
+        token: the auth token.
+        request: the request, used to get the shared http client.
     """
     if settings.APP_DISABLE_AUTH:
         L.warning("Authentication is disabled: admin role granted, vlab and proj not verified")
@@ -205,18 +231,10 @@ def user_verified(
         return user_context
 
     if not token:
-        raise ApiError(
-            message=AuthErrorReason.AUTH_TOKEN_MISSING,
-            error_code=ApiErrorCode.NOT_AUTHENTICATED,
-            http_status_code=401,
-        )
+        raise _auth_error(AuthErrorReason.AUTH_TOKEN_MISSING)
     if not token.credentials or not is_ascii(token.credentials):
         # non-ascii headers would raise an error in httpx when calling KeyCloak
-        raise ApiError(
-            message=AuthErrorReason.AUTH_TOKEN_INVALID,
-            error_code=ApiErrorCode.NOT_AUTHENTICATED,
-            http_status_code=401,
-        )
+        raise _auth_error(AuthErrorReason.AUTH_TOKEN_INVALID)
 
     user_context = _check_user_info(
         project_context=project_context,
@@ -224,60 +242,94 @@ def user_verified(
         http_client=request.state.http_client,
     )
 
-    # enrich request context before potentially raising an exception
+    # enrich request context before the calling dependency potentially raises an exception
     _enrich_request_context(user_context)
 
-    if not user_context.is_authorized:
-        match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
-                raise ApiError(
-                    message=user_context.auth_error_reason,
-                    error_code=ApiErrorCode.NOT_AUTHORIZED,
-                    http_status_code=403,
-                )
-            case _:
-                raise ApiError(
-                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
-                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
-                    http_status_code=401,
-                )
-
     return user_context
 
 
-def user_with_project_id(user_context: UserContextDep) -> UserContextWithProjectId:
-    """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
-    if not user_context.virtual_lab_id or not user_context.project_id:
-        raise ApiError(
-            message=AuthErrorReason.PROJECT_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
-    return UserContextWithProjectId.model_validate(user_context, from_attributes=True)
+def _raise_for_auth_error(
+    user_context: UserContext, *, allowed: Collection[AuthErrorReason] = ()
+) -> None:
+    """Raise an error if the user isn't authorized, unless the reason is in `allowed`."""
+    if not user_context.is_authorized and user_context.auth_error_reason not in allowed:
+        raise _auth_error(user_context.auth_error_reason or AuthErrorReason.UNKNOWN)
 
 
-def user_with_service_admin_role(user_context: UserContextDep) -> UserContext:
-    """Ensure that the authenticated user has a service admin role."""
+def _require_service_admin(user_context: UserContext) -> None:
+    """Raise an error if the authenticated user doesn't have the service admin role."""
     if not user_context.is_service_admin:
-        raise ApiError(
-            message=AuthErrorReason.ADMIN_REQUIRED,
-            error_code=ApiErrorCode.NOT_AUTHORIZED,
-            http_status_code=403,
-        )
+        raise _auth_error(AuthErrorReason.ADMIN_REQUIRED)
+
+
+def _require_project_id(user_context: UserContext) -> None:
+    """Raise an error if virtual_lab_id or project_id is missing."""
+    if not user_context.virtual_lab_id or not user_context.project_id:
+        raise _auth_error(AuthErrorReason.PROJECT_REQUIRED)
+
+
+def user_verified(
+    project_context: Annotated[OptionalProjectContext, Header()],
+    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
+    request: Request,
+) -> UserContext:
+    """Ensure that the user is authenticated and authorized.
+
+    The user must be a member of the virtual_lab_id and project_id claimed in the headers.
+    If only the virtual_lab_id specified, the user must be a member of the virtual_lab_id.
+    If neither is specified, it's enough that the auth token is valid.
+    Service admins have no exception: this dependency is used by the user routes.
+    """
+    user_context = _authenticate(project_context=project_context, token=token, request=request)
+    _raise_for_auth_error(user_context)
     return user_context
+
+
+def user_with_service_admin_role(
+    project_context: Annotated[OptionalProjectContext, Header()],
+    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
+    request: Request,
+) -> UserContext:
+    """Ensure that the user is authenticated and has a service admin role.
+
+    Unlike `user_verified`, the admin doesn't need to be a member of the virtual_lab_id and
+    project_id claimed in the headers. In that case, `is_authorized` is False in the returned
+    context, because it reports the membership. When only the project_id is given and the admin
+    isn't a member, the virtual_lab_id of the returned context is None.
+
+    The membership is skipped only on the admin routes: the user routes depend on
+    `user_verified` at the router level, so service admins have no special privilege there.
+    """
+    user_context = _authenticate(project_context=project_context, token=token, request=request)
+    # admins don't need to be members of the virtual lab and project in the headers
+    _raise_for_auth_error(user_context, allowed={AuthErrorReason.NOT_AUTHORIZED_PROJECT})
+    _require_service_admin(user_context)
+    return user_context
+
+
+def user_with_project_id(
+    user_context: UserContextDep,
+) -> UserContextWithProjectId:
+    """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
+    _require_project_id(user_context)
+    return UserContextWithProjectId.model_validate(user_context)
 
 
 def user_with_service_admin_role_and_project_id(
-    user_context: UserContextDep,
+    user_context: AdminContextDep,
 ) -> UserContextWithProjectId:
     """Ensure that the authenticated user has an admin role and valid virtual_lab_id/project_id."""
-    user_with_service_admin_role(user_context)
-    return user_with_project_id(user_context)
+    _require_project_id(user_context)
+    return UserContextWithProjectId.model_validate(user_context)
 
 
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
 AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
-UserContextWithProjectIdDep = Annotated[UserContextWithProjectId, Depends(user_with_project_id)]
+UserContextWithProjectIdDep = Annotated[
+    UserContextWithProjectId,
+    Depends(user_with_project_id),
+]
 AdminContextWithProjectIdDep = Annotated[
-    UserContextWithProjectId, Depends(user_with_service_admin_role_and_project_id)
+    UserContextWithProjectId,
+    Depends(user_with_service_admin_role_and_project_id),
 ]

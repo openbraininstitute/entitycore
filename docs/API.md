@@ -381,6 +381,7 @@ In addition, this value can be changed by using the `PATCH` operation.
 Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.
 
 Users in the [service admin group](#service-admin-group) can read data from any project, and edit (read/update/delete) data in any project.
+On the `/admin/` routes, they don't need to belong to the project supplied in the headers; on the other routes, the same checks apply as for any user.
 
 A resource without an authorized_project_id is called a global resource.
 

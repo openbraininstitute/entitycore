@@ -46,7 +46,7 @@ from app.db.model import (
 )
 from app.db.types import EntityLifecycleStatus, EntityType, ExecutorType, StorageType
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
-from app.errors import AuthErrorReason
+from app.errors import ApiErrorCode, AuthErrorReason
 from app.routers.asset import EntityRoute
 from app.types import ResourceRoute
 from app.utils.routers import route_to_type
@@ -2081,7 +2081,7 @@ def check_admin_create_one(
         clients: the test clients.
         route: the user route, used to check that the created resource is readable.
         admin_route: the admin route.
-        json_data: the payload, valid for a resource in PROJECT_ID.
+        json_data: the payload of the user create, valid for a resource in PROJECT_ID.
         mock_virtual_lab_api: the fixture mocking virtual-lab-manager.
 
     Returns:
@@ -2090,29 +2090,41 @@ def check_admin_create_one(
     mock_virtual_lab_api(PROJECT_ID, VIRTUAL_LAB_ID)
     mock_virtual_lab_api(MISSING_ID, status_code=403)
     admin = clients.admin_not_member
-
-    def _post_error(client, headers, expected_reason):
-        data = assert_request(
-            client.post, url=admin_route, json=json_data, headers=headers, expected_status_code=403
-        ).json()
-        assert data["message"] == expected_reason
-
-    _post_error(clients.user_1, PROJECT_HEADERS, AuthErrorReason.ADMIN_REQUIRED)
-    _post_error(admin, {}, AuthErrorReason.PROJECT_REQUIRED)
-    _post_error(admin, {"project-id": MISSING_ID}, AuthErrorReason.PROJECT_NOT_FOUND)
-    _post_error(
-        admin,
-        {"virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID, "project-id": PROJECT_ID},
-        AuthErrorReason.VIRTUAL_LAB_MISMATCH,
-    )
+    admin_json_data = json_data | {"authorized_project_id": PROJECT_ID}
 
     data = assert_request(
-        admin.post, url=admin_route, json=json_data, headers={"project-id": PROJECT_ID}
+        clients.user_1.post,
+        url=admin_route,
+        json=admin_json_data,
+        headers=PROJECT_HEADERS,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
+
+    # the project is required in the payload, also when given in the headers
+    data = assert_request(
+        admin.post,
+        url=admin_route,
+        json=json_data,
+        headers=PROJECT_HEADERS,
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == ApiErrorCode.INVALID_REQUEST
+
+    data = assert_request(
+        admin.post,
+        url=admin_route,
+        json=json_data | {"authorized_project_id": MISSING_ID},
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == ApiErrorCode.PROJECT_NOT_FOUND
+
+    # the project headers are ignored
+    data = assert_request(
+        admin.post, url=admin_route, json=admin_json_data, headers=UNRELATED_PROJECT_HEADERS
     ).json()
     row = _check_created_by_admin_not_member(db, admin_route, data)
-    # the associations, e.g. contributions, have no project
-    if hasattr(row, "authorized_project_id"):
-        assert str(row.authorized_project_id) == PROJECT_ID
+    assert str(row.authorized_project_id) == PROJECT_ID
 
     read_data = assert_request(clients.user_1.get, url=f"{route}/{data['id']}").json()
     assert read_data["id"] == data["id"]
@@ -2127,6 +2139,8 @@ def check_admin_create_one_without_project(
     json_data: dict,
 ) -> dict:
     """Check the admin create of a resource without a project, ignoring the project headers.
+
+    Used for the global resources, and for the associations to entities in any project.
 
     Args:
         db: the database session.

@@ -13,9 +13,9 @@ from app.db.model import (
     Contribution,
     Subject,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -39,6 +39,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
+    CellMorphologyAdminCreate,
     CellMorphologyAdminUpdate,
     CellMorphologyCreate,
     CellMorphologyRead,
@@ -123,9 +124,9 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: CellMorphologyCreate,
+    json_model: AdminCreateDep[CellMorphologyAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> CellMorphologyRead:
     return router_create_one(

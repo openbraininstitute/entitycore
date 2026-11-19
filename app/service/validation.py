@@ -4,9 +4,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Validation
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -29,6 +29,7 @@ from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.schemas.validation import (
+    ValidationAdminCreate,
     ValidationAdminUpdate,
     ValidationCreate,
     ValidationRead,
@@ -92,8 +93,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: ValidationCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[ValidationAdminCreate],
+    user_context: AdminContextDep,
 ) -> ValidationRead:
     return router_create_activity_one(
         db=db,

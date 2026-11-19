@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import Field
 
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_cell_recording import ElectricalCellRecordingBaseMixin
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
@@ -36,6 +37,10 @@ class IonChannelRecordingCreate(
             description="The id of the ion channel that was recorded from",
         ),
     ]
+
+
+class IonChannelRecordingAdminCreate(AuthorizedProjectIdMixin, IonChannelRecordingCreate):
+    pass
 
 
 IonChannelRecordingUserUpdate = make_update_schema(

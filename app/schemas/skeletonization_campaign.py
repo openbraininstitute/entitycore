@@ -1,5 +1,6 @@
 from app.db.types import JSON_DICT
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.em_cell_mesh import NestedEMCellMeshRead
@@ -17,6 +18,10 @@ class SkeletonizationCampaignCreate(
     EntityCreate,
 ):
     input_meshes: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
+
+
+class SkeletonizationCampaignAdminCreate(AuthorizedProjectIdMixin, SkeletonizationCampaignCreate):
+    pass
 
 
 SkeletonizationCampaignUserUpdate = make_update_schema(

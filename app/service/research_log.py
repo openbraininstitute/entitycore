@@ -8,9 +8,9 @@ from app.db.model import (
     Contribution,
     ResearchLog,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -27,6 +27,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.research_log import (
+    ResearchLogAdminCreate,
     ResearchLogAdminUpdate,
     ResearchLogCreate,
     ResearchLogRead,
@@ -103,8 +104,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: ResearchLogCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[ResearchLogAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> ResearchLogRead:
     return router_create_one(

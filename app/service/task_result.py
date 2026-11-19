@@ -9,9 +9,9 @@ from app.db.model import (
     Contribution,
     TaskResult,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -35,6 +35,7 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.task_result import (
+    TaskResultAdminCreate,
     TaskResultAdminUpdate,
     TaskResultCreate,
     TaskResultRead,
@@ -110,8 +111,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: TaskResultCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[TaskResultAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> TaskResultRead:
     return router_create_one(

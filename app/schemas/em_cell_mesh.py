@@ -3,7 +3,7 @@ from typing import Any
 
 from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
 from app.schemas.annotation import MTypeClassRead
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.entity import BasicEntityRead
 from app.schemas.measurement_annotation import MeasurementAnnotationReadMixin
 from app.schemas.scientific_artifact import (
@@ -44,6 +44,10 @@ class EMCellMeshCreate(
     ScientificArtifactCreate,
 ):
     em_dense_reconstruction_dataset_id: uuid.UUID
+
+
+class EMCellMeshAdminCreate(AuthorizedProjectIdMixin, EMCellMeshCreate):
+    pass
 
 
 EMCellMeshUserUpdate = make_update_schema(

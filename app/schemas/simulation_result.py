@@ -1,6 +1,7 @@
 import uuid
 
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
@@ -12,6 +13,10 @@ class SimulationResultBaseMixin(NameDescriptionMixin):
 
 
 class SimulationResultCreate(SimulationResultBaseMixin, EntityCreate):
+    pass
+
+
+class SimulationResultAdminCreate(AuthorizedProjectIdMixin, SimulationResultCreate):
     pass
 
 

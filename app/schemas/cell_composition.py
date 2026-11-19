@@ -1,4 +1,5 @@
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
@@ -17,6 +18,10 @@ class CellCompositionCreate(
     SpeciesStrainCreateMixin,
     EntityCreate,
 ):
+    pass
+
+
+class CellCompositionAdminCreate(AuthorizedProjectIdMixin, CellCompositionCreate):
     pass
 
 

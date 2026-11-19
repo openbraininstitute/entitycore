@@ -5,6 +5,7 @@ from app.schemas.activity import (
     ActivityUpdate,
     ExecutionActivityMixin,
 )
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.utils import make_update_schema
 
 
@@ -13,6 +14,10 @@ class TaskActivityBase(ExecutionActivityMixin):
 
 
 class TaskActivityCreate(ActivityCreate, TaskActivityBase):
+    pass
+
+
+class TaskActivityAdminCreate(AuthorizedProjectIdMixin, TaskActivityCreate):
     pass
 
 

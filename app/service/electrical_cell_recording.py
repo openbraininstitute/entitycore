@@ -9,9 +9,9 @@ from app.db.model import (
     ElectricalCellRecording,
     Subject,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -35,6 +35,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_cell_recording import (
+    ElectricalCellRecordingAdminCreate,
     ElectricalCellRecordingAdminUpdate,
     ElectricalCellRecordingCreate,
     ElectricalCellRecordingRead,
@@ -121,8 +122,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: ElectricalCellRecordingCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[ElectricalCellRecordingAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> ElectricalCellRecordingRead:
     return router_create_one(

@@ -5,9 +5,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, MEModelCalibrationResult
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -30,6 +30,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.memodel_calibration_result import (
+    MEModelCalibrationResultAdminCreate,
     MEModelCalibrationResultAdminUpdate,
     MEModelCalibrationResultCreate,
     MEModelCalibrationResultRead,
@@ -106,8 +107,8 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
-    json_model: MEModelCalibrationResultCreate,
+    user_context: AdminContextDep,
+    json_model: AdminCreateDep[MEModelCalibrationResultAdminCreate],
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> MEModelCalibrationResultRead:

@@ -3,6 +3,7 @@ import uuid
 from app.db.types import ValidationStatus
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionReadMixin
@@ -28,6 +29,10 @@ class MEModelCreate(MEModelBaseMixin, SpeciesStrainCreateMixin, EntityCreate):
     brain_region_id: uuid.UUID
     morphology_id: uuid.UUID
     emodel_id: uuid.UUID
+
+
+class MEModelAdminCreate(AuthorizedProjectIdMixin, MEModelCreate):
+    pass
 
 
 MEModelUserUpdate = make_update_schema(MEModelCreate, "MEModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

@@ -2,6 +2,7 @@ import uuid
 
 from app.db.types import JSON_DICT
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
@@ -15,6 +16,10 @@ class SkeletonizationConfigBaseMixin(NameDescriptionMixin):
 
 
 class SkeletonizationConfigCreate(SkeletonizationConfigBaseMixin, EntityCreate):
+    pass
+
+
+class SkeletonizationConfigAdminCreate(AuthorizedProjectIdMixin, SkeletonizationConfigCreate):
     pass
 
 

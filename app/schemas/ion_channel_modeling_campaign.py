@@ -1,5 +1,6 @@
 from app.db.types import JSON_DICT
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityCreate, NestedEntityRead
@@ -17,6 +18,12 @@ class IonChannelModelingCampaignCreate(
     EntityCreate,
 ):
     input_recordings: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
+
+
+class IonChannelModelingCampaignAdminCreate(
+    AuthorizedProjectIdMixin, IonChannelModelingCampaignCreate
+):
+    pass
 
 
 IonChannelModelingCampaignUserUpdate = make_update_schema(

@@ -5,6 +5,7 @@ from pydantic import Field
 
 from app.db.types import AnalysisScale, EntityType
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
     Schema,
 )
@@ -42,6 +43,10 @@ class AnalysisNotebookTemplateCreate(
     AnalysisNotebookTemplateBaseMixin,
     EntityCreate,
 ):
+    pass
+
+
+class AnalysisNotebookTemplateAdminCreate(AuthorizedProjectIdMixin, AnalysisNotebookTemplateCreate):
     pass
 
 

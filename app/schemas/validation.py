@@ -1,11 +1,16 @@
 import uuid
 
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
 
 class ValidationCreate(ActivityCreate):
+    pass
+
+
+class ValidationAdminCreate(AuthorizedProjectIdMixin, ValidationCreate):
     pass
 
 
@@ -31,6 +36,10 @@ class ValidationResultRead(
 
 
 class ValidationResultCreate(ValidationResultBaseMixin, EntityCreate):
+    pass
+
+
+class ValidationResultAdminCreate(AuthorizedProjectIdMixin, ValidationResultCreate):
     pass
 
 

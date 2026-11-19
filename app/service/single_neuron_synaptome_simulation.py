@@ -9,9 +9,9 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -36,6 +36,7 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.simulation import (
+    SingleNeuronSynaptomeSimulationAdminCreate,
     SingleNeuronSynaptomeSimulationAdminUpdate,
     SingleNeuronSynaptomeSimulationCreate,
     SingleNeuronSynaptomeSimulationRead,
@@ -119,8 +120,8 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
-    json_model: SingleNeuronSynaptomeSimulationCreate,
+    user_context: AdminContextDep,
+    json_model: AdminCreateDep[SingleNeuronSynaptomeSimulationAdminCreate],
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> SingleNeuronSynaptomeSimulationRead:

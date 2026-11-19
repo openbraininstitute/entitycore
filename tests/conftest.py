@@ -62,7 +62,6 @@ from app.db.types import (
     TaskResultType,
 )
 from app.dependencies import auth
-from app.errors import AuthErrorReason
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
@@ -373,19 +372,13 @@ def _without_project(user_context: UserContext) -> UserContext:
     return user_context.model_copy(update={"virtual_lab_id": None, "project_id": None})
 
 
-def _admin_not_member_context(project_context):
-    """Return the context of an admin without project groups, as returned by Keycloak."""
-    is_authorized = project_context.virtual_lab_id is None and project_context.project_id is None
-    return UserContext(
-        profile=UserProfile(subject=UUID(ADMIN_NOT_MEMBER_SUB_ID), name="Admin Not Member"),
-        expiration=None,
-        is_authorized=is_authorized,
-        is_service_admin=True,
-        # the virtual lab can't be derived from the groups when only the project-id is given
-        virtual_lab_id=project_context.virtual_lab_id,
-        project_id=project_context.project_id,
-        auth_error_reason=None if is_authorized else AuthErrorReason.NOT_AUTHORIZED_PROJECT,
-    )
+# an admin without project groups: used only on the admin routes, which ignore the headers
+ADMIN_NOT_MEMBER_CONTEXT = UserContext(
+    profile=UserProfile(subject=UUID(ADMIN_NOT_MEMBER_SUB_ID), name="Admin Not Member"),
+    expiration=None,
+    is_authorized=True,
+    is_service_admin=True,
+)
 
 
 @pytest.fixture
@@ -421,11 +414,10 @@ def _override_check_user_info(
         (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
         (TOKEN_MAINTAINER_2, None): _without_project(user_context_maintainer_2),
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
+        (TOKEN_ADMIN_NOT_MEMBER, None): ADMIN_NOT_MEMBER_CONTEXT,
     }
 
     def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
-        if token.credentials == TOKEN_ADMIN_NOT_MEMBER:
-            return _admin_not_member_context(project_context)
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)

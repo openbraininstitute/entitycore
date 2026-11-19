@@ -5,9 +5,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Subject
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -24,7 +24,13 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
-from app.schemas.subject import SubjectAdminUpdate, SubjectCreate, SubjectRead, SubjectUserUpdate
+from app.schemas.subject import (
+    SubjectAdminCreate,
+    SubjectAdminUpdate,
+    SubjectCreate,
+    SubjectRead,
+    SubjectUserUpdate,
+)
 from app.schemas.types import ListResponse
 
 ExpandDep = Annotated[ExpandPaths, expand_query(SubjectRead, Subject)]
@@ -95,9 +101,9 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: SubjectCreate,
+    json_model: AdminCreateDep[SubjectAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> SubjectRead:
     return router_create_one(

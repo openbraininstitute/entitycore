@@ -8,9 +8,9 @@ from app.db.model import (
     CellComposition,
     Contribution,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -27,6 +27,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.cell_composition import (
+    CellCompositionAdminCreate,
     CellCompositionAdminUpdate,
     CellCompositionCreate,
     CellCompositionRead,
@@ -70,9 +71,9 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: CellCompositionCreate,
+    json_model: AdminCreateDep[CellCompositionAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> CellCompositionRead:
     return router_create_one(

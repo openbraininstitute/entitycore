@@ -8,9 +8,9 @@ from app.db.model import (
     EMCellMesh,
     Subject,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -34,6 +34,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.em_cell_mesh import (
+    EMCellMeshAdminCreate,
     EMCellMeshCreate,
     EMCellMeshRead,
     EMCellMeshUserUpdate,
@@ -214,9 +215,9 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: EMCellMeshCreate,
+    json_model: AdminCreateDep[EMCellMeshAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> EMCellMeshRead:
     return router_create_one(

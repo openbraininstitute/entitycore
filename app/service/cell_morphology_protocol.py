@@ -10,9 +10,9 @@ from app.db.model import (
     Contribution,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -29,8 +29,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.auth import UserContextWithProjectId
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.cell_morphology_protocol import (
+    CellMorphologyProtocolAdminCreate,
     CellMorphologyProtocolCreate,
     CellMorphologyProtocolRead,
     CellMorphologyProtocolReadAdapter,
@@ -90,9 +91,9 @@ def admin_read_one(
 
 def _create_one(
     *,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
-    json_model: CellMorphologyProtocolCreate,
+    json_model: CellMorphologyProtocolCreate | CellMorphologyProtocolAdminCreate,
     expand: ExpandPaths,
 ) -> CellMorphologyProtocolRead:
     db_model_class = CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS[json_model.generation_type]
@@ -117,9 +118,9 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: Annotated[CellMorphologyProtocolCreate, Body()],
+    json_model: AdminCreateDep[CellMorphologyProtocolAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> CellMorphologyProtocolRead:
     return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)

@@ -16,9 +16,9 @@ from app.db.model import (
     MEModelCalibrationResult,
     Subject,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -41,7 +41,13 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
+from app.schemas.me_model import (
+    MEModelAdminCreate,
+    MEModelAdminUpdate,
+    MEModelCreate,
+    MEModelRead,
+    MEModelUserUpdate,
+)
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -142,8 +148,8 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
-    memodel: MEModelCreate,
+    user_context: AdminContextDep,
+    memodel: AdminCreateDep[MEModelAdminCreate],
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> MEModelRead:

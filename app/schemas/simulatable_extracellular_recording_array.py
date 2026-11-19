@@ -2,6 +2,7 @@ import uuid
 
 from app.db.types import ElectrodeType
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
@@ -15,6 +16,12 @@ class SimulatableExtracellularRecordingArrayBaseMixin(NameDescriptionMixin):
 
 class SimulatableExtracellularRecordingArrayCreate(
     SimulatableExtracellularRecordingArrayBaseMixin, EntityCreate
+):
+    pass
+
+
+class SimulatableExtracellularRecordingArrayAdminCreate(
+    AuthorizedProjectIdMixin, SimulatableExtracellularRecordingArrayCreate
 ):
     pass
 

@@ -1,5 +1,6 @@
 import json
 import re
+import typing
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -7,8 +8,10 @@ import pytest
 from fastapi.routing import iter_route_contexts
 
 from app.application import app
+from app.dependencies import admin_create
 from app.dependencies.auth import user_verified
 from app.routers import admin, debug
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
 
 
@@ -139,7 +142,6 @@ def test_entity_route_methods(entity_routes):
         "upload_entity_asset",
     }
 
-    # the writes of these entities are reserved to admins, and exposed only as admin routes
     admin_only_writes = {EntityRoute.em_dense_reconstruction_dataset.value}
     _assert_routes(entity_routes, expected_method_names, skip=admin_only_writes)
 
@@ -150,6 +152,7 @@ def test_entity_route_methods(entity_routes):
         skip=set(),
     )
     for name in admin_only_writes:
+        # the writes of these entities are reserved to admins, and exposed only as admin routes
         assert not user_writes & {route.name for route in entity_routes[name]}
 
 
@@ -207,3 +210,40 @@ def test_admin_routes_do_not_require_project_membership(router):
         if user_verified in set(_dependency_calls(route.dependant))
     ]
     assert not invalid
+
+
+def _body_params(dependant):
+    yield from dependant.body_params
+    for dependency in dependant.dependencies:
+        yield from _body_params(dependency)
+
+
+def _classes(annotation):
+    """Yield the classes in the annotation, unwrapping type aliases, Annotated and unions."""
+    if isinstance(annotation, typing.TypeAliasType):
+        yield from _classes(annotation.__value__)
+    elif isinstance(annotation, type):
+        yield annotation
+    else:
+        for arg in typing.get_args(annotation):
+            yield from _classes(arg)
+
+
+def test_admin_create_routes_check_the_project():
+    """The admin create routes with authorized_project_id in the body must check the project."""
+    checked, unchecked = [], []
+    for route in admin.router.routes:
+        body_classes = {
+            cls
+            for field in _body_params(route.dependant)
+            for cls in _classes(field.field_info.annotation)
+        }
+        if not any(issubclass(cls, AuthorizedProjectIdMixin) for cls in body_classes):
+            continue
+        calls = _dependency_calls(route.dependant)
+        if any(getattr(call, "__module__", None) == admin_create.__name__ for call in calls):
+            checked.append(route.path)
+        else:
+            unchecked.append(route.path)
+    assert checked
+    assert not unchecked, f"Use AdminCreateDep in: {unchecked}"

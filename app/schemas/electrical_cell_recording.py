@@ -8,7 +8,7 @@ from app.db.types import (
     ElectricalRecordingType,
 )
 from app.schemas.annotation import ETypeClassRead
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.scientific_artifact import (
@@ -67,6 +67,10 @@ class ElectricalCellRecordingBaseMixin(NameDescriptionMixin):
 
 
 class ElectricalCellRecordingCreate(ElectricalCellRecordingBaseMixin, ScientificArtifactCreate):
+    pass
+
+
+class ElectricalCellRecordingAdminCreate(AuthorizedProjectIdMixin, ElectricalCellRecordingCreate):
     pass
 
 

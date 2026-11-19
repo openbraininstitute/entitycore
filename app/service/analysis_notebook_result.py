@@ -8,9 +8,9 @@ from app.db.model import (
     AnalysisNotebookResult,
     Contribution,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -27,6 +27,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.analysis_notebook_result import (
+    AnalysisNotebookResultAdminCreate,
     AnalysisNotebookResultAdminUpdate,
     AnalysisNotebookResultCreate,
     AnalysisNotebookResultRead,
@@ -103,8 +104,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: AnalysisNotebookResultCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[AnalysisNotebookResultAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookResultRead:
     return router_create_one(

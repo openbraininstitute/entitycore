@@ -8,9 +8,9 @@ from app.db.model import (
     Contribution,
     SimulatableExtracellularRecordingArray,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -36,6 +36,7 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.simulatable_extracellular_recording_array import (
+    SimulatableExtracellularRecordingArrayAdminCreate,
     SimulatableExtracellularRecordingArrayAdminUpdate,
     SimulatableExtracellularRecordingArrayCreate,
     SimulatableExtracellularRecordingArrayRead,
@@ -116,8 +117,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: SimulatableExtracellularRecordingArrayCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[SimulatableExtracellularRecordingArrayAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> SimulatableExtracellularRecordingArrayRead:
     return router_create_one(

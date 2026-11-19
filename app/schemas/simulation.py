@@ -2,6 +2,7 @@ import uuid
 
 from app.db.types import JSON_DICT
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
@@ -26,6 +27,10 @@ class SingleNeuronSimulationCreate(
     EntityCreate,
 ):
     me_model_id: uuid.UUID
+
+
+class SingleNeuronSimulationAdminCreate(AuthorizedProjectIdMixin, SingleNeuronSimulationCreate):
+    pass
 
 
 SingleNeuronSimulationUserUpdate = make_update_schema(
@@ -53,6 +58,12 @@ class SingleNeuronSynaptomeSimulationCreate(
     EntityCreate,
 ):
     synaptome_id: uuid.UUID
+
+
+class SingleNeuronSynaptomeSimulationAdminCreate(
+    AuthorizedProjectIdMixin, SingleNeuronSynaptomeSimulationCreate
+):
+    pass
 
 
 SingleNeuronSynaptomeSimulationUserUpdate = make_update_schema(
@@ -84,6 +95,10 @@ class SimulationBaseMixin(NameDescriptionMixin):
 
 class SimulationCreate(SimulationBaseMixin, EntityCreate):
     recording_arrays: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
+
+
+class SimulationAdminCreate(AuthorizedProjectIdMixin, SimulationCreate):
+    pass
 
 
 SimulationUserUpdate = make_update_schema(SimulationCreate, "SimulationUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

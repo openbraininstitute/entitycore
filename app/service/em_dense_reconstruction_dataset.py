@@ -4,7 +4,8 @@ from typing import Annotated
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, EMDenseReconstructionDataset, Subject
-from app.dependencies.auth import AdminContextDep, AdminContextWithProjectIdDep, UserContextDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -24,8 +25,8 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.em_dense_reconstruction_dataset import (
+    EMDenseReconstructionDatasetAdminCreate,
     EMDenseReconstructionDatasetAdminUpdate,
-    EMDenseReconstructionDatasetCreate,
     EMDenseReconstructionDatasetRead,
 )
 from app.schemas.types import ListResponse, Select
@@ -178,9 +179,9 @@ def admin_read_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
+    user_context: AdminContextDep,
     db: SessionDep,
-    json_model: EMDenseReconstructionDatasetCreate,
+    json_model: AdminCreateDep[EMDenseReconstructionDatasetAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> EMDenseReconstructionDatasetRead:
     return router_create_one(

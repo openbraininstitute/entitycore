@@ -1,6 +1,7 @@
 import uuid
 
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead
@@ -14,6 +15,10 @@ class BrainAtlasCreate(
     SpeciesStrainCreateMixin,
 ):
     hierarchy_id: uuid.UUID
+
+
+class BrainAtlasAdminCreate(AuthorizedProjectIdMixin, BrainAtlasCreate):
+    pass
 
 
 class BrainAtlasRead(

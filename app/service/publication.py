@@ -74,7 +74,7 @@ def create_one(
 def admin_create_one(
     db: SessionDep,
     json_model: PublicationCreate,
-    user_context: AdminContextDep,  # See: https://github.com/openbraininstitute/obi-one/issues/867
+    user_context: AdminContextDep,
 ) -> PublicationRead:
     return router_create_one(
         db=db,

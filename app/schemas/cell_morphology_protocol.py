@@ -11,6 +11,7 @@ from app.db.types import (
     StainingType,
 )
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
     Schema,
 )
@@ -119,6 +120,30 @@ class ComputationallySynthesizedCellMorphologyProtocolCreate(
 class PlaceholderCellMorphologyProtocolCreate(
     EntityCreate,
     PlaceholderCellMorphologyProtocolBase,
+):
+    pass
+
+
+class DigitalReconstructionCellMorphologyProtocolAdminCreate(
+    AuthorizedProjectIdMixin, DigitalReconstructionCellMorphologyProtocolCreate
+):
+    pass
+
+
+class ModifiedReconstructionCellMorphologyProtocolAdminCreate(
+    AuthorizedProjectIdMixin, ModifiedReconstructionCellMorphologyProtocolCreate
+):
+    pass
+
+
+class ComputationallySynthesizedCellMorphologyProtocolAdminCreate(
+    AuthorizedProjectIdMixin, ComputationallySynthesizedCellMorphologyProtocolCreate
+):
+    pass
+
+
+class PlaceholderCellMorphologyProtocolAdminCreate(
+    AuthorizedProjectIdMixin, PlaceholderCellMorphologyProtocolCreate
 ):
     pass
 
@@ -263,6 +288,14 @@ type CellMorphologyProtocolCreate = Annotated[
     | ModifiedReconstructionCellMorphologyProtocolCreate
     | ComputationallySynthesizedCellMorphologyProtocolCreate
     | PlaceholderCellMorphologyProtocolCreate,
+    Field(discriminator="generation_type"),
+]
+
+type CellMorphologyProtocolAdminCreate = Annotated[
+    DigitalReconstructionCellMorphologyProtocolAdminCreate
+    | ModifiedReconstructionCellMorphologyProtocolAdminCreate
+    | ComputationallySynthesizedCellMorphologyProtocolAdminCreate
+    | PlaceholderCellMorphologyProtocolAdminCreate,
     Field(discriminator="generation_type"),
 ]
 

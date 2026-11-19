@@ -5,9 +5,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import SkeletonizationConfig
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -31,6 +31,7 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.skeletonization_config import (
+    SkeletonizationConfigAdminCreate,
     SkeletonizationConfigAdminUpdate,
     SkeletonizationConfigCreate,
     SkeletonizationConfigRead,
@@ -110,8 +111,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: CreateSchema,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[SkeletonizationConfigAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
     return router_create_one(

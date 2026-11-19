@@ -73,7 +73,7 @@ def create_one(
 def admin_create_one(
     db: SessionDep,
     json_model: ExternalUrlCreate,
-    user_context: AdminContextDep,  # everybody can create
+    user_context: AdminContextDep,
 ) -> ExternalUrlRead:
     return router_create_one(
         db=db,

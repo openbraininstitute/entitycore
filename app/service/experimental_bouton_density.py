@@ -13,9 +13,9 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     Subject,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -39,6 +39,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.density import (
+    ExperimentalBoutonDensityAdminCreate,
     ExperimentalBoutonDensityAdminUpdate,
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -218,8 +219,8 @@ def create_one(
 
 
 def admin_create_one(
-    user_context: AdminContextWithProjectIdDep,
-    json_model: ExperimentalBoutonDensityCreate,
+    user_context: AdminContextDep,
+    json_model: AdminCreateDep[ExperimentalBoutonDensityAdminCreate],
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> ExperimentalBoutonDensityRead:

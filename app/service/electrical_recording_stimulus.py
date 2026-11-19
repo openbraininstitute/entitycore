@@ -8,9 +8,9 @@ from app.db.model import (
     Contribution,
     ElectricalRecordingStimulus,
 )
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -33,6 +33,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_recording_stimulus import (
+    ElectricalRecordingStimulusAdminCreate,
     ElectricalRecordingStimulusAdminUpdate,
     ElectricalRecordingStimulusCreate,
     ElectricalRecordingStimulusRead,
@@ -110,8 +111,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: ElectricalRecordingStimulusCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[ElectricalRecordingStimulusAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> ElectricalRecordingStimulusRead:
     return router_create_one(

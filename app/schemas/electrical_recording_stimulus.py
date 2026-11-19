@@ -5,6 +5,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
 )
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
@@ -37,6 +38,12 @@ class ElectricalRecordingStimulusRead(
 class ElectricalRecordingStimulusCreate(
     ElectricalRecordingStimulusBaseMixin,
     EntityCreate,
+):
+    pass
+
+
+class ElectricalRecordingStimulusAdminCreate(
+    AuthorizedProjectIdMixin, ElectricalRecordingStimulusCreate
 ):
     pass
 

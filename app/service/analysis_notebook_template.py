@@ -12,9 +12,9 @@ from app.db.model import (
     Contribution,
 )
 from app.db.types import EntityType, StorageType
+from app.dependencies.admin_create import AdminCreateDep
 from app.dependencies.auth import (
     AdminContextDep,
-    AdminContextWithProjectIdDep,
     UserContextDep,
     UserContextWithProjectIdDep,
 )
@@ -34,6 +34,7 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.queries.utils import get_or_create_user, is_user_authorized_for_clone
 from app.schemas.analysis_notebook_template import (
+    AnalysisNotebookTemplateAdminCreate,
     AnalysisNotebookTemplateAdminUpdate,
     AnalysisNotebookTemplateCreate,
     AnalysisNotebookTemplateRead,
@@ -118,8 +119,8 @@ def create_one(
 
 def admin_create_one(
     db: SessionDep,
-    json_model: AnalysisNotebookTemplateCreate,
-    user_context: AdminContextWithProjectIdDep,
+    json_model: AdminCreateDep[AnalysisNotebookTemplateAdminCreate],
+    user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
     return router_create_one(

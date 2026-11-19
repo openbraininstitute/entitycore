@@ -56,6 +56,12 @@ class AuthorizationPrivateMixin:
     authorized_public: Literal[False] = False
 
 
+class AuthorizedProjectIdMixin:
+    """Project owning the resource, required in the payload of the admin create endpoints."""
+
+    authorized_project_id: UUID
+
+
 class OptionalProjectContext(Schema):
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None

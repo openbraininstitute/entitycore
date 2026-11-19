@@ -6,6 +6,7 @@ from pydantic import ConfigDict, Field, model_validator
 
 from app.db.types import AgePeriod, Sex
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
@@ -72,6 +73,10 @@ class SubjectBaseMixin(NameDescriptionMixin):
 
 
 class SubjectCreate(SpeciesStrainCreateMixin, EntityCreate, SubjectBaseMixin):
+    pass
+
+
+class SubjectAdminCreate(AuthorizedProjectIdMixin, SubjectCreate):
     pass
 
 

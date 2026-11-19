@@ -71,6 +71,14 @@ def create_one(
     )
 
 
+def admin_create_one(
+    db: SessionDep,
+    json_model: PublicationCreate,
+    user_context: AdminContextDep,
+) -> PublicationRead:
+    return create_one(db=db, json_model=json_model, user_context=user_context)
+
+
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,

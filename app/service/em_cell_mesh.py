@@ -8,7 +8,12 @@ from app.db.model import (
     EMCellMesh,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -28,7 +33,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.em_cell_mesh import (
+    EMCellMeshAdminCreate,
     EMCellMeshCreate,
     EMCellMeshRead,
     EMCellMeshUserUpdate,
@@ -191,11 +198,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
     json_model: EMCellMeshCreate,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> EMCellMeshRead:
     return router_create_one(
         db=db,
@@ -206,6 +214,24 @@ def create_one(
         response_schema_class=EMCellMeshRead,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: EMCellMeshCreate,
+    expand: ExpandDep = frozenset(),
+) -> EMCellMeshRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    json_model: AdminCreateDep[EMCellMeshAdminCreate],
+    expand: ExpandDep = frozenset(),
+) -> EMCellMeshRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
 
 
 def update_one(

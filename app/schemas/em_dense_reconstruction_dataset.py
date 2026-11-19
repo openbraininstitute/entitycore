@@ -1,5 +1,5 @@
 from app.db.types import SlicingDirectionType
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.types import SerializableAnyUrl, SerializableHttpUrl
 from app.schemas.utils import make_update_schema
@@ -40,6 +40,12 @@ class EMDenseReconstructionDatasetRead(
 class EMDenseReconstructionDatasetCreate(
     EMDenseReconstructionDatasetBaseMixin,
     ScientificArtifactCreate,
+):
+    pass
+
+
+class EMDenseReconstructionDatasetAdminCreate(
+    AuthorizedProjectIdMixin, EMDenseReconstructionDatasetCreate
 ):
     pass
 

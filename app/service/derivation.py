@@ -11,7 +11,11 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 from app.db.auth import constrain_to_writable_entities, is_public_or_in_projects
 from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -50,7 +54,7 @@ from app.types import EntityRoute
 from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:
-    from app.schemas.auth import UserContext
+    from app.schemas.auth import UserContext, UserContextWithProjectId
 
 
 def _load(query: sa.Select):
@@ -358,6 +362,30 @@ def admin_read_many_from_entity(
     )
 
 
+def _create_one(
+    *,
+    db: SessionDep,
+    json_model: DerivationCreate,
+    user_context: UserContext | UserContextWithProjectId,
+    used_entity: Entity,
+    generated_entity: Entity,
+) -> DerivationRead:
+    """Create a new derivation, after validating the types of the entities."""
+    with ensure_valid_schema("Derivation schema is invalid"):
+        validate_derivation_entity_types(
+            json_model.derivation_type, used_entity.type, generated_entity.type
+        )
+        validate_derivation_label(json_model.derivation_type, json_model.label)
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=Derivation,
+        response_schema_class=DerivationRead,
+        user_context=user_context,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: DerivationCreate,
@@ -384,18 +412,27 @@ def create_one(
         json_model.generated_id,
         user_context.project_id,
     )
-    with ensure_valid_schema("Derivation schema is invalid"):
-        validate_derivation_entity_types(
-            json_model.derivation_type, used_entity.type, generated_entity.type
-        )
-        validate_derivation_label(json_model.derivation_type, json_model.label)
-    return router_create_one(
+    return _create_one(
         db=db,
         json_model=json_model,
-        db_model_class=Derivation,
-        response_schema_class=DerivationRead,
         user_context=user_context,
-        apply_operations=_load,
+        used_entity=used_entity,
+        generated_entity=generated_entity,
+    )
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: DerivationCreate,
+    user_context: AdminContextDep,
+) -> DerivationRead:
+    """Create a new derivation between entities in any project."""
+    return _create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        used_entity=crud.get_identifiable_one(db, Entity, json_model.used_id),
+        generated_entity=crud.get_identifiable_one(db, Entity, json_model.generated_id),
     )
 
 

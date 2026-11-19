@@ -1,5 +1,6 @@
 import uuid
 
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
@@ -16,6 +17,10 @@ class BrainAtlasRegionCreate(
     BrainAtlasRegionBaseMixin,
     EntityCreate,
 ):
+    pass
+
+
+class BrainAtlasRegionAdminCreate(AuthorizedProjectIdMixin, BrainAtlasRegionCreate):
     pass
 
 

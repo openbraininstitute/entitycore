@@ -5,6 +5,7 @@ from pydantic import Field
 
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
@@ -33,6 +34,10 @@ class EModelCreate(EModelBaseMixin, EntityCreate, SpeciesStrainCreateMixin, Brai
         list[NestedEntityCreate],
         Field(description="List of ion channel models (only ids)."),
     ] = []  # ruff:ignore[mutable-class-default]
+
+
+class EModelAdminCreate(AuthorizedProjectIdMixin, EModelCreate):
+    pass
 
 
 EModelUserUpdate = make_update_schema(EModelCreate, "EModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

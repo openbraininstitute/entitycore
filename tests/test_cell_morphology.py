@@ -31,6 +31,7 @@ from .utils import (
     add_db,
     add_measurement_annotation,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_deletion_cascades,
@@ -113,6 +114,17 @@ def test_create_one(
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
     assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_read_many(clients, json_data):

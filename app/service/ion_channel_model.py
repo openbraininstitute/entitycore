@@ -6,7 +6,12 @@ from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Ion, IonChannelModel, Subject
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -27,7 +32,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.ion_channel_model import (
+    IonChannelModelAdminCreate,
     IonChannelModelAdminUpdate,
     IonChannelModelCreate,
     IonChannelModelExpanded,
@@ -201,10 +208,11 @@ def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate
     return ion_channel_model
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
-    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+    ion_channel_model: IonChannelModelCreate,
 ) -> IonChannelModelRead:
     return router_create_one(
         db=db,
@@ -214,6 +222,23 @@ def create_one(
         db_model_class=IonChannelModel,
         response_schema_class=IonChannelModelRead,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+) -> IonChannelModelRead:
+    return _create_one(user_context=user_context, db=db, ion_channel_model=ion_channel_model)
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    ion_channel_model: AdminCreateDep[IonChannelModelAdminCreate],
+) -> IonChannelModelRead:
+    icm_ion_names_exist(db, ion_channel_model)
+    return _create_one(user_context=user_context, db=db, ion_channel_model=ion_channel_model)
 
 
 def update_one(

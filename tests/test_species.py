@@ -2,7 +2,7 @@ import pytest
 
 from app.db.model import Species
 
-from .utils import check_creation_fields
+from .utils import check_admin_create_one_without_project, check_creation_fields
 from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
@@ -166,3 +166,9 @@ def test_filtering(client, models):
 
     data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

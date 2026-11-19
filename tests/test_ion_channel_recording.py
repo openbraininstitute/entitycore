@@ -19,6 +19,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -89,6 +90,17 @@ def test_create_one(
     assert data["ion_channel"]["id"] == str(ion_channel.id)
 
     _assert_read_response(data, data)
+
+
+def test_admin_create_one(db, clients, ion_channel_recording_json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=ion_channel_recording_json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_update_one(clients, ion_channel_recording_json_data):

@@ -24,6 +24,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_brain_region_filter,
     check_deletion_cascades,
     check_entity_delete_one,
@@ -944,3 +945,14 @@ def test_memodel_own_and_morphology_derivation_filters_are_independent(
     _derive(db, user_id, x, memodel.id, EM_TYPE)
     assert _ids(client, {"generated_derivation__used_id": x}) == {str(memodel.id)}
     assert _ids(client, {f"{MORPH_DERIVATION}__used_id": x}) == set()
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

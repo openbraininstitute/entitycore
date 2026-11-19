@@ -1,8 +1,13 @@
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.utils import make_update_schema
 
 
 class CalibrationCreate(ActivityCreate):
+    pass
+
+
+class CalibrationAdminCreate(AuthorizedProjectIdMixin, CalibrationCreate):
     pass
 
 

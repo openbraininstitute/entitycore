@@ -8,12 +8,19 @@ from app.schemas.activity import (
 )
 from app.schemas.analysis_notebook_environment import NestedAnalysisNotebookEnvironmentRead
 from app.schemas.analysis_notebook_template import NestedAnalysisNotebookTemplateRead
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.utils import make_update_schema
 
 
 class AnalysisNotebookExecutionCreate(ActivityCreate, ExecutionActivityMixin):
     analysis_notebook_template_id: uuid.UUID | None = None
     analysis_notebook_environment_id: uuid.UUID
+
+
+class AnalysisNotebookExecutionAdminCreate(
+    AuthorizedProjectIdMixin, AnalysisNotebookExecutionCreate
+):
+    pass
 
 
 class AnalysisNotebookExecutionRead(ActivityRead, ExecutionActivityMixin):

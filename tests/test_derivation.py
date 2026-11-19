@@ -21,6 +21,7 @@ from tests.utils import (
     add_db,
     assert_request,
     assert_response,
+    check_admin_create_one_without_project,
     check_creation_fields,
     check_nested_entity_read_response,
     check_sort_by_field,
@@ -684,6 +685,19 @@ def test_create_one(client, derivation_type, root_circuit, circuit):
     assert data["creation_date"] == ANY
     assert data["update_date"] == ANY
     check_creation_fields(data)
+
+
+def test_admin_create_one(db, clients, root_circuit, circuit):
+    check_admin_create_one_without_project(
+        db=db,
+        clients=clients,
+        admin_route=ADMIN_ROUTE,
+        json_data={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": DerivationType.circuit_extraction,
+        },
+    )
 
 
 def test_admin_read_many_filter(db, clients, root_circuit, circuit, user_id):

@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from app.dependencies.db import SessionDep
 from app.schemas.routers import DeleteResponse
-from app.schemas.service import AdminCrudService, UserCrudService
+from app.schemas.service import AdminCrudService, UserReadService
 from app.service import admin as admin_service
 from app.types import ResourceRoute
 
@@ -34,14 +34,15 @@ USER_OPERATION_ROUTES: dict[UserOperation, tuple[str, str]] = {
 
 def register_default_user_routes(
     router: APIRouter,
-    service: UserCrudService,
+    service: UserReadService,
     operations: Collection[UserOperation] = frozenset(UserOperation),
 ) -> None:
     """Attach standard CRUD user routes to a router using the given service.
 
     Args:
         router: the router of the resource.
-        service: the service module implementing the operations.
+        service: the service module implementing the operations. Only the read operations are
+            checked statically: a missing write operation raises AttributeError at import time.
         operations: the operations to register, all of them by default. The routes are
             registered in the order of `UserOperation`, independently of the given order.
     """
@@ -64,13 +65,14 @@ def register_default_admin_routes(
 
     router.get(f"/{route}")(service.admin_read_many)
     router.get(f"/{route}/{{id_}}")(service.admin_read_one)
+    router.post(f"/{route}")(service.admin_create_one)
     router.patch(f"/{route}/{{id_}}")(service.admin_update_one)
     router.delete(f"/{route}/{{id_}}")(admin_delete_one)
 
 
 def create_user_router(
     route: str,
-    service: UserCrudService,
+    service: UserReadService,
     *,
     operations: Collection[UserOperation] = frozenset(UserOperation),
     before_routes: list[Callable[[APIRouter], Any]] | None = None,

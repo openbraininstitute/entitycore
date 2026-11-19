@@ -3,6 +3,7 @@ import uuid
 from app.db.types import MeasurementStatistic, MeasurementUnit
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
     Schema,
 )
@@ -60,7 +61,19 @@ class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
     pass
 
 
+class ExperimentalNeuronDensityAdminCreate(
+    AuthorizedProjectIdMixin, ExperimentalNeuronDensityCreate
+):
+    pass
+
+
 class ExperimentalBoutonDensityCreate(ExperimentalDensityCreate):
+    pass
+
+
+class ExperimentalBoutonDensityAdminCreate(
+    AuthorizedProjectIdMixin, ExperimentalBoutonDensityCreate
+):
     pass
 
 
@@ -69,6 +82,12 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
     post_mtype_id: uuid.UUID
     pre_region_id: uuid.UUID
     post_region_id: uuid.UUID
+
+
+class ExperimentalSynapsesPerConnectionAdminCreate(
+    AuthorizedProjectIdMixin, ExperimentalSynapsesPerConnectionCreate
+):
+    pass
 
 
 ExperimentalSynapsesPerConnectionUserUpdate = make_update_schema(

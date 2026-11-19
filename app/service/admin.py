@@ -1,10 +1,9 @@
 import uuid
-from http import HTTPStatus
 
 from fastapi import UploadFile
 from starlette.responses import RedirectResponse
 
-from app.config import settings, storages
+from app.config import storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, EntityType, StorageType
 from app.db.utils import ENTITY_TYPE_TO_CLASS, RESOURCE_TYPE_TO_CLASS
@@ -12,7 +11,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientProtocol
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilter
 from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
@@ -42,6 +41,7 @@ from app.service.asset import (
 from app.types import EntityRoute, ResourceRoute
 from app.utils.routers import entity_route_to_type, route_to_type
 from app.utils.s3 import StorageClientFactory
+from app.utils.virtual_lab import resolve_admin_virtual_lab_id
 
 
 def _get_entity_and_vlab(
@@ -55,19 +55,7 @@ def _get_entity_and_vlab(
         db_model_class=ENTITY_TYPE_TO_CLASS[entity_type],
         id_=entity_id,
     )
-    if settings.APP_DISABLE_AUTH:
-        # no virtual-lab API in local dev, and the admin routes ignore the project headers
-        return entity, settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
-    vlab_proj_mapping = virtual_lab_client.find_virtual_lab_by_project(
-        project_id=entity.authorized_project_id
-    )
-    if vlab_proj_mapping is None:
-        raise ApiError(
-            message="Virtual lab id not found from project id in virtual-lab-manager.",
-            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    return entity, vlab_proj_mapping.virtual_lab_id
+    return entity, resolve_admin_virtual_lab_id(virtual_lab_client, entity.authorized_project_id)
 
 
 def delete_one(

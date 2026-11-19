@@ -20,7 +20,6 @@ from app.schemas.auth import (
     CacheKey,
     DecodedToken,
     UserContext,
-    UserContextBase,
     UserContextWithProjectId,
     UserInfoResponse,
     UserProfile,
@@ -259,7 +258,7 @@ def _raise_for_auth_error(user_context: UserContext) -> None:
         raise _auth_error(user_context.auth_error_reason or AuthErrorReason.UNKNOWN)
 
 
-def _require_service_admin(user_context: UserContextBase) -> None:
+def _require_service_admin(user_context: UserContext) -> None:
     """Raise an error if the authenticated user doesn't have the service admin role."""
     if not user_context.is_service_admin:
         raise _auth_error(AuthErrorReason.ADMIN_REQUIRED)
@@ -309,24 +308,9 @@ def user_with_project_id(
     return UserContextWithProjectId.model_validate(user_context)
 
 
-def user_with_service_admin_role_and_project_id(
-    user_context: UserContextWithProjectIdDep,
-) -> UserContextWithProjectId:
-    """Ensure that the user is a service admin and a member of the project in the headers.
-
-    Used only on the user routes: the admin routes ignore the project headers.
-    """
-    _require_service_admin(user_context)
-    return user_context
-
-
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
 AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
 UserContextWithProjectIdDep = Annotated[
     UserContextWithProjectId,
     Depends(user_with_project_id),
-]
-AdminContextWithProjectIdDep = Annotated[
-    UserContextWithProjectId,
-    Depends(user_with_service_admin_role_and_project_id),
 ]

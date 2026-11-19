@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import IonChannelModelingConfig
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -24,7 +29,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.ion_channel_modeling_config import (
+    IonChannelModelingConfigAdminCreate,
     IonChannelModelingConfigAdminUpdate,
     IonChannelModelingConfigCreate,
     IonChannelModelingConfigRead,
@@ -81,11 +88,12 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: IonChannelModelingConfigCreate,
-    user_context: UserContextWithProjectIdDep,
-    expand: ExpandDep = frozenset(),
+    user_context: UserContext | UserContextWithProjectId,
+    expand: ExpandPaths,
 ) -> IonChannelModelingConfigRead:
     return router_create_one(
         db=db,
@@ -96,6 +104,24 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: IonChannelModelingConfigCreate,
+    user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> IonChannelModelingConfigRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AdminCreateDep[IonChannelModelingConfigAdminCreate],
+    user_context: AdminContextDep,
+    expand: ExpandDep = frozenset(),
+) -> IonChannelModelingConfigRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def update_one(

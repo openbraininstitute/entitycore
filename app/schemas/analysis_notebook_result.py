@@ -1,4 +1,5 @@
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
@@ -13,6 +14,10 @@ class AnalysisNotebookResultCreate(
     AnalysisNotebookResultBaseMixin,
     EntityCreate,
 ):
+    pass
+
+
+class AnalysisNotebookResultAdminCreate(AuthorizedProjectIdMixin, AnalysisNotebookResultCreate):
     pass
 
 

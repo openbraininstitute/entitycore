@@ -1,7 +1,7 @@
 from pydantic import Field
 
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import NameDescriptionMixin, Schema
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin, Schema
 from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
@@ -42,6 +42,10 @@ class IonChannelModelCreate(
     ScientificArtifactCreate,
     IonChannelModelBaseMixin,
 ):
+    pass
+
+
+class IonChannelModelAdminCreate(AuthorizedProjectIdMixin, IonChannelModelCreate):
     pass
 
 

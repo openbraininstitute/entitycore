@@ -4,7 +4,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import SimulationGeneration
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -21,8 +26,10 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.simulation_generation import (
+    SimulationGenerationAdminCreate,
     SimulationGenerationAdminUpdate,
     SimulationGenerationCreate,
     SimulationGenerationRead,
@@ -70,10 +77,11 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: SimulationGenerationCreate,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContext | UserContextWithProjectId,
 ) -> SimulationGenerationRead:
     return router_create_activity_one(
         db=db,
@@ -83,6 +91,22 @@ def create_one(
         response_schema_class=SimulationGenerationRead,
         apply_operations=_load,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: SimulationGenerationCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> SimulationGenerationRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AdminCreateDep[SimulationGenerationAdminCreate],
+    user_context: AdminContextDep,
+) -> SimulationGenerationRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def _read_many(

@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import BrainAtlasRegion as Model, Contribution
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -18,7 +23,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.brain_atlas_region import (
+    BrainAtlasRegionAdminCreate,
     BrainAtlasRegionAdminUpdate,
     BrainAtlasRegionCreate,
     BrainAtlasRegionRead,
@@ -76,11 +83,12 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: BrainAtlasRegionCreate,
-    user_context: UserContextWithProjectIdDep,
-    expand: ExpandDep = frozenset(),
+    user_context: UserContext | UserContextWithProjectId,
+    expand: ExpandPaths,
 ) -> BrainAtlasRegionRead:
     return router_create_one(
         db=db,
@@ -91,6 +99,24 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: BrainAtlasRegionCreate,
+    user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> BrainAtlasRegionRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AdminCreateDep[BrainAtlasRegionAdminCreate],
+    user_context: AdminContextDep,
+    expand: ExpandDep = frozenset(),
+) -> BrainAtlasRegionRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def update_one(

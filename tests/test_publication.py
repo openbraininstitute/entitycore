@@ -6,6 +6,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_admin_create_one_without_project,
     check_global_delete_one,
     check_global_read_many,
     check_global_read_one,
@@ -206,3 +207,9 @@ def test_filtering_sorting(client, models):
 
     data = req({"created_by__id": USER_SUB_ID_1, "updated_by__id": USER_SUB_ID_1})
     assert len(data) == len(models)
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

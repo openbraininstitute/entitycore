@@ -1,6 +1,7 @@
 import uuid
 
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionReadMixin
@@ -19,6 +20,10 @@ class SingleNeuronSynaptomeCreate(
 ):
     me_model_id: uuid.UUID
     brain_region_id: uuid.UUID
+
+
+class SingleNeuronSynaptomeAdminCreate(AuthorizedProjectIdMixin, SingleNeuronSynaptomeCreate):
+    pass
 
 
 SingleNeuronSynaptomeUserUpdate = make_update_schema(

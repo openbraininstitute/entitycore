@@ -94,6 +94,12 @@ def create_one(
     )
 
 
+def admin_create_one(
+    organization: OrganizationCreate, db: SessionDep, user_context: AdminContextDep
+) -> OrganizationRead:
+    return create_one(organization=organization, db=db, user_context=user_context)
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

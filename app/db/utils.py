@@ -153,7 +153,9 @@ def load_db_model_from_pydantic[I: DeclarativeBase](
         data["created_by_id"] = created_by_id
         data["updated_by_id"] = updated_by_id
 
-    if has_project_id_in_columns(db_model_class):
+    # the project of the user context has precedence, while the admin context has no project,
+    # and the admin create schemas provide authorized_project_id in the payload
+    if authorized_project_id is not None and has_project_id_in_columns(db_model_class):
         data["authorized_project_id"] = authorized_project_id
 
     if ignore_attributes:

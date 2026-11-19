@@ -73,6 +73,9 @@ def create_one(
     )
 
 
+admin_create_one = create_one
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

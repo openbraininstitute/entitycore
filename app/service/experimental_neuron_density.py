@@ -38,6 +38,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.density import (
     ExperimentalNeuronDensityAdminCreate,
     ExperimentalNeuronDensityAdminUpdate,
@@ -197,11 +198,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     json_model: ExperimentalNeuronDensityCreate,
     db: SessionDep,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> ExperimentalNeuronDensityRead:
     return router_create_one(
         db=db,
@@ -212,6 +214,15 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    json_model: ExperimentalNeuronDensityCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> ExperimentalNeuronDensityRead:
+    return _create_one(user_context=user_context, json_model=json_model, db=db, expand=expand)
 
 
 def admin_create_one(
@@ -220,15 +231,7 @@ def admin_create_one(
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> ExperimentalNeuronDensityRead:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=ExperimentalNeuronDensity,
-        response_schema_class=ExperimentalNeuronDensityRead,
-        apply_operations=_load,
-        expand=expand,
-    )
+    return _create_one(user_context=user_context, json_model=json_model, db=db, expand=expand)
 
 
 def update_one(

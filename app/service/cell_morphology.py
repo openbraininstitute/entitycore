@@ -38,6 +38,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.cell_morphology import (
     CellMorphologyAdminCreate,
     CellMorphologyAdminUpdate,
@@ -106,11 +107,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
     json_model: CellMorphologyCreate,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> CellMorphologyRead:
     return router_create_one(
         db=db,
@@ -121,6 +123,15 @@ def create_one(
         apply_operations=_load_from_db,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: CellMorphologyCreate,
+    expand: ExpandDep = frozenset(),
+) -> CellMorphologyRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
 
 
 def admin_create_one(
@@ -129,15 +140,7 @@ def admin_create_one(
     json_model: AdminCreateDep[CellMorphologyAdminCreate],
     expand: ExpandDep = frozenset(),
 ) -> CellMorphologyRead:
-    return router_create_one(
-        db=db,
-        user_context=user_context,
-        db_model_class=CellMorphology,
-        json_model=json_model,
-        response_schema_class=CellMorphologyRead,
-        apply_operations=_load_from_db,
-        expand=expand,
-    )
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
 
 
 def update_one(

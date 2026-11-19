@@ -76,14 +76,7 @@ def admin_create_one(
     json_model: PublicationCreate,
     user_context: AdminContextDep,
 ) -> PublicationRead:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=Publication,
-        response_schema_class=PublicationRead,
-        apply_operations=_load,
-    )
+    return create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def read_many(

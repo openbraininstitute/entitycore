@@ -28,6 +28,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.ion_channel_modeling_config_generation import (
     IonChannelModelingConfigGenerationAdminCreate,
     IonChannelModelingConfigGenerationAdminUpdate,
@@ -78,10 +79,11 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: IonChannelModelingConfigGenerationCreate,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContext | UserContextWithProjectId,
 ) -> IonChannelModelingConfigGenerationRead:
     return router_create_activity_one(
         db=db,
@@ -91,6 +93,14 @@ def create_one(
         response_schema_class=IonChannelModelingConfigGenerationRead,
         apply_operations=_load,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: IonChannelModelingConfigGenerationCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> IonChannelModelingConfigGenerationRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def admin_create_one(
@@ -98,14 +108,7 @@ def admin_create_one(
     json_model: AdminCreateDep[IonChannelModelingConfigGenerationAdminCreate],
     user_context: AdminContextDep,
 ) -> IonChannelModelingConfigGenerationRead:
-    return router_create_activity_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=IonChannelModelingConfigGeneration,
-        response_schema_class=IonChannelModelingConfigGenerationRead,
-        apply_operations=_load,
-    )
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def _read_many(

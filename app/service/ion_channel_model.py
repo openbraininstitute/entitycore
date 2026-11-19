@@ -32,6 +32,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.ion_channel_model import (
     IonChannelModelAdminCreate,
     IonChannelModelAdminUpdate,
@@ -207,10 +208,11 @@ def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate
     return ion_channel_model
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
-    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+    ion_channel_model: IonChannelModelCreate,
 ) -> IonChannelModelRead:
     return router_create_one(
         db=db,
@@ -220,6 +222,14 @@ def create_one(
         db_model_class=IonChannelModel,
         response_schema_class=IonChannelModelRead,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+) -> IonChannelModelRead:
+    return _create_one(user_context=user_context, db=db, ion_channel_model=ion_channel_model)
 
 
 def admin_create_one(
@@ -228,14 +238,7 @@ def admin_create_one(
     ion_channel_model: AdminCreateDep[IonChannelModelAdminCreate],
 ) -> IonChannelModelRead:
     icm_ion_names_exist(db, ion_channel_model)
-    return router_create_one(
-        db=db,
-        apply_operations=_load_minimal,
-        user_context=user_context,
-        json_model=ion_channel_model,
-        db_model_class=IonChannelModel,
-        response_schema_class=IonChannelModelRead,
-    )
+    return _create_one(user_context=user_context, db=db, ion_channel_model=ion_channel_model)
 
 
 def update_one(

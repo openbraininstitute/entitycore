@@ -75,14 +75,7 @@ def admin_create_one(
     json_model: ExternalUrlCreate,
     user_context: AdminContextDep,
 ) -> ExternalUrlRead:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=ExternalUrl,
-        response_schema_class=ExternalUrlRead,
-        apply_operations=_load,
-    )
+    return create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def read_many(

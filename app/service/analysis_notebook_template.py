@@ -44,6 +44,7 @@ from app.schemas.analysis_notebook_template import (
     NotebookDeleteClonesRequest,
     NotebookDeleteClonesResponse,
 )
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
@@ -100,11 +101,12 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: AnalysisNotebookTemplateCreate,
-    user_context: UserContextWithProjectIdDep,
-    expand: ExpandDep = frozenset(),
+    user_context: UserContext | UserContextWithProjectId,
+    expand: ExpandPaths,
 ) -> AnalysisNotebookTemplateRead:
     return router_create_one(
         db=db,
@@ -115,6 +117,15 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: AnalysisNotebookTemplateCreate,
+    user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> AnalysisNotebookTemplateRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def admin_create_one(
@@ -123,15 +134,7 @@ def admin_create_one(
     user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookTemplateRead:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=AnalysisNotebookTemplate,
-        response_schema_class=AnalysisNotebookTemplateRead,
-        apply_operations=_load,
-        expand=expand,
-    )
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def update_one(

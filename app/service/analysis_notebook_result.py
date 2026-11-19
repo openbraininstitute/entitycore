@@ -33,6 +33,7 @@ from app.schemas.analysis_notebook_result import (
     AnalysisNotebookResultRead,
     AnalysisNotebookResultUpdate,
 )
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -85,11 +86,12 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: AnalysisNotebookResultCreate,
-    user_context: UserContextWithProjectIdDep,
-    expand: ExpandDep = frozenset(),
+    user_context: UserContext | UserContextWithProjectId,
+    expand: ExpandPaths,
 ) -> AnalysisNotebookResultRead:
     return router_create_one(
         db=db,
@@ -100,6 +102,15 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: AnalysisNotebookResultCreate,
+    user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> AnalysisNotebookResultRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def admin_create_one(
@@ -108,15 +119,7 @@ def admin_create_one(
     user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> AnalysisNotebookResultRead:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=AnalysisNotebookResult,
-        response_schema_class=AnalysisNotebookResultRead,
-        apply_operations=_load,
-        expand=expand,
-    )
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def update_one(

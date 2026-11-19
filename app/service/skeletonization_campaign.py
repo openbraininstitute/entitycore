@@ -29,6 +29,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.skeletonization_campaign import (
     SkeletonizationCampaignAdminCreate,
@@ -94,11 +95,12 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: CreateSchema,
-    user_context: UserContextWithProjectIdDep,
-    expand: ExpandDep = frozenset(),
+    user_context: UserContext | UserContextWithProjectId,
+    expand: ExpandPaths,
 ) -> ReadSchema:
     return router_create_one(
         db=db,
@@ -109,6 +111,15 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: CreateSchema,
+    user_context: UserContextWithProjectIdDep,
+    expand: ExpandDep = frozenset(),
+) -> ReadSchema:
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def admin_create_one(
@@ -117,15 +128,7 @@ def admin_create_one(
     user_context: AdminContextDep,
     expand: ExpandDep = frozenset(),
 ) -> ReadSchema:
-    return router_create_one(
-        db=db,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=DBModel,
-        response_schema_class=ReadSchema,
-        apply_operations=_load,
-        expand=expand,
-    )
+    return _create_one(db=db, json_model=json_model, user_context=user_context, expand=expand)
 
 
 def update_one(

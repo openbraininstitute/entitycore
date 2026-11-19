@@ -41,6 +41,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.me_model import (
     MEModelAdminCreate,
     MEModelAdminUpdate,
@@ -130,11 +131,12 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = frozenset
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     memodel: MEModelCreate,
     db: SessionDep,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> MEModelRead:
     return router_create_one(
         db=db,
@@ -145,6 +147,15 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    memodel: MEModelCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> MEModelRead:
+    return _create_one(user_context=user_context, memodel=memodel, db=db, expand=expand)
 
 
 def admin_create_one(
@@ -153,15 +164,7 @@ def admin_create_one(
     db: SessionDep,
     expand: ExpandDep = frozenset(),
 ) -> MEModelRead:
-    return router_create_one(
-        db=db,
-        db_model_class=MEModel,
-        user_context=user_context,
-        response_schema_class=MEModelRead,
-        json_model=memodel,
-        apply_operations=_load,
-        expand=expand,
-    )
+    return _create_one(user_context=user_context, memodel=memodel, db=db, expand=expand)
 
 
 def update_one(

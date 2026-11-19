@@ -105,14 +105,7 @@ def create_one(person: PersonCreate, db: SessionDep, user_context: UserContextDe
 def admin_create_one(
     person: PersonCreate, db: SessionDep, user_context: AdminContextDep
 ) -> PersonRead:
-    return router_create_one(
-        db=db,
-        db_model_class=Person,
-        json_model=person,
-        response_schema_class=PersonRead,
-        user_context=user_context,
-        apply_operations=_load,
-    )
+    return create_one(person=person, db=db, user_context=user_context)
 
 
 def update_one(

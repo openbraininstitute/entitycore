@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import UploadFile
 from starlette.responses import RedirectResponse
@@ -135,6 +136,8 @@ def download_entity_asset(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
     asset_path: str | None = None,
+    *,
+    operation: Literal["get_object", "head_object"] = "get_object",
 ) -> RedirectResponse:
     """Download an asset associated with a specific entity.
 
@@ -153,6 +156,10 @@ def download_entity_asset(
       with HTTP 409.
     - If `asset_path` is provided for a non-directory asset, the request will
       fail with HTTP 409.
+
+    HTTP methods:
+    - GET redirects to a ``get_object`` presigned URL for downloading.
+    - HEAD redirects to a ``head_object`` presigned URL for metadata (e.g. size).
     """
     asset = get_entity_asset(
         repos,
@@ -164,6 +171,7 @@ def download_entity_asset(
         asset=asset,
         storage_client_factory=storage_client_factory,
         asset_path=asset_path,
+        operation=operation,
     )
 
 

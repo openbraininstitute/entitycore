@@ -2,7 +2,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http import HTTPStatus
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
@@ -767,6 +767,8 @@ def download_entity_asset(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
     asset_path: str | None = None,
+    *,
+    operation: Literal["get_object", "head_object"] = "get_object",
 ) -> RedirectResponse:
     """Download an asset associated with a specific entity.
 
@@ -785,6 +787,12 @@ def download_entity_asset(
       with HTTP 409.
     - If `asset_path` is provided for a non-directory asset, the request will
       fail with HTTP 409.
+
+    HTTP methods:
+    - GET redirects to a ``get_object`` presigned URL for downloading.
+    - HEAD redirects to a ``head_object`` presigned URL for metadata (e.g. size).
+      Storage rejects HEAD on a GET-signed URL, so clients must use HEAD here
+      when they need object headers without downloading.
     """
     asset = get_entity_asset(
         repos,
@@ -797,6 +805,7 @@ def download_entity_asset(
         asset=asset,
         storage_client_factory=storage_client_factory,
         asset_path=asset_path,
+        operation=operation,
     )
 
 
@@ -805,8 +814,9 @@ def create_asset_download_redirect(
     asset: AssetRead,
     storage_client_factory: StorageClientFactory,
     asset_path: str | None = None,
+    operation: Literal["get_object", "head_object"] = "get_object",
 ) -> RedirectResponse:
-    """Return a redirect response to download an asset from storage."""
+    """Return a redirect response to an S3 presigned URL for the asset."""
     if asset.status == AssetStatus.UPLOADING:
         raise ApiError(
             message="Cannot download an uploading asset, because it is incomplete.",
@@ -837,7 +847,7 @@ def create_asset_download_redirect(
 
     url = generate_presigned_url(
         s3_client=s3_client,
-        operation="get_object",
+        operation=operation,
         bucket_name=storage.bucket,
         s3_key=full_path,
     )

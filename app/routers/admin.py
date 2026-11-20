@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Query, UploadFile, status
+from fastapi import APIRouter, Form, Query, Request, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import storages
@@ -129,8 +129,12 @@ def register_entity_asset(
     )
 
 
-@router.get("/{entity_route}/{entity_id}/assets/{asset_id}/download")
+@router.api_route(
+    "/{entity_route}/{entity_id}/assets/{asset_id}/download",
+    methods=["GET", "HEAD"],
+)
 def download_entity_asset(
+    request: Request,
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
@@ -155,6 +159,11 @@ def download_entity_asset(
       with HTTP 409.
     - If `asset_path` is provided for a non-directory asset, the request will
       fail with HTTP 409.
+
+    HTTP methods:
+    - GET redirects to a ``get_object`` presigned URL for downloading.
+    - HEAD redirects to a ``head_object`` presigned URL for object metadata
+      (e.g. ``Content-Length``). Storage refuses HEAD on a GET-signed URL.
     """
     return admin_service.download_entity_asset(
         repos=repos,
@@ -163,6 +172,7 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
         asset_path=asset_path,
+        operation="head_object" if request.method == "HEAD" else "get_object",
     )
 
 

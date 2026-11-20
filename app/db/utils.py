@@ -137,6 +137,25 @@ def update_model[T: DeclarativeBase](model: T, data: dict) -> T:
     return model
 
 
+def relationships_of_columns(model_cls: type[DeclarativeBase], column_keys: set[str]) -> list[str]:
+    """Return the names of the relationships joined through any of the given columns.
+
+    When a foreign key column is updated, these relationships may still hold the old values.
+
+    Args:
+        model_cls: database model class.
+        column_keys: names of the column attributes.
+
+    Returns:
+        The names of the relationships, e.g. ["brain_region"] for {"brain_region_id"}.
+    """
+    return [
+        rel.key
+        for rel in class_mapper(model_cls).relationships
+        if any(col.key in column_keys for col in rel.local_columns)
+    ]
+
+
 def load_db_model_from_pydantic[I: DeclarativeBase](
     json_model: BaseModel,
     db_model_class: type[I],

@@ -17,6 +17,7 @@ from app.db.types import ActivityType, EntityType, ExecutorType
 from .utils import (
     PROJECT_ID,
     USER_SUB_ID_1,
+    add_db,
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
@@ -292,6 +293,32 @@ def test_update_one(client, client_admin, root_circuit, analysis_notebook_result
         generated_id=analysis_notebook_result.id,
         constructor_func=create_id,
     )
+
+
+def test_update_one__references(
+    db, client, create_id, analysis_notebook_environment_json_data, user_id
+):
+    other_environment = add_db(
+        db,
+        AnalysisNotebookEnvironment(
+            **analysis_notebook_environment_json_data
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+    url = f"{ROUTE}/{create_id()}"
+
+    # the response of the PATCH returns the updated relationships
+    data = assert_request(
+        client.patch,
+        url=url,
+        json={"analysis_notebook_environment_id": str(other_environment.id)},
+    ).json()
+    assert data["analysis_notebook_environment"]["id"] == str(other_environment.id)
+    assert assert_request(client.get, url=url).json() == data
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(

@@ -15,6 +15,7 @@ from .utils import (
     check_entity_read_many,
     check_entity_update_one,
     check_missing,
+    create_brain_region,
     upload_entity_asset,
 )
 
@@ -96,6 +97,20 @@ def test_read_many(clients, json_data):
         clients=clients,
         json_data=json_data,
     )
+
+
+def test_update_brain_region(db, client, json_data, brain_region_hierarchy_id, user_id):
+    entity_id = _create_id(client, json_data)
+    other_region = create_brain_region(
+        db, brain_region_hierarchy_id, annotation_value=99, name="other", created_by_id=user_id
+    )
+    url = f"{ROUTE}/{entity_id}"
+
+    data = assert_request(
+        client.patch, url=url, json={"brain_region_id": str(other_region.id)}
+    ).json()
+    assert data["brain_region"]["id"] == str(other_region.id)
+    assert assert_request(client.get, url=url).json() == data
 
 
 def test_delete_one(db, clients, json_data):

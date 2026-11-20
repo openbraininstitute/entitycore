@@ -912,6 +912,19 @@ class MeasurableEntityMixin:
         )
 
 
+class PrivateOnlyEntityMixin:
+    """Marker class for the entities that must always be private.
+
+    The entities can't be created as public, and they are skipped when a project is made public.
+
+    Adding or removing the mixin requires:
+    - a migration of the check constraint `ck_entity_private_only_types` on the entity table,
+      written manually because check constraints aren't detected by autogenerate. The type is
+      cast to text, because new enum values can't be used in the transaction that adds them.
+    - a create schema inheriting from `PrivateEntityCreate`.
+    """
+
+
 class CellMorphologyProtocol(Entity, UniqueNameDescriptionVectorMixin):
     __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -1239,7 +1252,9 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
-class GenericDataset(Entity, SubjectMixin, LicensedMixin, NameDescriptionVectorMixin):
+class GenericDataset(
+    Entity, SubjectMixin, LicensedMixin, NameDescriptionVectorMixin, PrivateOnlyEntityMixin
+):
     """Dataset in any format, for data that doesn't fit any other entity type.
 
     Used to share data within a project (e.g. between notebooks), or to keep the original files

@@ -1,3 +1,4 @@
+import re
 import uuid
 
 import pytest
@@ -38,6 +39,27 @@ def test_entity_type_to_class():
     for entity_type, cls in test_module.ENTITY_TYPE_TO_CLASS.items():
         assert cls.__tablename__ == entity_type
         assert not sa.inspect(cls).single
+
+
+def test_private_only_entity_types():
+    assert (EntityType.generic_dataset,) == test_module.PRIVATE_ONLY_ENTITY_TYPES
+
+
+def test_private_only_entity_types_check_constraint(db):
+    """Check that the constraint in the db matches the models with PrivateOnlyEntityMixin.
+
+    The check constraints aren't detected by autogenerate, so a migration may be missing.
+    """
+    definition = db.execute(
+        sa.text(
+            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+            "WHERE conname = 'ck_entity_private_only_types'"
+        )
+    ).scalar_one()
+    # e.g. CHECK ((((type)::text <> 'generic_dataset'::text) OR (authorized_public IS FALSE)))
+    assert set(re.findall(r"'(\w+)'::text", definition)) == set(
+        test_module.PRIVATE_ONLY_ENTITY_TYPES
+    )
 
 
 def _profile(sub: uuid.UUID, name: str = "John Doe") -> UserProfile:

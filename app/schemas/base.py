@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -50,6 +50,10 @@ class AuthorizationMixin:
 
 class AuthorizationOptionalPublicMixin:
     authorized_public: bool = False
+
+
+class AuthorizationPrivateMixin:
+    authorized_public: Literal[False] = False
 
 
 class OptionalProjectContext(Schema):

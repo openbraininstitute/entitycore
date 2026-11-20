@@ -23,6 +23,7 @@ from app.db.model import (
     LocationMixin,
     MeasurableEntityMixin,
     MTypeClassification,
+    PrivateOnlyEntityMixin,
     TaskResult,
 )
 from app.db.types import (
@@ -61,6 +62,15 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     # skip the single-table subclasses, sharing the table name of their parent
     if hasattr(EntityType, mapper.class_.__tablename__) and not mapper.single
 }
+
+# entity types that must always be private, see PrivateOnlyEntityMixin
+PRIVATE_ONLY_ENTITY_TYPES: tuple[EntityType, ...] = tuple(
+    sorted(
+        entity_type
+        for entity_type, db_model_class in ENTITY_TYPE_TO_CLASS.items()
+        if issubclass(db_model_class, PrivateOnlyEntityMixin)
+    )
+)
 
 
 RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {

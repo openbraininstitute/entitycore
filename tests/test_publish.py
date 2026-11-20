@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from app.config import storages
 from app.db.model import Asset, Entity
-from app.db.types import EntityType, StorageType
+from app.db.types import AssetLabel, EntityType, StorageType
 from app.utils.s3 import PRIVATE_ASSET_PREFIX, PUBLIC_ASSET_PREFIX, build_s3_path
 
 from tests.utils import (
@@ -139,6 +139,36 @@ def test_publish(db, client_admin, s3, private_morphology_with_asset):
     assert asset.full_path.startswith(PUBLIC_ASSET_PREFIX)
     assert s3_key_exists(s3, key=asset.full_path)
     assert not s3_key_exists(s3, key=old_path)
+
+
+def test_publish_skips_private_only_entities(
+    db, client, client_admin, s3, private_morphology_with_asset, generic_dataset_json_data
+):
+    dataset_id = assert_request(
+        client.post, url="/generic-dataset", json=generic_dataset_json_data
+    ).json()["id"]
+    upload_entity_asset(
+        client=client,
+        entity_type=EntityType.generic_dataset,
+        entity_id=dataset_id,
+        files={"file": ("README.md", b"# My dataset", "text/markdown")},
+        label=AssetLabel.generic_dataset_readme,
+    )
+    dataset_asset_path = _get_asset(db, dataset_id).full_path
+    assert dataset_asset_path.startswith(PRIVATE_ASSET_PREFIX)
+
+    response = _publish(client_admin, PROJECT_ID)
+    assert response.status_code == 200
+    # only the asset of the morphology is moved
+    assert response.json()["move_assets_result"]["asset_count"] == 1
+
+    db.expire_all()
+    # the other entities are made public
+    assert _get_entity(db, private_morphology_with_asset).authorized_public is True
+    # the generic dataset and its assets are kept private
+    assert _get_entity(db, dataset_id).authorized_public is False
+    assert _get_asset(db, dataset_id).full_path == dataset_asset_path
+    assert s3_key_exists(s3, key=dataset_asset_path)
 
 
 def test_publish_dry_run(db, client_admin, private_morphology_with_asset):

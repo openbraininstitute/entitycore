@@ -8,7 +8,7 @@ from types_boto3_s3 import S3Client
 from app.config import StorageUnion
 from app.db.model import Asset, Entity
 from app.db.types import AssetStatus, StorageType
-from app.db.utils import PUBLISHABLE_BASE_CLASSES, PublishableBaseModel
+from app.db.utils import PRIVATE_ONLY_ENTITY_TYPES, PUBLISHABLE_BASE_CLASSES, PublishableBaseModel
 from app.logger import L
 from app.schemas.publish import ChangeProjectVisibilityResponse, MoveAssetsResult
 from app.utils.s3 import (
@@ -33,9 +33,11 @@ def _set_base_class_visibility(
     Rows are updated directly without loading the ORM models, so it's not possible to fire any
     SQLAlchemy event, but it is more efficient as it avoids loading all the resources in memory.
 
+    The entities in `PRIVATE_ONLY_ENTITY_TYPES` are never made public, so they are skipped.
+
     Returns the number of updated resources.
     """
-    result = db.execute(
+    query = (
         sa.update(db_model_class)
         .where(
             db_model_class.authorized_project_id == project_id,
@@ -46,6 +48,9 @@ def _set_base_class_visibility(
             update_date=db_model_class.update_date,  # preserve update_date
         )
     )
+    if public and db_model_class is Entity:
+        query = query.where(Entity.type.not_in(PRIVATE_ONLY_ENTITY_TYPES))
+    result = db.execute(query)
     return result.rowcount  # type: ignore[attr-defined]
 
 

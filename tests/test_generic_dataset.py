@@ -2,22 +2,23 @@ from datetime import timedelta
 from unittest.mock import ANY
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.db.model import GenericDataset, Subject
 from app.db.types import AssetLabel, EntityType
 
 from .utils import (
     PROJECT_ID,
+    UNRELATED_PROJECT_ID,
     add_all_db,
     add_db,
     assert_request,
-    check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
-    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     check_pagination,
+    check_private_only_authorization,
     upload_entity_asset,
 )
 
@@ -85,32 +86,50 @@ def test_create_one_with_all_fields(client, full_json_data, species_id, strain_i
     assert assert_request(client.get, url=f"{ROUTE}/{data['id']}").json() == data
 
 
-def test_create_one_public_with_private_subject(db, client, json_data, species_id, user_id):
-    private_subject = add_db(
-        db,
-        Subject(
-            name="private-subject",
-            description="private-description",
-            species_id=species_id,
-            age_value=timedelta(days=14),
-            age_period="postnatal",
-            sex="female",
-            authorized_public=False,
-            authorized_project_id=PROJECT_ID,
-            created_by_id=user_id,
-            updated_by_id=user_id,
-        ),
-    )
-    payload = json_data | {"subject_id": str(private_subject.id)}
+def test_public_is_rejected_by_the_db(db, json_data, user_id):
+    with pytest.raises(IntegrityError, match="ck_entity_private_only_types"):
+        add_db(
+            db,
+            GenericDataset(
+                **json_data
+                | {
+                    "authorized_public": True,
+                    "authorized_project_id": PROJECT_ID,
+                    "created_by_id": user_id,
+                    "updated_by_id": user_id,
+                }
+            ),
+        )
 
-    # a private dataset can reference a private subject in the same project
-    assert_request(client.post, url=ROUTE, json=payload | {"authorized_public": False})
 
-    # a public dataset cannot reference a private subject
+def test_create_one_with_private_subject(db, client, json_data, species_id, user_id):
+    def add_subject(project_id):
+        return add_db(
+            db,
+            Subject(
+                name="private-subject",
+                description="private-description",
+                species_id=species_id,
+                age_value=timedelta(days=14),
+                age_period="postnatal",
+                sex="female",
+                authorized_public=False,
+                authorized_project_id=project_id,
+                created_by_id=user_id,
+                updated_by_id=user_id,
+            ),
+        )
+
+    # a private subject in the same project can be referenced
+    subject = add_subject(PROJECT_ID)
+    assert_request(client.post, url=ROUTE, json=json_data | {"subject_id": str(subject.id)})
+
+    # a private subject in another project cannot be referenced
+    subject = add_subject(UNRELATED_PROJECT_ID)
     assert_request(
         client.post,
         url=ROUTE,
-        json=payload | {"authorized_public": True},
+        json=json_data | {"subject_id": str(subject.id)},
         expected_status_code=403,
     )
 
@@ -126,6 +145,7 @@ def test_update_one(clients, json_data):
             "description": "description",
         },
         optional_payload=None,
+        private_only=True,
     )
 
 
@@ -148,15 +168,6 @@ def test_update_optional_references(client, json_data, full_json_data):
     assert assert_request(client.get, url=url).json() == data
 
 
-def test_read_many(clients, json_data):
-    check_entity_read_many(
-        route=ROUTE,
-        admin_route=ADMIN_ROUTE,
-        clients=clients,
-        json_data=json_data,
-    )
-
-
 def test_delete_one(db, clients, json_data):
     check_entity_delete_one(
         db=db,
@@ -166,6 +177,7 @@ def test_delete_one(db, clients, json_data):
         json_data=json_data,
         expected_counts_before={GenericDataset: 1},
         expected_counts_after={GenericDataset: 0},
+        private_only=True,
     )
 
 
@@ -173,8 +185,13 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_read_many_and_authorization(clients, json_data):
+    check_private_only_authorization(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
 def test_pagination(client, create_id):

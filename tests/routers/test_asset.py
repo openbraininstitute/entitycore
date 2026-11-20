@@ -44,28 +44,6 @@ EMPTY_FILE_SIZE = 0
 
 DUMMY_DIGEST = "a" * 64
 
-VIRTUAL_LAB_API_TEST_URL = "https://virtual-lab-api.test"
-
-
-@pytest.fixture
-def virtual_lab_api_url(monkeypatch):
-    monkeypatch.setattr(settings, "VIRTUAL_LAB_API_URL", VIRTUAL_LAB_API_TEST_URL)
-    return VIRTUAL_LAB_API_TEST_URL
-
-
-@pytest.fixture
-def mock_virtual_lab_project_mapping(httpx2_mock, virtual_lab_api_url):
-    httpx2_mock.get(
-        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
-    ).respond(
-        json={
-            "data": {
-                "project_id": PROJECT_ID,
-                "virtual_lab_id": VIRTUAL_LAB_ID,
-            },
-        },
-    )
-
 
 def _get_expected_full_path(entity, path):
     return build_s3_path(
@@ -629,21 +607,32 @@ def test_upload_entity_asset_admin_s3_failure(client_admin, entity):
     assert response.json()["details"] == "Failed to upload object"
 
 
+@pytest.mark.parametrize(
+    ("vlab_status_code", "expected_status_code", "expected_error_code"),
+    [
+        (HTTPStatus.NOT_FOUND, 422, ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND),
+        (HTTPStatus.FORBIDDEN, 422, ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND),
+        (HTTPStatus.INTERNAL_SERVER_ERROR, 500, ApiErrorCode.GENERIC_ERROR),
+    ],
+)
 def test_upload_entity_asset_admin_virtual_lab_api_failure(
-    client_admin, entity, httpx2_mock, virtual_lab_api_url
+    client_admin,
+    entity,
+    mock_virtual_lab_api,
+    vlab_status_code,
+    expected_status_code,
+    expected_error_code,
 ):
-    httpx2_mock.get(
-        f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab"
-    ).respond(HTTPStatus.NOT_FOUND)
+    mock_virtual_lab_api(status_code=vlab_status_code)
     with FILE_EXAMPLE_PATH.open("rb") as f:
         response = client_admin.post(
             f"/admin{route(entity.type)}/{entity.id}/assets",
             files={"file": ("morph.asc", f, "application/asc")},
             data={"label": "morphology"},
         )
-    assert response.status_code == 500
+    assert response.status_code == expected_status_code
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.GENERIC_ERROR
+    assert error.error_code == expected_error_code
 
 
 @pytest.fixture

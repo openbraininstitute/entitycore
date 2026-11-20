@@ -1,4 +1,7 @@
 import uuid
+from typing import Annotated
+
+from pydantic import Field
 
 from app.schemas.base import (
     AuthorizationMixin,
@@ -6,6 +9,24 @@ from app.schemas.base import (
     Schema,
 )
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
+
+
+class MTypeClassIdsCreateMixin(Schema):
+    """Optional mtype class ids to attach on entity create."""
+
+    mtype_class_ids: Annotated[
+        list[uuid.UUID],
+        Field(description="MType class ids to register as classifications."),
+    ] = []  # ruff:ignore[mutable-class-default]
+
+
+class ETypeClassIdsCreateMixin(Schema):
+    """Optional etype class ids to attach on entity create."""
+
+    etype_class_ids: Annotated[
+        list[uuid.UUID],
+        Field(description="EType class ids to register as classifications."),
+    ] = []  # ruff:ignore[mutable-class-default]
 
 
 class ClassificationBase(Schema):

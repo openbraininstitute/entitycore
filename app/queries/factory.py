@@ -310,12 +310,16 @@ class _SpecRegistry:
 
     def spec_brain_region(self) -> _Spec:
         br = self._a(BrainRegion, "brain_region")
-        return _Spec(
-            facet={"id": br.id, "label": br.name},
-            join=JoinSpec(
-                join=lambda q: q.join(br, self._m.brain_region_id == br.id),
-            ),
-        )
+        fk = self._m.brain_region_id
+        if fk.expression.nullable:
+            # outer join, to keep the rows without brain region when sorting or faceting
+            join_spec = JoinSpec(
+                join=lambda q: q.outerjoin(br, fk == br.id),
+                filter_join=lambda q: q.join(br, fk == br.id),
+            )
+        else:
+            join_spec = JoinSpec(join=lambda q: q.join(br, fk == br.id))
+        return _Spec(facet={"id": br.id, "label": br.name}, join=join_spec)
 
     def spec_pre_region(self) -> _Spec:
         a = self._a(BrainRegion, "pre_region")

@@ -912,6 +912,19 @@ class MeasurableEntityMixin:
         )
 
 
+class PrivateOnlyEntityMixin:
+    """Marker class for the entities that must always be private.
+
+    The entities can't be created as public, and they are skipped when a project is made public.
+
+    Adding or removing the mixin requires:
+    - a migration of the check constraint `ck_entity_private_only_types` on the entity table,
+      written manually because check constraints aren't detected by autogenerate. The type is
+      cast to text, because new enum values can't be used in the transaction that adds them.
+    - a create schema inheriting from `PrivateEntityCreate`.
+    """
+
+
 class CellMorphologyProtocol(Entity, UniqueNameDescriptionVectorMixin):
     __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -1235,6 +1248,39 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     sampling_frequency: Mapped[float]
     duration: Mapped[float]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
+class GenericDataset(
+    Entity, SubjectMixin, LicensedMixin, NameDescriptionVectorMixin, PrivateOnlyEntityMixin
+):
+    """Dataset in any format, for data that doesn't fit any other entity type.
+
+    Used to share data within a project (e.g. between notebooks), or to keep the original files
+    of an entity converted to a supported format, for provenance. It isn't meant as input of
+    workflows, and the naming conventions are up to the project.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the entity ID.
+        subject_id (uuid.UUID | None): Optional subject, also defining the species and strain.
+        brain_region_id (uuid.UUID | None): Optional brain region.
+        license_id (uuid.UUID | None): Optional license.
+
+    Assets:
+        - a directory with label `generic_dataset_files`, with any content.
+        - an optional readme with label `generic_dataset_readme`, in markdown or plain text.
+    """
+
+    __tablename__ = EntityType.generic_dataset.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    brain_region_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("brain_region.id"), index=True
+    )
+    brain_region: Mapped[BrainRegion | None] = relationship(
+        "BrainRegion", uselist=False, foreign_keys=[brain_region_id]
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 

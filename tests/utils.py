@@ -809,6 +809,75 @@ def check_authorization(
     }
 
 
+def check_private_only_authorization(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    json_data_user_2: dict | None = None,
+):
+    """Check the authorization of the entities that must always be private.
+
+    It replaces check_authorization and check_entity_read_many for the models with
+    PrivateOnlyEntityMixin, since they can't be created as public.
+
+    Args:
+        json_data: Payload for the entities of user_1. Also used as fallback for user_2.
+        json_data_user_2: Payload for the entities of user_2, if user_1's cannot be reused.
+    """
+    if json_data_user_2 is None:
+        json_data_user_2 = json_data
+
+    def _create(client, data):
+        return assert_request(client.post, url=route, json=_unique(data)).json()
+
+    def _ids(client, client_route, params=None):
+        data = assert_request(client.get, url=client_route, params=params).json()["data"]
+        return {row["id"] for row in data}
+
+    # public entities are rejected
+    data = assert_request(
+        clients.user_1.post,
+        url=route,
+        json=json_data | {"authorized_public": True},
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
+
+    u1_0 = _create(clients.user_1, json_data | {"authorized_public": False})
+    u1_1 = _create(clients.user_1, json_data)
+    u2_0 = _create(clients.user_2, json_data_user_2)
+    for row, project_id in [(u1_0, PROJECT_ID), (u1_1, PROJECT_ID), (u2_0, UNRELATED_PROJECT_ID)]:
+        assert row["authorized_public"] is False
+        assert row["authorized_project_id"] == project_id
+    u1_ids = {u1_0["id"], u1_1["id"]}
+
+    # each user can only get the entities in their project
+    assert _ids(clients.user_1, route) == u1_ids
+    assert _ids(clients.user_2, route) == {u2_0["id"]}
+    assert _ids(clients.user_1, route, {"authorized_public": False}) == u1_ids
+    assert _ids(clients.user_1, route, {"authorized_public": True}) == set()
+    assert _ids(clients.user_1, route, {"authorized_project_id": PROJECT_ID}) == u1_ids
+    assert _ids(clients.user_1, route, {"authorized_project_id": UNRELATED_PROJECT_ID}) == set()
+
+    # without project, no entity is visible, including the admin on the regular route
+    assert _ids(clients.no_project, route) == set()
+    assert _ids(clients.admin, route) == set()
+
+    # the entities in other projects cannot be read
+    for client, entity_id in [(clients.user_1, u2_0["id"]), (clients.no_project, u1_0["id"])]:
+        data = assert_request(
+            client.get, url=f"{route}/{entity_id}", expected_status_code=404
+        ).json()
+        assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # only the admin can use the admin route, and get all the entities
+    data = assert_request(clients.user_1.get, url=admin_route, expected_status_code=403).json()
+    assert data["message"] == "Service admin role required"
+    assert _ids(clients.admin, admin_route) == u1_ids | {u2_0["id"]}
+
+
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
     db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)
 
@@ -1459,6 +1528,7 @@ def check_entity_update_one(
     patch_payload: dict,
     optional_payload: dict | None,
     private_json_data: dict | None = None,
+    private_only: bool = False,
 ):
     """Check that update operations respect authorization rules.
 
@@ -1466,6 +1536,8 @@ def check_entity_update_one(
         json_data: Payload for public entities.
         private_json_data: Payload for private entities. Required when the entity has must_match
             constraints that differ between public and private parents.
+        private_only: True if the entity must always be private (PrivateOnlyEntityMixin).
+            No public entity is created, and authorized_public must be rejected also for admins.
     """
     if private_json_data is None:
         private_json_data = json_data
@@ -1488,14 +1560,14 @@ def check_entity_update_one(
         else:
             assert old_data["update_date"] == new_data["update_date"]
 
-    public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
+    public_1_id = None
+    if not private_only:
+        public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
+        assert public_1_data["authorized_public"] is True
+        public_1_id = public_1_data["id"]
     private_1_data = _create(clients.user_1, private_json_data | {"authorized_public": False})
     private_1_old_values = {k: private_1_data[k] for k in patch_payload}
-
-    assert public_1_data["authorized_public"] is True
     assert private_1_data["authorized_public"] is False
-
-    public_1_id = public_1_data["id"]
     private_1_id = private_1_data["id"]
 
     # user updates resource
@@ -1526,10 +1598,18 @@ def check_entity_update_one(
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    # admin update schema forbids unknown fields but allows authorized_public
-    _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{private_1_id}")
-    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": True})
-    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": False})
+    if private_only:
+        # admin update schema forbids unknown fields and authorized_public
+        _assert_update_rejects_extra_fields(
+            clients.admin,
+            f"{admin_route}/{private_1_id}",
+            extra_payload={"authorized_public": True},
+        )
+    else:
+        # admin update schema forbids unknown fields but allows authorized_public
+        _assert_update_rejects_extra_fields(clients.admin, f"{admin_route}/{private_1_id}")
+        _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": True})
+        _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", {"authorized_public": False})
 
     _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", patch_payload)
 
@@ -1541,6 +1621,20 @@ def check_entity_update_one(
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    if private_only:
+        # a service maintainer with access to the project can update a private resource
+        _patch_compare(clients.maintainer_1, f"{route}/{private_1_id}", private_1_old_values)
+
+        # a service maintainer without access to the project cannot update a private resource
+        data = assert_request(
+            clients.maintainer_2.patch,
+            url=f"{route}/{private_1_id}",
+            json={},
+            expected_status_code=404,
+        ).json()
+        assert data["error_code"] == "ENTITY_NOT_FOUND"
+        return
 
     # user should not be allowed to update a public resource
     data = assert_request(
@@ -1577,6 +1671,8 @@ def check_entity_delete_one(
     expected_counts_before: dict,
     expected_counts_after: dict,
     private_json_data: dict | None = None,
+    *,
+    private_only: bool = False,
 ):
     """Check that delete operations respect authorization rules.
 
@@ -1584,6 +1680,8 @@ def check_entity_delete_one(
         json_data: Payload for public entities.
         private_json_data: Payload for private entities. Required when the entity has must_match
             constraints that differ between public and private parents.
+        private_only: True if the entity must always be private (PrivateOnlyEntityMixin).
+            No public entity is created.
     """
     if private_json_data is None:
         private_json_data = json_data
@@ -1651,6 +1749,9 @@ def check_entity_delete_one(
 
     # service admins can delete via admin route
     _req_count(clients.admin, admin_route, model_id)
+
+    if private_only:
+        return
 
     model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
 

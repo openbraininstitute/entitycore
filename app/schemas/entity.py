@@ -7,7 +7,12 @@ from pydantic import MISSING, RootModel
 
 from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import AuthorizationOptionalPublicMixin, ExpandableSchema, Schema
+from app.schemas.base import (
+    AuthorizationOptionalPublicMixin,
+    AuthorizationPrivateMixin,
+    ExpandableSchema,
+    Schema,
+)
 from app.schemas.expand import Expandable
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
@@ -97,8 +102,16 @@ class EntityRead(
     type: EntityType
 
 
-class EntityCreate(IdentifiableCreate, AuthorizationOptionalPublicMixin):
+class EntityCreateBase(IdentifiableCreate):
     lifecycle_status: EntityLifecycleStatus = EntityLifecycleStatus.active
+
+
+class EntityCreate(EntityCreateBase, AuthorizationOptionalPublicMixin):
+    """Create schema of the entities that can be either public or private."""
+
+
+class PrivateEntityCreate(EntityCreateBase, AuthorizationPrivateMixin):
+    """Create schema of the entities that must always be private (`PrivateOnlyEntityMixin`)."""
 
 
 class EntityCountRead(RootModel[dict[str, int]]):

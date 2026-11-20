@@ -1573,6 +1573,7 @@ def simulation_json_data(simulation_campaign, circuit):
         "simulation_campaign_id": str(simulation_campaign.id),
         "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
         "number_neurons": 10,
+        "number_synapses": 1000,
     }
 
 
@@ -1585,6 +1586,7 @@ def public_simulation_json_data(public_simulation_campaign, public_circuit):
         "simulation_campaign_id": str(public_simulation_campaign.id),
         "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
         "number_neurons": 10,
+        "number_synapses": 1000,
     }
 
 

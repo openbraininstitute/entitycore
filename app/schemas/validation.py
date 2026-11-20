@@ -1,6 +1,7 @@
 import uuid
 
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
@@ -17,8 +18,7 @@ class ValidationUserUpdate(ActivityUpdate):
     pass
 
 
-class ValidationResultBaseMixin:
-    name: str
+class ValidationResultBaseMixin(NameDescriptionMixin):
     passed: bool
     validated_entity_id: uuid.UUID
 

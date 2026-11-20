@@ -799,6 +799,7 @@ def validation_result_id(client, morphology_id, user_id):
         url="/validation-result",
         json={
             "name": "test_validation_result",
+            "description": "Step at 130% of rheobase.",
             "passed": True,
             "validated_entity_id": str(morphology_id),
             "authorized_public": False,

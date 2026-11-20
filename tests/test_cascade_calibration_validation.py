@@ -26,6 +26,7 @@ def _post_validation(client, entity_id, *, name="vr"):
         url=VALIDATION,
         json={
             "name": name,
+            "description": "",
             "passed": True,
             "validated_entity_id": str(entity_id),
             "authorized_public": False,

@@ -543,6 +543,7 @@ def test_filtering(client, models):
         url="/validation-result",
         json={
             "name": "validation-passed",
+            "description": "",
             "passed": True,
             "validated_entity_id": str(recordings[0].id),
             "authorized_public": False,
@@ -553,6 +554,7 @@ def test_filtering(client, models):
         url="/validation-result",
         json={
             "name": "validation-failed",
+            "description": "",
             "passed": False,
             "validated_entity_id": str(recordings[1].id),
             "authorized_public": False,

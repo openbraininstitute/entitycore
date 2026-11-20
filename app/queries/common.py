@@ -16,6 +16,7 @@ from app.db.utils import (
     get_authorized_project_id_declaring_class,
     get_entity_types,
     load_db_model_from_pydantic,
+    relationships_of_columns,
     update_model,
 )
 from app.dependencies.common import (
@@ -550,10 +551,8 @@ def router_update_one[T: Schema, I: Identifiable](
         db_model_instance = db.execute(query).unique().scalar_one()
     item_project_id = getattr(db_model_instance, "authorized_project_id", None)
 
-    db_model_instance = update_model(
-        model=db_model_instance,
-        data=json_model.model_dump(exclude_unset=True, exclude=set(nested_relationships)),
-    )
+    update_data = json_model.model_dump(exclude_unset=True, exclude=set(nested_relationships))
+    db_model_instance = update_model(model=db_model_instance, data=update_data)
 
     if db.is_modified(db_model_instance):
         db_user = get_or_create_user(db, user_context.profile)
@@ -579,6 +578,10 @@ def router_update_one[T: Schema, I: Identifiable](
         db_model_instance,
         attribute_names=["update_date", "updated_by", *relationship_names, *unrequested_names],
     )
+    # relationships joined through updated foreign keys would return the old values.
+    # refresh loads them also when they cannot be lazy loaded (lazy="raise")
+    if stale_names := relationships_of_columns(db_model_class, set(update_data)):
+        db.refresh(db_model_instance, attribute_names=stale_names)
 
     if expand:
         # the expanded entities are filtered by the item's project, known only after the write check
@@ -707,5 +710,9 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     db.flush()
     relationship_names = [v["relationship_name"] for v in nested_relationships.values()]
     db.expire(db_model_instance, attribute_names=["update_date", "updated_by", *relationship_names])
+    # relationships joined through updated foreign keys would return the old values.
+    # refresh loads them also when they cannot be lazy loaded (lazy="raise")
+    if stale_names := relationships_of_columns(db_model_class, set(update_data)):
+        db.refresh(db_model_instance, attribute_names=stale_names)
 
     return response_schema_class.model_validate(db_model_instance)

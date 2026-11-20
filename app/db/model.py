@@ -1239,6 +1239,37 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
+class GenericDataset(Entity, SubjectMixin, LicensedMixin, NameDescriptionVectorMixin):
+    """Dataset in any format, for data that doesn't fit any other entity type.
+
+    Used to share data within a project (e.g. between notebooks), or to keep the original files
+    of an entity converted to a supported format, for provenance. It isn't meant as input of
+    workflows, and the naming conventions are up to the project.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the entity ID.
+        subject_id (uuid.UUID | None): Optional subject, also defining the species and strain.
+        brain_region_id (uuid.UUID | None): Optional brain region.
+        license_id (uuid.UUID | None): Optional license.
+
+    Assets:
+        - a directory with label `generic_dataset_files`, with any content.
+        - an optional readme with label `generic_dataset_readme`, in markdown or plain text.
+    """
+
+    __tablename__ = EntityType.generic_dataset.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    brain_region_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("brain_region.id"), index=True
+    )
+    brain_region: Mapped[BrainRegion | None] = relationship(
+        "BrainRegion", uselist=False, foreign_keys=[brain_region_id]
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_synaptome.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

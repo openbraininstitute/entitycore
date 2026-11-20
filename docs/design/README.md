@@ -21,3 +21,4 @@ The status of each record is in its header.
 - [Expandable fields in read responses](2026-11-expandable-fields.md)
 - [ExtracellularRecording entity](2026-11-extracellular-recording-entity.md)
 - [Admin create endpoints for entities and activities](2026-11-admin-create.md)
+- [GenericDataset entity](2026-11-generic-dataset-entity.md)

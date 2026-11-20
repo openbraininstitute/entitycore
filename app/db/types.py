@@ -153,6 +153,7 @@ class EntityType(StrEnum):
     task_config = auto()
     research_log = auto()
     extracellular_recording = auto()
+    generic_dataset = auto()
 
 
 class TaskResultType(StrEnum):
@@ -638,6 +639,8 @@ class AssetLabel(StrEnum):
     research_log_document = auto()
     research_log_files = auto()
     recording_summary = auto()
+    generic_dataset_files = auto()
+    generic_dataset_readme = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -926,6 +929,27 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.nwb,
                 is_directory=False,
                 description="Extracellular voltage traces, with the electrodes table.",
+            ),
+        ],
+    },
+    EntityType.generic_dataset: {
+        AssetLabel.generic_dataset_files: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description="Directory with the files of the dataset, with any content.",
+            ),
+        ],
+        AssetLabel.generic_dataset_readme: [
+            LabelRequirements(
+                content_type=ContentType.markdown,
+                is_directory=False,
+                description="Optional description of the dataset, in markdown.",
+            ),
+            LabelRequirements(
+                content_type=ContentType.text,
+                is_directory=False,
+                description="Optional description of the dataset, in plain text.",
             ),
         ],
     },

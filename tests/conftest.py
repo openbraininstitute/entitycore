@@ -1331,6 +1331,15 @@ def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
 
 
 @pytest.fixture
+def generic_dataset_json_data():
+    return {
+        "name": "my-dataset",
+        "description": "my-description",
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
 def ion_channel_json_data():
     return {
         "name": "KCa1.1",

@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="2b0bd4725594"
+SCRIPT_DB_VERSION="48bdf29e1882"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -155,6 +155,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM extracellular_recording AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/extracellular_recording.csv' WITH CSV HEADER;
 \echo Dumping table generation
 \copy (SELECT t0.* FROM generation AS t0 JOIN entity AS t1 ON t1.id=t0.generation_entity_id JOIN activity AS t2 ON t2.id=t0.generation_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/generation.csv' WITH CSV HEADER;
+\echo Dumping table generic_dataset
+\copy (SELECT t0.* FROM generic_dataset AS t0 JOIN entity AS t1 ON t1.id=t0.id LEFT JOIN entity AS t2 ON t2.id=t0.subject_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/generic_dataset.csv' WITH CSV HEADER;
 \echo Dumping table ion
 \copy (SELECT t0.* FROM ion AS t0  WHERE TRUE) TO '$DATA_DIR/ion.csv' WITH CSV HEADER;
 \echo Dumping table ion_channel
@@ -273,7 +275,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="2b0bd4725594"
+SCRIPT_DB_VERSION="48bdf29e1882"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

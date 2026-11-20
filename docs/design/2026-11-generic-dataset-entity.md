@@ -1,10 +1,10 @@
 # GenericDataset entity
 
-- Status: Accepted
+- Status: Implemented
 - Date: 2026-11-20
 - Author: @GianlucaFicarelli
 - Issues: [#534](https://github.com/openbraininstitute/entitycore/issues/534)
-- Pull requests:
+- Pull requests: [#773](https://github.com/openbraininstitute/entitycore/pull/773)
 
 ## Context
 

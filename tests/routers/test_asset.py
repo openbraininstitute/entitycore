@@ -963,6 +963,74 @@ def test_download_entity_asset__uploading(client, entity, uploading_asset):
     assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
 
 
+def test_head_entity_asset(clients, entity, asset):
+    """HEAD redirects to a head_object URL (distinct from GET's get_object URL)."""
+    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
+    expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
+
+    get_response = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
+    head_response = assert_request(
+        clients.user_1.head,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
+    assert head_response.next_request.url.path.endswith(expected_full_path)
+    assert expected_params.issubset(head_response.next_request.url.params)
+    # Different S3 operations must produce different signatures.
+    assert (
+        head_response.next_request.url.params["Signature"]
+        != get_response.next_request.url.params["Signature"]
+    )
+
+    assert_request(
+        clients.user_2.head,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
+        follow_redirects=False,
+    )
+    assert_request(
+        clients.user_1.head,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=403,
+    )
+    assert_request(
+        clients.admin.head,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
+    )
+
+    admin_response = assert_request(
+        clients.admin.head,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
+    assert admin_response.next_request.url.path.endswith(expected_full_path)
+    assert expected_params.issubset(admin_response.next_request.url.params)
+
+    assert_request(
+        clients.user_1.head,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        params={"asset_path": "foo"},
+        follow_redirects=False,
+        expected_status_code=409,
+    )
+
+
+def test_head_entity_asset__uploading(client, entity, uploading_asset):
+    response = client.head(
+        f"{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/download",
+        follow_redirects=False,
+    )
+    assert response.status_code == HTTPStatus.CONFLICT
+
+
 @pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
 def test_download_entity_asset_non_authorized(request, client_fixture, entity, asset):
     client = request.getfixturevalue(client_fixture)

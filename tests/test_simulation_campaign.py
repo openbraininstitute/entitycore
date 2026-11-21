@@ -76,6 +76,27 @@ def test_read_one(client, client_admin, model, json_data):
     _assert_read_response(data, json_data)
 
 
+def test_read_one_with_simulations(client, model, simulation_json_data, circuit, db, user_id):
+    add_db(
+        db,
+        Simulation(
+            **simulation_json_data
+            | {
+                "simulation_campaign_id": model.id,
+                "entity_id": circuit.id,
+                "number_synapses": 123,
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+    data = assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
+
+    assert [s["number_synapses"] for s in data["simulations"]] == [123]
+
+
 def test_read_many(clients, public_json_data):
     check_entity_read_many(
         route=ROUTE,

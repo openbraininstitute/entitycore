@@ -33,6 +33,7 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
             "update_date",
             "name",
             "number_neurons",
+            "number_synapses",
             "circuit__name",
             "circuit__scale",
             "created_by__pref_label",

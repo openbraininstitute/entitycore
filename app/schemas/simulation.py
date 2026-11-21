@@ -79,6 +79,7 @@ class SimulationBaseMixin(NameDescriptionMixin):
     entity_id: uuid.UUID
     scan_parameters: JSON_DICT
     number_neurons: int
+    number_synapses: int = 0
 
 
 class SimulationCreate(SimulationBaseMixin, EntityCreate):

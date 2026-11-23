@@ -1,6 +1,6 @@
 import uuid
 
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.brain_region import NestedBrainRegionRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.entity import EntityRead, PrivateEntityCreate
@@ -16,6 +16,10 @@ class GenericDatasetBase(NameDescriptionMixin):
 class GenericDatasetCreate(GenericDatasetBase, PrivateEntityCreate, LicenseCreateMixin):
     subject_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID | None = None
+
+
+class GenericDatasetAdminCreate(AuthorizedProjectIdMixin, GenericDatasetCreate):
+    pass
 
 
 GenericDatasetUserUpdate = make_update_schema(

@@ -35,7 +35,7 @@ from app.queries.common import (
     router_read_one,
     router_update_one,
 )
-from app.queries.entity import get_accessible_entity, get_writable_entity
+from app.queries.entity import get_accessible_entity, get_readable_entity, get_writable_entity
 from app.queries.factory import query_params_factory
 from app.queries.types import ApplyOperations
 from app.queries.utils import is_user_authorized_for_deletion
@@ -426,13 +426,20 @@ def admin_create_one(
     json_model: DerivationCreate,
     user_context: AdminContextDep,
 ) -> DerivationRead:
-    """Create a new derivation between entities in any project."""
+    """Create a new derivation to an entity in any project.
+
+    As in the user create, the used entity must be public or in the project of the generated one.
+    """
+    generated_entity = crud.get_identifiable_one(db, Entity, json_model.generated_id)
+    used_entity = get_readable_entity(
+        db, Entity, json_model.used_id, generated_entity.authorized_project_id
+    )
     return _create_one(
         db=db,
         json_model=json_model,
         user_context=user_context,
-        used_entity=crud.get_identifiable_one(db, Entity, json_model.used_id),
-        generated_entity=crud.get_identifiable_one(db, Entity, json_model.generated_id),
+        used_entity=used_entity,
+        generated_entity=generated_entity,
     )
 
 

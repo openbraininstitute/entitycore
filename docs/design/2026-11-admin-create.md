@@ -38,7 +38,7 @@ The admin router depends on `user_with_service_admin_role`, which no longer goes
 - The create logic is the same as the user routes, including the checks that the referenced entities are public or in the same project as the created resource, and the database triggers.
 - `admin_create_one` is added to the `AdminCrudService` protocol and registered by `register_default_admin_routes`, so all the admin routes have the same operations.
 - The global resources define `admin_create_one = create_one`, because their user create already requires the admin role. The agents, publications and external URLs, whose user create is open to any user, define an `admin_create_one` with the admin role: an alias would make the admin route depend on the project membership.
-- Contributions, derivations and measurement annotations have no project. Their admin create requires only that the referenced entities exist, in any project, and has no `authorized_project_id`. Derivations keep the validation of the entity types and label.
+- Contributions, derivations and measurement annotations have no project, and their admin create has no `authorized_project_id`. Contributions and measurement annotations reference an entity in any project. Derivations reference a generated entity in any project, and, as in the user create, a used entity public or in the project of the generated one; they keep the validation of the entity types and label.
 - `create_one` and `admin_create_one` share the same create body, so that the admin create can't drift from the user create. The entities and activities use a private `_create_one`, accepting both contexts; the agents, publications and external URLs call `create_one`, because both use a `UserContext`.
 
 ### Admin contexts

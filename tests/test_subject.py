@@ -7,6 +7,7 @@ from app.schemas.subject import SubjectCreate
 
 from .utils import (
     PROJECT_ID,
+    UNRELATED_PROJECT_ID,
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
@@ -82,6 +83,14 @@ def test_create_one(client, json_data, json_data_partial):
     # Test create subject without strain
     data = assert_request(client.post, url=ROUTE, json=json_data_partial).json()
     _assert_read_response(data, json_data_partial)
+
+
+def test_create_one_ignores_project_in_body(db, client, json_data):
+    # the user create takes the project only from the headers
+    json_data |= {"authorized_project_id": UNRELATED_PROJECT_ID}
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    assert data["authorized_project_id"] == PROJECT_ID
+    assert str(db.get(Subject, data["id"]).authorized_project_id) == PROJECT_ID
 
 
 def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):

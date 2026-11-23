@@ -700,6 +700,33 @@ def test_admin_create_one(db, clients, root_circuit, circuit):
     )
 
 
+def test_admin_create_with_authorization(
+    client_user_1, client_user_2, clients, root_circuit_json_data
+):
+    """The admin create accepts any generated entity, and the used entity as the user create."""
+    public_u1, private_u1, public_u2, private_u2 = _create_entities(
+        "/circuit", client_user_1, client_user_2, json_data=root_circuit_json_data
+    )
+    entities = [public_u1, private_u1, public_u2, private_u2]
+    for i, (used, generated) in enumerate((u, g) for u in entities for g in entities):
+        readable = used["authorized_public"] or (
+            used["authorized_project_id"] == generated["authorized_project_id"]
+        )
+        data = assert_request(
+            clients.admin.post,
+            url=ADMIN_ROUTE,
+            json={
+                "used_id": used["id"],
+                "generated_id": generated["id"],
+                "derivation_type": DerivationType.circuit_extraction,
+            },
+            expected_status_code=200 if readable else 404,
+            context=f"Test {i}",
+        ).json()
+        if not readable:
+            assert data["error_code"] == "ENTITY_NOT_FOUND", f"Error in test {i}"
+
+
 def test_admin_read_many_filter(db, clients, root_circuit, circuit, user_id):
     """Admin list route sees derivations hidden from the user route and supports filters."""
     derivation = _add_derivation(

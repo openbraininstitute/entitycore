@@ -8,6 +8,7 @@ from .utils import (
     PROJECT_ID,
     USER_SUB_ID_1,
     add_all_db,
+    add_db,
     assert_request,
     check_authorization,
     check_creation_fields,
@@ -16,6 +17,7 @@ from .utils import (
     check_entity_update_one,
     check_missing,
     check_pagination,
+    check_sort_by_field,
 )
 
 ROUTE = "simulation"
@@ -55,6 +57,8 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.simulation
+    assert data["number_neurons"] == json_data["number_neurons"]
+    assert data["number_synapses"] == json_data["number_synapses"]
 
     check_creation_fields(data)
 
@@ -63,6 +67,43 @@ def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
     assert data["recording_arrays"] == []
+
+
+def test_create_one_without_number_synapses(client, json_data):
+    """Clients that do not count the synapses yet still create simulations, with 0."""
+    json_data = {k: v for k, v in json_data.items() if k != "number_synapses"}
+
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+
+    assert data["number_synapses"] == 0
+    assert assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()["number_synapses"] == 0
+
+
+def test_model_defaults_number_synapses_to_zero(db, json_data, user_id):
+    """Rows added without the column, like the existing ones after the migration, count 0."""
+    row = add_db(
+        db,
+        Simulation(
+            **{k: v for k, v in json_data.items() if k != "number_synapses"}
+            | {
+                "created_by_id": user_id,
+                "updated_by_id": user_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+    assert row.number_synapses == 0
+
+
+@pytest.mark.parametrize("number_synapses", ["many", 1.5, None])
+def test_create_one_with_invalid_number_synapses(client, json_data, number_synapses):
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"number_synapses": number_synapses},
+        expected_status_code=422,
+    )
 
 
 def test_create_one_with_recording_arrays(client, json_data, root_circuit):
@@ -96,6 +137,7 @@ def test_update_one(clients, public_json_data):
             "name": "name",
             "description": "description",
             "scan_parameters": {"param1": "value1", "param2": "value2"},
+            "number_synapses": 5_000_000_000,
         },
         optional_payload=None,
     )
@@ -161,6 +203,7 @@ def models(db, json_data, user_id):
                 | {
                     "name": f"circuit-{i}",
                     "description": f"circuit-description-{i}",
+                    "number_synapses": 100 * (3 - i),
                     "created_by_id": user_id,
                     "updated_by_id": user_id,
                     "authorized_project_id": PROJECT_ID,
@@ -235,3 +278,9 @@ def test_filtering(client, models, simulation_campaign, circuit):
         },
     ).json()["data"]
     assert len(data) == len(models)
+
+    for order_by, how in (("number_synapses", "ascending"), ("-number_synapses", "descending")):
+        data = assert_request(client.get, url=ROUTE, params={"order_by": order_by}).json()["data"]
+        assert len(data) == len(models)
+        check_sort_by_field(data, "number_synapses", how=how)
+        assert {d["number_synapses"] for d in data} == {m.number_synapses for m in models}

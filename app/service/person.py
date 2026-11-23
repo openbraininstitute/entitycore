@@ -102,6 +102,12 @@ def create_one(person: PersonCreate, db: SessionDep, user_context: UserContextDe
     )
 
 
+def admin_create_one(
+    person: PersonCreate, db: SessionDep, user_context: AdminContextDep
+) -> PersonRead:
+    return create_one(person=person, db=db, user_context=user_context)
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

@@ -94,6 +94,12 @@ def create_one(
     )
 
 
+def admin_create_one(
+    json_model: ConsortiumCreate, db: SessionDep, user_context: AdminContextDep
+) -> ConsortiumRead:
+    return create_one(json_model=json_model, db=db, user_context=user_context)
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

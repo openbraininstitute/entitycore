@@ -4,7 +4,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import AnalysisNotebookExecution
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -22,11 +27,13 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.analysis_notebook_execution import (
+    AnalysisNotebookExecutionAdminCreate,
     AnalysisNotebookExecutionAdminUpdate,
     AnalysisNotebookExecutionCreate,
     AnalysisNotebookExecutionRead,
     AnalysisNotebookExecutionUpdate,
 )
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -72,10 +79,11 @@ def admin_read_one(
     )
 
 
-def create_one(
+def _create_one(
+    *,
     db: SessionDep,
     json_model: AnalysisNotebookExecutionCreate,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContext | UserContextWithProjectId,
 ) -> AnalysisNotebookExecutionRead:
     return router_create_activity_one(
         db=db,
@@ -85,6 +93,22 @@ def create_one(
         response_schema_class=AnalysisNotebookExecutionRead,
         apply_operations=_load,
     )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: AnalysisNotebookExecutionCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> AnalysisNotebookExecutionRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
+
+
+def admin_create_one(
+    db: SessionDep,
+    json_model: AdminCreateDep[AnalysisNotebookExecutionAdminCreate],
+    user_context: AdminContextDep,
+) -> AnalysisNotebookExecutionRead:
+    return _create_one(db=db, json_model=json_model, user_context=user_context)
 
 
 def _read_many(

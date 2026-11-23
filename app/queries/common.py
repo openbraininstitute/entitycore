@@ -253,9 +253,11 @@ def router_create_one[T: Schema, I: Identifiable](
         )
 
     if apply_operations or expand:
+        # the project of the created row, also for the admin create that has no context project
         expand_context = ExpandContext(
             check_authorized_project=True,
-            project_id=user_context.project_id,
+            project_id=getattr(db_model_instance, "authorized_project_id", None)
+            or user_context.project_id,
         )
         db_model_instance = _read_again(
             db=db,

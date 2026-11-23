@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from app.application import api_error_handler
 from app.config import settings
 from app.dependencies import auth as test_module
-from app.dependencies.auth import AdminContextDep, AdminContextWithProjectIdDep, UserContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.middleware import RequestContextMiddleware
 from app.schemas.auth import CacheKey, UserContext, UserContextWithProjectId, UserProfile
@@ -92,11 +92,6 @@ def _make_test_app() -> FastAPI:
         """User route restricted to admins, like the create of the global resources."""
         return _context_json(user_context)
 
-    @user_router.post("/user-admin-with-project")
-    def user_admin_with_project_endpoint(user_context: AdminContextWithProjectIdDep):
-        """User route restricted to admins members of the project in the headers."""
-        return _context_json(user_context)
-
     @admin_router.get("/resource")
     def admin_endpoint(user_context: AdminContextDep):
         return _context_json(user_context)
@@ -144,12 +139,6 @@ def _get(client, url, headers=None, expected_status_code=HTTPStatus.OK):
     return response.json()
 
 
-def _post(client, url, headers=None, expected_status_code=HTTPStatus.OK):
-    response = client.post(url, headers=AUTH_HEADER | (headers or {}))
-    assert response.status_code == expected_status_code, response.json()
-    return response.json()
-
-
 @pytest.mark.parametrize("headers", [{}, NON_MEMBER_HEADERS, {"project-id": UNRELATED_PROJECT_ID}])
 def test_admin_route_admin_not_member(test_client, mock_keycloak, headers):
     keycloak_route = mock_keycloak([ADMIN_GROUP])
@@ -181,64 +170,6 @@ def test_admin_route_auth_disabled(test_client, monkeypatch):
     data = _get(test_client, "/admin/resource", headers=MEMBER_HEADERS)
     assert data["project_id"] is None
     assert data["virtual_lab_id"] is None
-
-
-def test_user_route_admin_with_project_id(test_client, mock_keycloak):
-    mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
-
-    data = _post(test_client, "/user-admin-with-project", headers={"project-id": PROJECT_ID})
-    assert data == {
-        "virtual_lab_id": VIRTUAL_LAB_ID,
-        "project_id": PROJECT_ID,
-        "is_authorized": True,
-        "is_service_admin": True,
-    }
-
-
-def test_user_route_admin_with_project_id_not_member(test_client, mock_keycloak):
-    mock_keycloak([ADMIN_GROUP])
-
-    data = _post(
-        test_client,
-        "/user-admin-with-project",
-        headers=NON_MEMBER_HEADERS,
-        expected_status_code=HTTPStatus.FORBIDDEN,
-    )
-    assert data["message"] == AuthErrorReason.NOT_AUTHORIZED_PROJECT
-
-
-def test_user_route_admin_with_project_id_missing(test_client, mock_keycloak):
-    mock_keycloak([ADMIN_GROUP, PROJECT_GROUP])
-
-    data = _post(
-        test_client,
-        "/user-admin-with-project",
-        expected_status_code=HTTPStatus.FORBIDDEN,
-    )
-    assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
-
-
-def test_user_route_admin_with_project_id_not_admin(test_client, mock_keycloak):
-    mock_keycloak([PROJECT_GROUP])
-
-    data = _post(
-        test_client,
-        "/user-admin-with-project",
-        headers=MEMBER_HEADERS,
-        expected_status_code=HTTPStatus.FORBIDDEN,
-    )
-    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
-
-
-def test_user_route_admin_with_project_id_auth_disabled(test_client, monkeypatch):
-    monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
-
-    data = _post(test_client, "/user-admin-with-project", headers={"project-id": PROJECT_ID})
-    assert data["project_id"] == PROJECT_ID
-    assert data["virtual_lab_id"] == str(settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID)
-
-    data = _post(test_client, "/user-admin-with-project", expected_status_code=HTTPStatus.FORBIDDEN)
-    assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
 
 
 def test_user_route_auth_disabled(test_client, monkeypatch):

@@ -13,6 +13,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_brain_region_filter,
     check_entity_delete_one,
     check_entity_update_one,
@@ -72,6 +73,17 @@ def test_create_one(client, user_id, json_data):
     }
 
     assert assert_request(client.get, url=f"{ROUTE}/{data['id']}").json() == data
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_create_one_with_all_fields(client, full_json_data, species_id, strain_id):

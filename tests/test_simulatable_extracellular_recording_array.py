@@ -10,6 +10,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_entity_delete_one,
     check_entity_read_many,
@@ -93,6 +94,17 @@ def test_update_one(clients, public_json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_user_read_one(client, model, json_data):

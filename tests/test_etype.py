@@ -7,6 +7,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one_without_project,
     check_global_delete_one,
     check_global_read_many,
     check_global_read_one,
@@ -271,3 +272,9 @@ def test_filtering(client, models):
 
     data = _req({"ilike_search": "alt_label_a*"})
     assert len(data) == 2
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

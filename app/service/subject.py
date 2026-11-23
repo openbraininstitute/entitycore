@@ -5,7 +5,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Subject
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import ExpandPaths, FacetsDep, PaginationQuery, SearchDep, expand_query
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -18,8 +23,15 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
-from app.schemas.subject import SubjectAdminUpdate, SubjectCreate, SubjectRead, SubjectUserUpdate
+from app.schemas.subject import (
+    SubjectAdminCreate,
+    SubjectAdminUpdate,
+    SubjectCreate,
+    SubjectRead,
+    SubjectUserUpdate,
+)
 from app.schemas.types import ListResponse
 
 ExpandDep = Annotated[ExpandPaths, expand_query(SubjectRead, Subject)]
@@ -72,11 +84,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
     json_model: SubjectCreate,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> SubjectRead:
     return router_create_one(
         db=db,
@@ -87,6 +100,24 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: SubjectCreate,
+    expand: ExpandDep = frozenset(),
+) -> SubjectRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    json_model: AdminCreateDep[SubjectAdminCreate],
+    expand: ExpandDep = frozenset(),
+) -> SubjectRead:
+    return _create_one(user_context=user_context, db=db, json_model=json_model, expand=expand)
 
 
 def update_one(

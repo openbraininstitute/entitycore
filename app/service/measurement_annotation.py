@@ -23,7 +23,11 @@ from app.db.model import (
     MeasurementLabel,
 )
 from app.db.utils import MEASURABLE_ENTITIES, MeasurableEntityType
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -39,6 +43,7 @@ from app.queries.common import (
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
 from app.queries.utils import is_user_authorized_for_deletion
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationAdminUpdate,
     MeasurementAnnotationCreate,
@@ -253,25 +258,33 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
-    measurement_annotation: Annotated[
-        MeasurementAnnotationCreate,
-        Depends(_update_measurement_label_ids_on_create),
-    ],
+    measurement_annotation: MeasurementAnnotationCreate,
+    project_id: uuid.UUID | None,
 ) -> MeasurementAnnotationRead:
+    """Create a measurement annotation of an entity in the given project, or any if None."""
+    db_model_class = MEASURABLE_ENTITIES[measurement_annotation.entity_type]
+
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(query=q, project_id=user_context.project_id)
+        if project_id is not None:
+            q = constrain_entity_query_to_project(query=q, project_id=project_id)
         return _load_from_db(q=q)
 
-    _entity = get_writable_entity(
-        db=db,
-        db_model_class=MEASURABLE_ENTITIES[measurement_annotation.entity_type],
-        entity_id=measurement_annotation.entity_id,
-        project_id=user_context.project_id,
-    )
+    if project_id is None:
+        crud.get_identifiable_one(
+            db=db, db_model_class=db_model_class, id_=measurement_annotation.entity_id
+        )
+    else:
+        get_writable_entity(
+            db=db,
+            db_model_class=db_model_class,
+            entity_id=measurement_annotation.entity_id,
+            project_id=project_id,
+        )
     response = router_create_one(
         db=db,
         db_model_class=MeasurementAnnotation,
@@ -281,6 +294,38 @@ def create_one(
         apply_operations=apply_operations,
     )
     return response
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    measurement_annotation: Annotated[
+        MeasurementAnnotationCreate,
+        Depends(_update_measurement_label_ids_on_create),
+    ],
+) -> MeasurementAnnotationRead:
+    return _create_one(
+        user_context=user_context,
+        db=db,
+        measurement_annotation=measurement_annotation,
+        project_id=user_context.project_id,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    measurement_annotation: Annotated[
+        MeasurementAnnotationCreate,
+        Depends(_update_measurement_label_ids_on_create),
+    ],
+) -> MeasurementAnnotationRead:
+    return _create_one(
+        user_context=user_context,
+        db=db,
+        measurement_annotation=measurement_annotation,
+        project_id=None,
+    )
 
 
 def delete_one(

@@ -1,7 +1,7 @@
 import uuid
 
 from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
@@ -29,6 +29,10 @@ class CircuitRead(CircuitBaseMixin, ScientificArtifactRead):
 
 
 class CircuitCreate(CircuitBaseMixin, ScientificArtifactCreate):
+    pass
+
+
+class CircuitAdminCreate(AuthorizedProjectIdMixin, CircuitCreate):
     pass
 
 

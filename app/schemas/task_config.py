@@ -5,6 +5,7 @@ from pydantic import Field
 
 from app.db.types import TaskConfigType
 from app.schemas.base import (
+    AuthorizedProjectIdMixin,
     NameDescriptionMixin,
 )
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityCreate, NestedEntityRead
@@ -22,6 +23,10 @@ class TaskConfigCreate(EntityCreate, TaskConfigBaseMixin):
         list[NestedEntityCreate],
         Field(description="List of input entities (only ids)."),
     ] = []  # ruff:ignore[mutable-class-default]
+
+
+class TaskConfigAdminCreate(AuthorizedProjectIdMixin, TaskConfigCreate):
+    pass
 
 
 TaskConfigUserUpdate = make_update_schema(

@@ -14,6 +14,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -482,3 +483,14 @@ def test_sorting_filtering(client, faceted_ids):
         assert len(data) == 1
         data = req({"lifecycle_status": "active"})
         assert len(data) == n_models
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )

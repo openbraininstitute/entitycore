@@ -9,6 +9,7 @@ from .utils import (
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
+    check_admin_create_one,
     check_creation_fields,
     check_missing,
     check_pagination,
@@ -26,15 +27,20 @@ def json_data(em_dense_reconstruction_dataset_json_data):
 
 
 @pytest.fixture
+def admin_json_data(json_data, mock_virtual_lab_project_mapping):  # ruff:ignore[unused-function-argument]
+    return json_data | {"authorized_project_id": PROJECT_ID}
+
+
+@pytest.fixture
 def model(em_dense_reconstruction_dataset):
     return em_dense_reconstruction_dataset
 
 
 @pytest.fixture
-def create_id(client_admin_with_project, json_data):
+def create_id(client_admin, admin_json_data):
     def _create_id(**kwargs):
         return assert_request(
-            client_admin_with_project.post, url=ROUTE, json=json_data | kwargs
+            client_admin.post, url=ADMIN_ROUTE, json=admin_json_data | kwargs
         ).json()["id"]
 
     return _create_id
@@ -50,17 +56,31 @@ def _assert_read_response(data, json_data):
     check_creation_fields(data)
 
 
-def test_create_one(client, client_admin, client_admin_with_project, json_data):
-    data = assert_request(client.post, url=ROUTE, json=json_data, expected_status_code=403).json()
-    assert data["message"] == "Service admin role required"
+def test_create_one(client, client_admin, client_admin_with_project, json_data, admin_json_data):
+    # the user create is removed: the writes are reserved to admins
+    assert_request(
+        client_admin_with_project.post, url=ROUTE, json=json_data, expected_status_code=405
+    )
 
     data = assert_request(
-        client_admin.post, url=ROUTE, json=json_data, expected_status_code=403
+        client.post, url=ADMIN_ROUTE, json=admin_json_data, expected_status_code=403
     ).json()
-    assert data["message"] == AuthErrorReason.PROJECT_REQUIRED
+    assert data["message"] == AuthErrorReason.ADMIN_REQUIRED
 
-    data = assert_request(client_admin_with_project.post, url=ROUTE, json=json_data).json()
+    data = assert_request(client_admin.post, url=ADMIN_ROUTE, json=admin_json_data).json()
     _assert_read_response(data, json_data)
+    assert data["authorized_project_id"] == PROJECT_ID
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
 
 
 def test_read_one(client, model, json_data):
@@ -72,12 +92,12 @@ def test_read_one(client, model, json_data):
     _assert_read_response(data[0], json_data)
 
 
-def test_read_many(clients, json_data):
+def test_read_many(clients, json_data, admin_json_data):
 
     route = ROUTE
     admin_route = ADMIN_ROUTE
 
-    model_id = assert_request(clients.admin_with_project.post, url=route, json=json_data).json()[
+    model_id = assert_request(clients.admin.post, url=admin_route, json=admin_json_data).json()[
         "id"
     ]
 
@@ -208,7 +228,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     assert len(data) == len(models)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, admin_json_data):
 
     route = ROUTE
     admin_route = ADMIN_ROUTE
@@ -229,19 +249,15 @@ def test_delete_one(db, clients, json_data):
         for db_class, count in expected_counts_after.items():
             assert count_db_class(db, db_class) == count
 
-    model_id = assert_request(clients.admin_with_project.post, url=route, json=json_data).json()[
+    model_id = assert_request(clients.admin.post, url=admin_route, json=admin_json_data).json()[
         "id"
     ]
 
-    # user cannot use regular or admin delete routes
-    data = assert_request(
-        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
+    # the user delete is removed: the writes are reserved to admins
+    assert_request(clients.admin.delete, url=f"{route}/{model_id}", expected_status_code=405)
 
     data = assert_request(
-        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=403
+        clients.user_1.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
@@ -249,7 +265,7 @@ def test_delete_one(db, clients, json_data):
     _req_count(clients.admin, admin_route, model_id)
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, admin_json_data):
 
     route = ROUTE
     admin_route = ADMIN_ROUTE
@@ -260,27 +276,20 @@ def test_update_one(clients, json_data):
         for key, value in patch_data.items():
             assert data[key] == value, f"Key: {key} Expected: {value} Actual: {data[key]}"
 
-    data = assert_request(clients.admin_with_project.post, url=route, json=json_data).json()
+    data = assert_request(clients.admin.post, url=admin_route, json=admin_json_data).json()
     model_id = data["id"]
 
     old_values = {k: data[k] for k in patch_payload}
 
-    # global resource update endpoint requires admin client
-    data = assert_request(
-        clients.user_1.patch,
+    # the user update is removed: the writes are reserved to admins
+    assert_request(
+        clients.admin.patch,
         url=f"{route}/{model_id}",
         json=patch_payload,
-        expected_status_code=403,
-    ).json()
-    assert data["message"] == "Service admin role required"
+        expected_status_code=405,
+    )
 
-    # update using admin client and regular route
-    _patch_compare(clients.admin.patch, f"{route}/{model_id}", patch_payload)
-
-    # revert
-    _patch_compare(clients.admin.patch, f"{route}/{model_id}", old_values)
-
-    # global resource admin endpoint requires admin client
+    # the admin endpoint requires admin client
     data = assert_request(
         clients.user_1.patch,
         url=f"{admin_route}/{model_id}",

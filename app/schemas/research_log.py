@@ -1,9 +1,13 @@
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
 
 class ResearchLogCreate(NameDescriptionMixin, EntityCreate):
+    pass
+
+
+class ResearchLogAdminCreate(AuthorizedProjectIdMixin, ResearchLogCreate):
     pass
 
 

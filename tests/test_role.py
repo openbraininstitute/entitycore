@@ -6,6 +6,7 @@ from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     assert_request,
+    check_admin_create_one_without_project,
     check_global_delete_one,
     check_global_read_many,
     check_global_read_one,
@@ -135,3 +136,9 @@ def test_filtering(clients):
 
     data = assert_request(clients.user_1.get, url=ROUTE, params={"name__ilike": "r"}).json()["data"]
     assert {d["name"] for d in data} == {"r1", "r2"}
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
+    )

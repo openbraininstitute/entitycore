@@ -62,14 +62,15 @@ def test_get_admin_virtual_lab_client_uses_settings_and_token(
 
 
 def test_get_admin_virtual_lab_client_auth_disabled(monkeypatch):
-    """When APP_DISABLE_AUTH is enabled a no-op client is yielded that raises if used."""
+    """When APP_DISABLE_AUTH is enabled, every project is in the default virtual lab."""
     monkeypatch.setattr(settings, "APP_DISABLE_AUTH", True)
     gen = test_module.get_admin_virtual_lab_client(None)
     client = next(gen)
 
     assert isinstance(client, DisabledAuthVirtualLabClient)
-    with pytest.raises(RuntimeError, match="APP_DISABLE_AUTH"):
-        client.find_virtual_lab_by_project(UUID(PROJECT_ID))
+    assert client.find_virtual_lab_by_project(UUID(PROJECT_ID)) == ProjectVirtualLabMapping(
+        project_id=UUID(PROJECT_ID), virtual_lab_id=settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
+    )
 
 
 def test_find_virtual_lab_by_project_success(httpx2_mock, virtual_lab_api_url):

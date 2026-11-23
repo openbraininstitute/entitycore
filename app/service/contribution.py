@@ -12,7 +12,11 @@ from app.db.auth import (
     constrain_to_writable_entities,
 )
 from app.db.model import Contribution, Entity
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.dependencies.filter import FilterDep
@@ -22,6 +26,7 @@ from app.logger import L
 from app.queries import crud
 from app.queries.factory import query_params_factory
 from app.queries.utils import is_user_authorized_for_deletion
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.contribution import (
     ContributionAdminUpdate,
     ContributionCreate,
@@ -150,15 +155,17 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     db: SessionDep,
     contribution: ContributionCreate,
+    project_id: uuid.UUID | None,
 ) -> ContributionRead:
-    stmt = constrain_entity_query_to_project(
-        query=sa.select(sa.func.count(Entity.id)).where(Entity.id == contribution.entity_id),
-        project_id=user_context.project_id,
-    )
+    """Create a contribution to an entity in the given project, or in any project if None."""
+    stmt = sa.select(sa.func.count(Entity.id)).where(Entity.id == contribution.entity_id)
+    if project_id is not None:
+        stmt = constrain_entity_query_to_project(query=stmt, project_id=project_id)
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
         raise HTTPException(
@@ -173,6 +180,27 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    contribution: ContributionCreate,
+) -> ContributionRead:
+    return _create_one(
+        user_context=user_context,
+        db=db,
+        contribution=contribution,
+        project_id=user_context.project_id,
+    )
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    contribution: ContributionCreate,
+) -> ContributionRead:
+    return _create_one(user_context=user_context, db=db, contribution=contribution, project_id=None)
 
 
 def update_one(

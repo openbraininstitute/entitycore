@@ -4,10 +4,15 @@ from app.schemas.activity import (
     ActivityUpdate,
     ExecutionActivityMixin,
 )
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.utils import make_update_schema
 
 
 class SimulationExecutionCreate(ActivityCreate, ExecutionActivityMixin):
+    pass
+
+
+class SimulationExecutionAdminCreate(AuthorizedProjectIdMixin, SimulationExecutionCreate):
     pass
 
 

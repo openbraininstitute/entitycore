@@ -5,10 +5,10 @@ import pytest
 
 from app.routers import common as test_module
 from app.routers.common import UserOperation
-from app.schemas.service import UserCrudService
+from app.schemas.service import UserReadService
 
 
-def _make_service() -> UserCrudService:
+def _make_service() -> UserReadService:
     """Return a stand-in for a service module, with the functions of the user operations."""
 
     def read_many():
@@ -33,7 +33,7 @@ def _make_service() -> UserCrudService:
         update_one=update_one,
         delete_one=delete_one,
     )
-    return cast("UserCrudService", service)
+    return cast("UserReadService", service)
 
 
 def _routes(router):

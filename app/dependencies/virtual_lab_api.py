@@ -17,8 +17,8 @@ def get_admin_virtual_lab_client(token: TokenDep) -> Iterator[AdminVirtualLabCli
 
     Note: Virtual lab admin is determined by entitycore admin role, required by the callers.
 
-    When ``APP_DISABLE_AUTH`` is enabled a no-op client is yielded, as the virtual lab API is
-    not available in local dev and ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID`` is used instead.
+    When ``APP_DISABLE_AUTH`` is enabled, the virtual lab API isn't available in local dev, and
+    the yielded client maps every project to ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID``.
     """
     if settings.APP_DISABLE_AUTH:
         yield DisabledAuthVirtualLabClient()

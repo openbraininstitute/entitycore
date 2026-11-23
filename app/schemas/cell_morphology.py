@@ -5,7 +5,7 @@ from app.db.types import (
     RepairPipelineType,
 )
 from app.schemas.annotation import MTypeClassRead
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
 from app.schemas.measurement_annotation import MeasurementAnnotationReadMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
@@ -26,6 +26,10 @@ class CellMorphologyCreate(
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
     cell_morphology_protocol_id: uuid.UUID
+
+
+class CellMorphologyAdminCreate(AuthorizedProjectIdMixin, CellMorphologyCreate):
+    pass
 
 
 CellMorphologyUserUpdate = make_update_schema(CellMorphologyCreate, "CellMorphologyUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

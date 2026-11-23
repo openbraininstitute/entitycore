@@ -1,3 +1,4 @@
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.types import RuntimeInfo
 from app.schemas.utils import make_update_schema
@@ -10,6 +11,12 @@ class AnalysisNotebookEnvironmentBaseMixin:
 class AnalysisNotebookEnvironmentCreate(
     AnalysisNotebookEnvironmentBaseMixin,
     EntityCreate,
+):
+    pass
+
+
+class AnalysisNotebookEnvironmentAdminCreate(
+    AuthorizedProjectIdMixin, AnalysisNotebookEnvironmentCreate
 ):
     pass
 

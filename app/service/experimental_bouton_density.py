@@ -13,7 +13,12 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.admin_create import AdminCreateDep
+from app.dependencies.auth import (
+    AdminContextDep,
+    UserContextDep,
+    UserContextWithProjectIdDep,
+)
 from app.dependencies.common import (
     ExpandPaths,
     FacetsDep,
@@ -33,7 +38,9 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.density import (
+    ExperimentalBoutonDensityAdminCreate,
     ExperimentalBoutonDensityAdminUpdate,
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -195,11 +202,12 @@ def admin_read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
+def _create_one(
+    *,
+    user_context: UserContext | UserContextWithProjectId,
     json_model: ExperimentalBoutonDensityCreate,
     db: SessionDep,
-    expand: ExpandDep = frozenset(),
+    expand: ExpandPaths,
 ) -> ExperimentalBoutonDensityRead:
     return router_create_one(
         db=db,
@@ -210,6 +218,24 @@ def create_one(
         apply_operations=_load,
         expand=expand,
     )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    json_model: ExperimentalBoutonDensityCreate,
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> ExperimentalBoutonDensityRead:
+    return _create_one(user_context=user_context, json_model=json_model, db=db, expand=expand)
+
+
+def admin_create_one(
+    user_context: AdminContextDep,
+    json_model: AdminCreateDep[ExperimentalBoutonDensityAdminCreate],
+    db: SessionDep,
+    expand: ExpandDep = frozenset(),
+) -> ExperimentalBoutonDensityRead:
+    return _create_one(user_context=user_context, json_model=json_model, db=db, expand=expand)
 
 
 def update_one(

@@ -59,16 +59,17 @@ class AdminVirtualLabClient(VirtualLabClient):
 
 
 class DisabledAuthVirtualLabClient:
-    """No-op admin client used when ``APP_DISABLE_AUTH`` is enabled.
+    """Admin client used when ``APP_DISABLE_AUTH`` is enabled.
 
-    The virtual lab API is neither reachable nor authenticated in local dev, so the callers use
-    ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID`` instead. This client exists only to satisfy the
-    dependency and raises if it is ever actually used.
+    The virtual lab API is neither reachable nor authenticated in local dev, so every project is
+    considered to exist, in the virtual lab ``APP_DISABLE_AUTH_VIRTUAL_LAB_ID``.
     """
 
-    def find_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping | None:  # ruff:ignore[no-self-use, unused-method-argument]
-        msg = "Virtual lab API is not available when APP_DISABLE_AUTH is enabled."
-        raise RuntimeError(msg)
+    def find_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping | None:  # ruff:ignore[no-self-use]
+        """Return the mapping of the project to the default virtual lab."""
+        return ProjectVirtualLabMapping(
+            project_id=project_id, virtual_lab_id=settings.APP_DISABLE_AUTH_VIRTUAL_LAB_ID
+        )
 
     def close(self) -> None:
         """No underlying resource to release."""
@@ -90,3 +91,29 @@ def resolve_virtual_lab_id(user_context: UserContext, project_id: uuid.UUID) -> 
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
     return vlab_id
+
+
+def resolve_admin_virtual_lab_id(
+    virtual_lab_client: AdminVirtualLabClientProtocol, project_id: uuid.UUID
+) -> uuid.UUID:
+    """Resolve the virtual lab id of the project with virtual-lab-manager, raising if not found."""
+    mapping = virtual_lab_client.find_virtual_lab_by_project(project_id)
+    if mapping is None:
+        raise ApiError(
+            message="Virtual lab id not found from project id in virtual-lab-manager.",
+            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    return mapping.virtual_lab_id
+
+
+def ensure_project_exists(
+    virtual_lab_client: AdminVirtualLabClientProtocol, project_id: uuid.UUID
+) -> None:
+    """Raise an error if the project isn't found in virtual-lab-manager."""
+    if virtual_lab_client.find_virtual_lab_by_project(project_id) is None:
+        raise ApiError(
+            message="Project not found",
+            error_code=ApiErrorCode.PROJECT_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )

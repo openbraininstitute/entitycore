@@ -5,7 +5,7 @@ import pytest
 
 from app.db.model import BrainRegionHierarchy
 
-from .utils import assert_request, check_creation_fields
+from .utils import assert_request, check_admin_create_one_without_project, check_creation_fields
 from tests import test_brain_region, utils
 from tests.utils import (
     check_global_delete_one,
@@ -198,4 +198,10 @@ def test_delete_one(db, clients, json_data):
         expected_counts_after={
             BrainRegionHierarchy: 0,
         },
+    )
+
+
+def test_admin_create_one(db, clients, json_data):
+    check_admin_create_one_without_project(
+        db=db, clients=clients, admin_route=ADMIN_ROUTE, json_data=json_data
     )

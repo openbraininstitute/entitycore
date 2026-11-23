@@ -1,5 +1,6 @@
 import uuid
 
+from app.schemas.base import AuthorizedProjectIdMixin
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
@@ -32,6 +33,10 @@ class MEModelCalibrationResultCreate(
     EntityCreate,
 ):
     """Create model for MEModel calibration results."""
+
+
+class MEModelCalibrationResultAdminCreate(AuthorizedProjectIdMixin, MEModelCalibrationResultCreate):
+    pass
 
 
 MEModelCalibrationResultUserUpdate = make_update_schema(

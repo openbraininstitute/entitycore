@@ -10,6 +10,7 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_authorization,
     check_creation_fields,
     check_entity_delete_one,
@@ -103,6 +104,17 @@ def test_create_one_with_invalid_number_synapses(client, json_data, number_synap
         url=ROUTE,
         json=json_data | {"number_synapses": number_synapses},
         expected_status_code=422,
+    )
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
     )
 
 

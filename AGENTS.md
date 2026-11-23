@@ -47,7 +47,7 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 - Every entity has `authorized_public` (bool) + `authorized_project_id` (UUID)
 - Row-level filtering in `app/db/auth.py`
 - Role hierarchy: service_admin > service_maintainer > project_admin > project_member
-- Admin routes: `/admin/<entity>` — bypass project filtering, require service_admin
+- Admin routes: `/admin/<entity>` — bypass project filtering, ignore the project headers, require service_admin
 
 ## API Patterns
 
@@ -65,9 +65,9 @@ For non-trivial designs, write a design record first (see `docs/design/README.md
 2. Enum value → `app/db/types.py` (`EntityType`)
 3. Route → `app/types.py` (`EntityRoute` member named like the `EntityType`; URL value is auto-hyphenated)
 4. Asset labels → `app/db/types.py` (`AssetLabel`, `ALLOWED_ASSET_LABELS_PER_ENTITY`; new `ContentType` also needs `CONTENT_TYPE_TO_SUFFIX`), then `make update-asset-labels`
-5. Schema → `app/schemas/<entity>.py`
+5. Schema → `app/schemas/<entity>.py` (also `<Entity>AdminCreate`, the create schema with `AuthorizedProjectIdMixin`)
 6. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
-7. Service → `app/service/<entity>.py`
+7. Service → `app/service/<entity>.py` (also `admin_create_one`, with `AdminContextDep` and `AdminCreateDep[<Entity>AdminCreate]`)
 8. Router → `app/routers/<entity>.py` (`create_user_router` + `register_default_admin_routes`)
 9. Register router → `app/routers/__init__.py` (import + `authenticated_routers`)
 10. Migration → `make migration MESSAGE="Add <entity>"` (review both the schema and "Update triggers" revisions)

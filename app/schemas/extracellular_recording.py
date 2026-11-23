@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import AuthorizedProjectIdMixin, NameDescriptionMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
@@ -31,6 +31,10 @@ class ExtracellularRecordingBase(NameDescriptionMixin):
 
 
 class ExtracellularRecordingCreate(ExtracellularRecordingBase, ScientificArtifactCreate):
+    pass
+
+
+class ExtracellularRecordingAdminCreate(AuthorizedProjectIdMixin, ExtracellularRecordingCreate):
     pass
 
 

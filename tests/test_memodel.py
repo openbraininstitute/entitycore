@@ -24,6 +24,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    check_admin_create_one,
     check_brain_region_filter,
     check_deletion_cascades,
     check_entity_delete_one,
@@ -944,3 +945,39 @@ def test_memodel_own_and_morphology_derivation_filters_are_independent(
     _derive(db, user_id, x, memodel.id, EM_TYPE)
     assert _ids(client, {"generated_derivation__used_id": x}) == {str(memodel.id)}
     assert _ids(client, {f"{MORPH_DERIVATION}__used_id": x}) == set()
+
+
+def test_admin_create_one(db, clients, json_data, mock_virtual_lab_api):
+    check_admin_create_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        mock_virtual_lab_api=mock_virtual_lab_api,
+    )
+
+
+def test_admin_create_one_expand(
+    db,
+    client,
+    client_admin,
+    json_data,
+    morphology_id,
+    emodel_id,
+    user_id,
+    mock_virtual_lab_project_mapping,  # ruff:ignore[unused-function-argument]
+):
+    # the expanded derivations are filtered with the project of the created row, as for a user
+    _derive(db, user_id, morphology_id, emodel_id, DerivationType.unspecified)
+    params = {"expand": "emodel.generated_from_derivations"}
+    user_data = assert_request(client.post, url=ROUTE, json=json_data, params=params).json()
+    admin_data = assert_request(
+        client_admin.post,
+        url=ADMIN_ROUTE,
+        json=json_data | {"authorized_project_id": PROJECT_ID},
+        params=params,
+    ).json()
+    for data in (user_data, admin_data):
+        derivations = data["emodel"]["generated_from_derivations"]
+        assert [d["used"]["id"] for d in derivations] == [morphology_id]

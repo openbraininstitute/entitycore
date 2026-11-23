@@ -238,7 +238,7 @@ def test_add_files_to_directory(clients, model, s3, s3_internal_bucket):
         json={"files": ["figures/fig3.png", "figures/fig1.png"]},
         expected_status_code=409,
     ).json()
-    assert error["error_code"] == "ASSET_DUPLICATED"
+    assert error["error_code"] == "ASSET_DIRECTORY_FILE_DUPLICATED"
     assert error["details"] == {"existing": ["figures/fig1.png"]}
 
     # the same file twice in one request

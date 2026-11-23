@@ -50,11 +50,11 @@ Two more rules apply to both:
 
 | Choice | Why |
 |---|---|
-| New names only. A name that exists gets 409 `ASSET_DUPLICATED`, with the taken names in `details.existing`. | Existing files never change, so anything that references them stays valid. |
+| New names only. A name that exists gets 409 `ASSET_DIRECTORY_FILE_DUPLICATED`, with the taken names in `details.existing`. | Existing files never change, so anything that references them stays valid. |
 | Two layers against duplicates: one S3 HEAD per asked name, then `If-None-Match: *` signed into the URL. | The HEAD answers 409 early, but it can race. The signed condition is the real guard: S3 refuses the second upload to the same name. |
 | `Content-Length` and `x-amz-checksum-sha256` are signed into the URL. | S3 refuses an upload with another size or other bytes, so a URL can't be used to store something else. |
 | These links are signed with SigV4. | the default presign signature here (SigV2) doesn't sign those headers, so S3 would ignore them. |
-| Links last 15 min, not the usual 6 h. | a presigned URL is a permission that outlives the request: rights are checked at signing, not when the upload lands. With 6 h, an upload could land in a directory deleted or moved hours ago, and leave an orphan object. S3 checks expiry when the upload starts, so a slow upload still finishes. |
+| Links last 15 min, not the usual 6 h. | a presigned URL is a permission that outlives the request: rights are checked at signing, not when the upload lands. With 6 h, an upload could land in a directory deleted or moved hours ago, and leave an orphan object. S3 checks expiry when the upload starts, so a slow upload still finishes: 15 min is the time to start, not to finish. A client that sends many big files one after another asks again for the ones it hasn't started in time. |
 | Max 10 files per call. | each file costs one S3 HEAD inside the request, so the cap bounds the request time. |
 | Max 5 GiB per file. | It's a single PUT, so it reuses the existing multipart part cap (`S3_MULTIPART_UPLOAD_MAX_PART_SIZE`), not a new setting. |
 | Only finished directories made with `directory/upload`, on internal storage. Others get 409. | Multipart directories keep a row per file, and a file added here would have none. Open storage is public data the service doesn't write to. |

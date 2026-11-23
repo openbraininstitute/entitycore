@@ -287,8 +287,8 @@ def entity_asset_directory_add_files(
 
     Send each file as `{path, size, sha256_digest}`, then send the returned `headers` with its
     PUT. S3 then only accepts those exact bytes, and only once (a second PUT gets 412, other
-    bytes get 400). A bare path still works, but its URL has none of those checks. URLs last
-    15 minutes.
+    bytes get 400). A bare path still works, but its URL has none of those checks. Each upload
+    must start within 15 minutes (it may take longer to finish); ask again for files not started.
     """
     return asset_service.entity_asset_directory_add_files(
         repos=repos,

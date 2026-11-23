@@ -759,7 +759,7 @@ def entity_asset_directory_add_files(
     if taken:
         raise ApiError(
             message=f"These files already exist in the directory: {', '.join(taken)}",
-            error_code=ApiErrorCode.ASSET_DUPLICATED,
+            error_code=ApiErrorCode.ASSET_DIRECTORY_FILE_DUPLICATED,
             http_status_code=HTTPStatus.CONFLICT,
             details={"existing": taken},
         )

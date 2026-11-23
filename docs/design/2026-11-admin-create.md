@@ -62,7 +62,7 @@ No new context types: the admin dependencies return the existing schemas, and di
 
 - Service admins can send the headers of a project they don't belong to on the admin routes. Admin create needs this. The other admin routes keep ignoring the headers.
 - Admin create depends on virtual-lab-manager: it fails when the project is unknown or the service is unavailable.
-- On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request; the second time is served by the Keycloak cache. This goes away when those writes move to the admin routes (see Follow-ups).
+- On the user routes restricted to admins (e.g. `POST /license`), the token is verified twice per request: by `user_verified` with the project headers, and by `AdminContextDep` without them. Without project headers the second check is served by the Keycloak cache; with them, the first request per token makes two Keycloak calls, and the next ones are cached. This goes away when those writes move to the admin routes (see Follow-ups).
 - `POST`, `PATCH` and `DELETE /em-dense-reconstruction-dataset` are removed. They were used only by migration scripts through entitysdk `register_entity`, which needs `admin=True` to use the admin route.
 - The resources without a project get a `POST /admin/<route>` behaving as their user create.
 

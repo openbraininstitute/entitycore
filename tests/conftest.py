@@ -19,7 +19,7 @@ from types_boto3_s3 import S3Client
 
 import app.dependencies.db as db_module
 from app.application import app
-from app.config import storages
+from app.config import settings, storages
 from app.db.model import (
     Agent,
     AnalysisNotebookEnvironment,
@@ -93,6 +93,7 @@ from .utils import (
     USER_SUB_ID_1,
     USER_SUB_ID_2,
     USER_SUB_ID_3,
+    VIRTUAL_LAB_API_TEST_URL,
     VIRTUAL_LAB_ID,
     ClientProxies,
     ClientProxy,
@@ -363,6 +364,11 @@ def user_context_maintainer_3():
     )
 
 
+def _without_project(user_context: UserContext) -> UserContext:
+    """Return the context of the same user, authenticated without project headers."""
+    return user_context.model_copy(update={"virtual_lab_id": None, "project_id": None})
+
+
 @pytest.fixture
 def _override_check_user_info(
     monkeypatch,
@@ -378,7 +384,8 @@ def _override_check_user_info(
     user_context_maintainer_2,
     user_context_maintainer_3,
 ):
-    # map (token, project-id) to the expected user_context
+    # map (token, project-id) to the expected user_context.
+    # The admin routes ignore the project headers, so every token needs an entry without project.
     mapping = {
         (TOKEN_ADMIN, None): user_context_admin,
         (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
@@ -387,9 +394,13 @@ def _override_check_user_info(
         (TOKEN_USER_1_TWO_PROJECTS, UUID(PROJECT_ID)): user_context_user_1_two_projects,
         (TOKEN_USER_1_TWO_PROJECTS, None): user_context_user_1_two_projects_no_project,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_USER_2, None): _without_project(user_context_user_2),
         (TOKEN_USER_3, UUID(PROJECT_ID)): user_context_user_3,
+        (TOKEN_USER_3, None): _without_project(user_context_user_3),
         (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
+        (TOKEN_MAINTAINER_1, None): _without_project(user_context_maintainer_1),
         (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
+        (TOKEN_MAINTAINER_2, None): _without_project(user_context_maintainer_2),
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 
@@ -411,6 +422,29 @@ def _override_embedding_generation(monkeypatch):
     monkeypatch.setattr("app.service.species.generate_embedding", mock_generate_embedding)
     monkeypatch.setattr("app.service.strain.generate_embedding", mock_generate_embedding)
     monkeypatch.setattr("app.service.brain_region.generate_embedding", mock_generate_embedding)
+
+
+@pytest.fixture
+def virtual_lab_api_url(monkeypatch):
+    monkeypatch.setattr(settings, "VIRTUAL_LAB_API_URL", VIRTUAL_LAB_API_TEST_URL)
+    return VIRTUAL_LAB_API_TEST_URL
+
+
+@pytest.fixture
+def mock_virtual_lab_api(httpx2_mock, virtual_lab_api_url):
+    """Return a function mocking the virtual lab of a project in virtual-lab-manager."""
+
+    def _mock(project_id=PROJECT_ID, virtual_lab_id=VIRTUAL_LAB_ID, status_code=200):
+        url = f"{virtual_lab_api_url}/virtual-labs/projects/{project_id}/virtual-lab"
+        json = {"data": {"project_id": str(project_id), "virtual_lab_id": str(virtual_lab_id)}}
+        return httpx2_mock.get(url).respond(status_code, json=json)
+
+    return _mock
+
+
+@pytest.fixture
+def mock_virtual_lab_project_mapping(mock_virtual_lab_api):
+    return mock_virtual_lab_api()
 
 
 @pytest.fixture(scope="session")

@@ -24,7 +24,7 @@ class AuthErrorReason(StrEnum):
     NOT_AUTHENTICATED_USER = "User not authenticated"
     NOT_AUTHORIZED_USER = "User not authorized"
     NOT_AUTHORIZED_PROJECT = "User not authorized for the given virtual-lab-id or project-id"
-    PROJECT_REQUIRED = "The headers virtual-lab-id and project-id are required"
+    PROJECT_REQUIRED = "The header project-id is required"
     ADMIN_REQUIRED = "Service admin role required"
     UNKNOWN = "Unknown reason"
 

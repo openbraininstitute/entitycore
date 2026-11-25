@@ -4,7 +4,7 @@
 - Date: 2026-11-25
 - Author: @bilalesi
 - Issues:
-- Pull requests: [#771](https://github.com/openbraininstitute/entitycore/pull/771) (discussion, first version)
+- Pull requests: [#771](https://github.com/openbraininstitute/entitycore/pull/771) (discussion, first version), [#776](https://github.com/openbraininstitute/entitycore/pull/776)
 
 ## Context
 

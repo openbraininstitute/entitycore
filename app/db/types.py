@@ -647,8 +647,6 @@ class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
-    # Readers must always get the newest content behind the same asset id. Every other asset
-    # never changes once created, so its sha256 stays a safe reference.
     is_replaceable: bool = False
 
     @model_validator(mode="after")

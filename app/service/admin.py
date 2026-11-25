@@ -203,7 +203,6 @@ def replace_entity_asset(
     file: UploadFile,
     if_match: str | None,
 ) -> AssetRead:
-    """Replace an asset's content through the admin flow: any project, public or not."""
     entity = crud.get_identifiable_one(
         db=repos.db,
         db_model_class=ENTITY_TYPE_TO_CLASS[entity_type],

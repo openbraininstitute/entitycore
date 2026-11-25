@@ -65,7 +65,6 @@ from app.utils.s3 import (
 )
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
-# Checks an If-Match with the same rule the API uses for sha256_digest.
 _SHA256_DIGEST = TypeAdapter(Sha256Digest)
 
 
@@ -311,24 +310,41 @@ def replace_entity_asset_unverified(
 ) -> AssetRead:
     """Replace the content of a small file asset. Its id, path, label and link stay the same.
 
-    The caller has already checked who may write. Only labels marked ``is_replaceable``.
+    The caller checks write access first. Only labels marked ``is_replaceable`` accept a
+    replace. The service overwrites the object at the same S3 key. A single PUT is atomic, so a
+    reader gets the old content or the new content, never a mix.
 
-    The object is overwritten at the same S3 key: a single PUT is atomic, so a reader gets the
-    old or the new content, never a mix.
+    S3 cannot join the database transaction. If the transaction fails after the PUT, the
+    object holds the new content and the row keeps the old digest. The next replace with the
+    old digest still matches the row and puts both back in line.
 
-    Optimistic concurrency: ``if_match`` is the sha256 the caller last read. A caller working
-    from an older version gets HTTP 412 instead of overwriting a newer edit.
+    Args:
+        repos: Repository group for database access.
+        entity: The entity that owns the asset.
+        entity_type: The type of ``entity``.
+        user_profile: The profile recorded as ``updated_by``.
+        asset_id: The asset to replace.
+        storage_client_factory: Factory returning an S3 client for a storage.
+        file: The new content. It must have the asset's content type.
+        if_match: The ``If-Match`` header, holding the sha256 the caller last read.
 
-    S3 can't join the database transaction. If the transaction fails after the PUT, the object
-    has the new content and the row still the old digest. The next replace with the old digest
-    matches the row again and puts both back in line.
+    Returns:
+        The asset with its new ``size`` and ``sha256_digest``.
+
+    Raises:
+        ApiError: 404 ``ASSET_NOT_FOUND`` when the entity has no such asset.
+            409 ``ASSET_NOT_REPLACEABLE`` for a directory, external storage, or a label
+            without ``is_replaceable``. 409 ``ASSET_UPLOAD_INCOMPLETE`` while the asset uploads.
+            422 for a file that fails validation or has another content type.
+            428 without ``if_match``, 422 when ``if_match`` is not one sha256, and
+            412 ``ASSET_VERSION_MISMATCH`` when it differs from the stored digest.
+        HTTPException: 500 when the S3 upload fails.
     """
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
         asset = repos.asset.get_entity_asset(
             entity_type=entity_type, entity_id=entity.id, asset_id=asset_id
         )
-        # Row lock until commit, read again under it: two replaces of one asset run one after
-        # the other, and the second compares If-Match with what the first wrote.
+        # Lock the row and read it again, so a concurrent replace checks If-Match after this one.
         repos.db.execute(
             sa.select(Asset)
             .where(Asset.id == asset.id)
@@ -360,7 +376,6 @@ def replace_entity_asset_unverified(
             error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-    # After the asset's own rules, so a never-replaceable asset gets 409, not 428.
     expected = _expected_sha256(if_match)
     current = asset.sha256_digest.hex() if asset.sha256_digest else None
     if current != expected:
@@ -392,10 +407,6 @@ def replace_entity_asset_unverified(
 
 
 def _expected_sha256(if_match: str | None) -> str:
-    """Return the sha256 (lowercase hex) in an If-Match header: one ETag, quoted or not.
-
-    Weak ETags, lists and ``*`` are refused: replacing bytes needs the exact version.
-    """
     if if_match is None:
         raise ApiError(
             message='Send If-Match with the sha256_digest you last read: If-Match: "<sha256>".',

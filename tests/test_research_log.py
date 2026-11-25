@@ -216,7 +216,6 @@ def _replace(client, url: str, content: bytes, if_match: str | None, expected: i
 
 
 def test_replace_document(clients, model, s3, s3_internal_bucket):
-    """The service sync replaces the document in place: same id, path and link, newest content."""
     first = _upload_document(clients.user_1, model)
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
     new_content = b"# Log\n\nResting potential **-68 mV**.\n"
@@ -233,11 +232,9 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
     assert head["ContentType"] == "text/markdown"
     body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
     assert body == new_content
-    # the row is saved, not only the response
     saved = assert_request(clients.admin.get, url=url).json()
     assert saved["sha256_digest"] == replaced["sha256_digest"]
 
-    # another content type is refused
     error = assert_request(
         clients.admin.put,
         url=url,
@@ -247,7 +244,6 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
     ).json()
     assert error["error_code"] == "ASSET_INVALID_CONTENT_TYPE"
 
-    # the files folder is a directory, never replaced
     folder = assert_request(
         clients.user_1.post,
         url=f"{ROUTE}/{model.id}/assets/directory/upload",
@@ -263,7 +259,6 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
     ).json()
     assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
 
-    # only for the admin role, and only for an asset of that entity
     _replace(clients.user_1, url, b"x", replaced["sha256_digest"], 403)
     _replace(
         clients.admin,
@@ -277,20 +272,16 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
 
 
 def test_replace_document_needs_the_version_read(clients, model, s3, s3_internal_bucket):
-    """Someone who read an older version can't overwrite a newer edit (no lost update)."""
     first = _upload_document(clients.user_1, model)
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
 
-    # two writers read the first version; the first to write wins (an unquoted ETag is fine)
     alice = _replace(clients.admin, url, b"# Log\n\nAlice\n", first["sha256_digest"]).json()
-    # the other still sends the version it read: refused, and told which version is current
     error = _replace(clients.admin, url, b"# Log\n\nBob\n", first["sha256_digest"], 412).json()
     assert error["error_code"] == "ASSET_VERSION_MISMATCH"
     assert error["details"] == {"sha256_digest": alice["sha256_digest"]}
     body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
     assert body == b"# Log\n\nAlice\n"
 
-    # no version: 428; not one sha256 (weak ETag, list, *): 422; nothing gets written
     assert _replace(clients.admin, url, b"x", None, 428).json()["error_code"] == "INVALID_REQUEST"
     for bad in [f'W/"{alice["sha256_digest"]}"', "*", f"{alice['sha256_digest']}, abc", "abc"]:
         assert _replace(clients.admin, url, b"x", bad, 422).json()["error_code"] == (
@@ -303,7 +294,6 @@ def test_replace_document_needs_the_version_read(clients, model, s3, s3_internal
 def test_replace_document_heals_after_a_failed_transaction(
     clients, model, s3, s3_internal_bucket, monkeypatch
 ):
-    """S3 can't roll back with the database: the next replace puts the row and object in line."""
     first = _upload_document(clients.user_1, model, b"# old\n")
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
     key = first["full_path"]
@@ -316,12 +306,10 @@ def test_replace_document_heals_after_a_failed_transaction(
         patched.setattr("app.service.asset.get_or_create_user", fail_after_the_s3_write)
         with pytest.raises(RuntimeError, match="database down"):
             _replace(clients.admin, url, b"# new\n", first["sha256_digest"])
-    # the object has the new content, the row rolled back to the old digest
     assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == b"# new\n"
     saved = assert_request(clients.admin.get, url=url).json()
     assert saved["sha256_digest"] == first["sha256_digest"]
 
-    # the retry sends the old digest again: it matches the row, and both are in line after it
     replaced = _replace(clients.admin, url, b"# newer\n", first["sha256_digest"]).json()
     assert replaced["sha256_digest"] == hashlib.sha256(b"# newer\n").hexdigest()
     assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == b"# newer\n"

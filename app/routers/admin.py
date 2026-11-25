@@ -85,7 +85,6 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     label: Annotated[AssetLabel, Form()],
-    # JSON text: a multipart form only carries strings and files, so a plain dict never validated.
     meta: Annotated[Json[dict] | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
@@ -118,17 +117,18 @@ def replace_entity_asset(
     response: Response,
     if_match: Annotated[
         str | None,
-        Header(description='The sha256_digest you last read, e.g. "3fa9…". Required.'),
+        Header(description="The sha256_digest you last read. Required."),
     ] = None,
 ) -> AssetRead:
     """Replace the content of a small file asset. Its id, path, label and link don't change.
 
-    Only works for labels that must always show the newest content, like
-    `research_log_document`. Anything else gets HTTP 409 and stays immutable.
+    Only labels that must always show the newest content accept a replace, such as
+    `research_log_document`. Any other asset gets HTTP 409 and stays immutable.
 
-    Send `If-Match` with the `sha256_digest` you last read. If the content changed since, you
-    get HTTP 412 with the current digest in `details.sha256_digest`, and nothing is written.
-    No `If-Match` gets HTTP 428. The response's `ETag` is the new digest, to send next time.
+    Send `If-Match` with the `sha256_digest` you last read. If the content changed since, the
+    route writes nothing and answers HTTP 412, with the current digest in
+    `details.sha256_digest`. A request without `If-Match` gets HTTP 428. The response's `ETag`
+    is the new digest. Send it as `If-Match` next time.
     """
     replaced = admin_service.replace_entity_asset(
         repos=repos,

@@ -393,10 +393,13 @@ def test_upload_to_s3_single_part(s3, s3_internal_bucket):
         file_obj=io.BytesIO(data),
         bucket_name=s3_internal_bucket,
         s3_key="single/part.txt",
+        content_type="text/plain",
     )
 
     assert result == expected
     assert _read(s3, s3_internal_bucket, "single/part.txt") == data
+    head = s3.head_object(Bucket=s3_internal_bucket, Key="single/part.txt")
+    assert head["ContentType"] == "text/plain"
     # sanity: the returned digest is what S3 stored
     head = s3.head_object(Bucket=s3_internal_bucket, Key="single/part.txt", ChecksumMode="ENABLED")
     assert base64.b64decode(head["ChecksumSHA256"]).hex() == result
@@ -414,6 +417,7 @@ def test_upload_to_s3_single_part_upload_error():
         file_obj=io.BytesIO(b"data"),
         bucket_name="bucket",
         s3_key="key.txt",
+        content_type="text/plain",
     )
 
     assert result is None
@@ -429,6 +433,7 @@ def test_upload_to_s3_single_part_missing_checksum():
         file_obj=io.BytesIO(b"data"),
         bucket_name="bucket",
         s3_key="key.txt",
+        content_type="text/plain",
     )
 
     assert result is None

@@ -150,6 +150,7 @@ def upload_to_s3_single_part(
     file_obj: IO,
     bucket_name: str,
     s3_key: str,
+    content_type: str,
 ) -> str | None:
     """Upload an object via ``put_object`` and return its SHA256 digest in hex.
 
@@ -161,6 +162,8 @@ def upload_to_s3_single_part(
         file_obj: file-like object positioned at the start of the content.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+        content_type: stored as the object's Content-Type, so downloads get it back.
+            Without it, S3 stores ``binary/octet-stream``.
 
     Returns:
         SHA256 hex digest, or ``None`` if the upload failed.
@@ -171,6 +174,7 @@ def upload_to_s3_single_part(
             Bucket=bucket_name,
             Key=s3_key,
             ChecksumAlgorithm="SHA256",
+            ContentType=content_type,
         )
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)

@@ -4,6 +4,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request, UploadFile, status
+from pydantic import Json
 from starlette.responses import RedirectResponse
 
 from app.config import storages
@@ -96,7 +97,8 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     label: Annotated[AssetLabel, Form()],
-    meta: Annotated[dict | None, Form()] = None,
+    # JSON text: a multipart form only carries strings and files, so a plain dict never validated.
+    meta: Annotated[Json[dict] | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 

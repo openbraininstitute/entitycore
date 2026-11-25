@@ -4,7 +4,9 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Literal, cast
 
+import sqlalchemy as sa
 from fastapi import HTTPException, UploadFile
+from pydantic import TypeAdapter, ValidationError
 from pydantic.networks import AnyUrl
 from starlette.responses import RedirectResponse
 from types_boto3_s3 import S3Client
@@ -32,6 +34,7 @@ from app.schemas.asset import (
     MultipartDirectoryUploadRequest,
     MultipartDirectoryUploadResponse,
     MultipartUploadInitiateRequest,
+    Sha256Digest,
     UploadMeta,
     validate_asset_label,
     validate_relative_path,
@@ -61,6 +64,9 @@ from app.utils.s3 import (
     validate_multipart_filesize,
 )
 from app.utils.virtual_lab import resolve_virtual_lab_id
+
+# Checks an If-Match with the same rule the API uses for sha256_digest.
+_SHA256_DIGEST = TypeAdapter(Sha256Digest)
 
 
 def get_entity_assets(
@@ -284,11 +290,127 @@ def upload_and_create_entity_asset(
         file_obj=file.file,
         bucket_name=storage.bucket,
         s3_key=asset_db.full_path,
+        content_type=content_type,
     )
     if sha256_digest is None:
         raise HTTPException(status_code=500, detail="Failed to upload object")
     asset_db.sha256_digest = bytes.fromhex(sha256_digest)
     return AssetRead.model_validate(asset_db)
+
+
+def replace_entity_asset_unverified(
+    repos: RepositoryGroup,
+    *,
+    entity: Entity,
+    entity_type: EntityType,
+    user_profile: UserProfile,
+    asset_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    file: UploadFile,
+    if_match: str | None,
+) -> AssetRead:
+    """Replace the content of a small file asset. Its id, path, label and link stay the same.
+
+    The caller has already checked who may write. Only labels marked ``is_replaceable``.
+
+    The object is overwritten at the same S3 key: a single PUT is atomic, so a reader gets the
+    old or the new content, never a mix.
+
+    Optimistic concurrency: ``if_match`` is the sha256 the caller last read. A caller working
+    from an older version gets HTTP 412 instead of overwriting a newer edit.
+
+    S3 can't join the database transaction. If the transaction fails after the PUT, the object
+    has the new content and the row still the old digest. The next replace with the old digest
+    matches the row again and puts both back in line.
+    """
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity.id, asset_id=asset_id
+        )
+        # Row lock until commit, read again under it: two replaces of one asset run one after
+        # the other, and the second compares If-Match with what the first wrote.
+        repos.db.execute(
+            sa.select(Asset)
+            .where(Asset.id == asset.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        ).scalar_one()
+
+    requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
+    if (
+        asset.is_directory
+        or asset.storage_type != StorageType.aws_s3_internal
+        or not any(r.is_replaceable for r in requirements)
+    ):
+        raise ApiError(
+            message=f"Assets with label {asset.label} cannot be replaced",
+            error_code=ApiErrorCode.ASSET_NOT_REPLACEABLE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+    if asset.status != AssetStatus.CREATED:
+        raise ApiError(
+            message="Cannot replace an uploading asset, because it is incomplete.",
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+    content_type = validate_uploadfile_for_small_entity_post(file)
+    if content_type != asset.content_type:
+        raise ApiError(
+            message=f"Content type {content_type} differs from the asset's {asset.content_type}",
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    # After the asset's own rules, so a never-replaceable asset gets 409, not 428.
+    expected = _expected_sha256(if_match)
+    current = asset.sha256_digest.hex() if asset.sha256_digest else None
+    if current != expected:
+        raise ApiError(
+            message="The asset changed since you read it: read it again, then replace it.",
+            error_code=ApiErrorCode.ASSET_VERSION_MISMATCH,
+            http_status_code=HTTPStatus.PRECONDITION_FAILED,
+            details={"sha256_digest": current},
+        )
+
+    storage = storages[asset.storage_type]
+    sha256_digest = upload_to_s3_single_part(
+        storage_client_factory(storage),
+        file_obj=file.file,
+        bucket_name=storage.bucket,
+        s3_key=asset.full_path,
+        content_type=content_type,
+    )
+    if sha256_digest is None:
+        raise HTTPException(status_code=500, detail="Failed to upload object")
+
+    asset.size = file.size or 0
+    asset.sha256_digest = bytes.fromhex(sha256_digest)
+    asset.updated_by_id = get_or_create_user(repos.db, user_profile).id
+    asset.update_date = sa.func.statement_timestamp()
+    repos.db.flush()
+    repos.db.refresh(asset)
+    return AssetRead.model_validate(asset)
+
+
+def _expected_sha256(if_match: str | None) -> str:
+    """Return the sha256 (lowercase hex) in an If-Match header: one ETag, quoted or not.
+
+    Weak ETags, lists and ``*`` are refused: replacing bytes needs the exact version.
+    """
+    if if_match is None:
+        raise ApiError(
+            message='Send If-Match with the sha256_digest you last read: If-Match: "<sha256>".',
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.PRECONDITION_REQUIRED,
+        )
+    value = if_match.strip().removeprefix('"').removesuffix('"').lower()
+    try:
+        return _SHA256_DIGEST.validate_python(value)
+    except ValidationError:
+        raise ApiError(
+            message="If-Match must be one sha256_digest of the asset: 64 hexadecimal characters.",
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from None
 
 
 def validate_uploadfile_for_small_entity_post(file: UploadFile) -> ContentType:

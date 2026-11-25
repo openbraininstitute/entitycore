@@ -41,6 +41,7 @@ class ApiErrorCode(UpperStrEnum):
     ENTITY_DUPLICATED = auto()
     ASSET_NOT_FOUND = auto()
     ASSET_DUPLICATED = auto()
+    ASSET_DIRECTORY_FILE_DUPLICATED = auto()
     ASSET_INVALID_FILE = auto()
     ASSET_MISSING_PATH = auto()
     ASSET_INVALID_PATH = auto()

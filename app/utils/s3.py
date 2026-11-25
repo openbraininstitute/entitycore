@@ -1,4 +1,5 @@
 import base64
+import functools
 import itertools
 import math
 import os
@@ -321,6 +322,70 @@ def generate_presigned_url(
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return _apply_presigned_url_netloc(url) if url is not None else None
+
+
+@functools.cache
+def _sigv4_presign_client(endpoint_url: str, region_name: str) -> S3Client:
+    """Return an S3 client that presigns with SigV4, one per endpoint and region.
+
+    botocore presigns S3 URLs with SigV2 by default, and SigV2 does not sign If-None-Match or
+    Content-Length, so S3 would not enforce them. SigV4 signs every header given.
+    SigV4 also signs the host, so the host can't be swapped after signing as
+    ``_apply_presigned_url_netloc`` does. The caller passes the public endpoint instead.
+    The client only presigns, which makes no network call.
+    """
+    return boto3.session.Session().client(
+        "s3",
+        region_name=region_name,
+        endpoint_url=endpoint_url,
+        config=botocore.client.Config(signature_version="s3v4"),
+    )
+
+
+def generate_presigned_put_url_for_bytes(
+    s3_client: S3Client,
+    *,
+    bucket_name: str,
+    s3_key: str,
+    size: int,
+    sha256_hex: str,
+    expires_in: int,
+) -> tuple[str, dict[str, str]]:
+    """Presign a PUT that S3 accepts only for these bytes, and only while the key is free.
+
+    Args:
+        s3_client: S3 client of the storage. Its endpoint and region are reused.
+        bucket_name: name of the S3 bucket.
+        s3_key: S3 object key the upload creates.
+        size: exact size of the content in bytes.
+        sha256_hex: SHA256 of the content, in hexadecimal.
+        expires_in: seconds the URL stays valid. S3 checks it when the upload starts.
+
+    Returns:
+        The URL and the headers its PUT must send. Without them, S3 refuses the signature.
+        With other bytes, S3 answers 400. Once the key exists, S3 answers 412.
+    """
+    checksum = base64.b64encode(bytes.fromhex(sha256_hex)).decode()
+    signer = _sigv4_presign_client(
+        _apply_presigned_url_netloc(s3_client.meta.endpoint_url), s3_client.meta.region_name
+    )
+    url = signer.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": bucket_name,
+            "Key": s3_key,
+            "IfNoneMatch": "*",
+            "ContentLength": size,
+            "ChecksumSHA256": checksum,
+        },
+        ExpiresIn=expires_in,
+    )
+    headers = {
+        "If-None-Match": "*",
+        "Content-Length": str(size),
+        "x-amz-checksum-sha256": checksum,
+    }
+    return url, headers
 
 
 def multipart_upload_initiate(

@@ -1,7 +1,13 @@
+import base64
+import hashlib
+import urllib.parse
+
 import pytest
+import requests
 
 from app.db.model import Derivation, ResearchLog
 from app.db.types import AssetLabel, ContentType, DerivationType, EntityType
+from app.schemas.asset import DIRECTORY_ADD_FILES_MAX
 
 from .utils import (
     assert_request,
@@ -191,6 +197,146 @@ def test_upload_files_directory(client, model):
     assert data["asset"]["is_directory"] is True
     assert data["asset"]["label"] == AssetLabel.research_log_files
     assert set(data["files"]) == {"figures/fig1.png", "data/table.csv"}
+
+
+def _files_directory(client, model) -> dict:
+    return assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/directory/upload",
+        json={
+            "files": ["figures/fig1.png"],
+            "meta": None,
+            "label": AssetLabel.research_log_files,
+            "directory_name": "files",
+        },
+    ).json()["asset"]
+
+
+def _file(path: str, content: bytes = b"x") -> dict:
+    return {
+        "path": path,
+        "size": len(content),
+        "sha256_digest": hashlib.sha256(content).hexdigest(),
+    }
+
+
+def test_add_files_to_directory(clients, model, s3, s3_internal_bucket):
+    client = clients.user_1
+    directory = _files_directory(client, model)
+    s3.put_object(
+        Bucket=s3_internal_bucket, Key=f"{directory['full_path']}/figures/fig1.png", Body=b"png"
+    )
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+
+    data = assert_request(
+        client.post,
+        url=add_url,
+        json={"files": [_file("figures/fig2.png"), _file("results/rates.csv")]},
+    ).json()
+    assert data["asset"]["id"] == directory["id"]
+    assert set(data["files"]) == {"figures/fig2.png", "results/rates.csv"}
+    assert f"{directory['full_path']}/results/rates.csv" in data["files"]["results/rates.csv"]
+
+    s3.put_object(
+        Bucket=s3_internal_bucket, Key=f"{directory['full_path']}/results/rates.csv", Body=b"a,b"
+    )
+    listed = assert_request(client.get, url=f"{ROUTE}/{model.id}/assets/{directory['id']}/list")
+    assert set(listed.json()["files"]) == {"figures/fig1.png", "results/rates.csv"}
+
+    error = assert_request(
+        client.post,
+        url=add_url,
+        json={"files": [_file("figures/fig3.png"), _file("figures/fig1.png")]},
+        expected_status_code=409,
+    ).json()
+    assert error["error_code"] == "ASSET_DIRECTORY_FILE_DUPLICATED"
+    assert error["details"] == {"existing": ["figures/fig1.png"]}
+
+    document = upload_entity_asset(
+        client,
+        entity_type=EntityType.research_log,
+        entity_id=model.id,
+        files={"file": ("log.md", b"# Research log\n", "text/markdown")},
+        label=AssetLabel.research_log_document,
+    ).json()
+    error = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{document['id']}/directory/files",
+        json={"files": [_file("x.png")]},
+        expected_status_code=422,
+    ).json()
+    assert error["error_code"] == "ASSET_NOT_A_DIRECTORY"
+
+    assert_request(
+        clients.user_2.post, url=add_url, json={"files": [_file("x.png")]}, expected_status_code=404
+    )
+
+
+def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucket):
+    directory = _files_directory(client, model)
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+    content = b"\x89PNG plot"
+    file = _file("figures/rate.png", content)
+
+    data = assert_request(client.post, url=add_url, json={"files": [file]}).json()
+    checksum = base64.b64encode(bytes.fromhex(file["sha256_digest"])).decode()
+    assert data["headers"] == {
+        "figures/rate.png": {
+            "If-None-Match": "*",
+            "Content-Length": str(len(content)),
+            "x-amz-checksum-sha256": checksum,
+        }
+    }
+    signed = urllib.parse.parse_qs(urllib.parse.urlparse(data["files"]["figures/rate.png"]).query)
+    assert signed["X-Amz-SignedHeaders"] == [
+        "content-length;host;if-none-match;x-amz-checksum-sha256"
+    ]
+    assert signed["X-Amz-Expires"] == ["900"]
+
+    url, headers = data["files"]["figures/rate.png"], data["headers"]["figures/rate.png"]
+    assert requests.put(url, data=content, headers=headers, timeout=10).status_code == 200
+    again = requests.put(url, data=content, headers=headers, timeout=10)
+    assert again.status_code == 412
+    key = f"{directory['full_path']}/figures/rate.png"
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == content
+
+    error = assert_request(
+        client.post, url=add_url, json={"files": [file]}, expected_status_code=409
+    ).json()
+    assert error["details"] == {"existing": ["figures/rate.png"]}
+
+    for files in [
+        [_file("a.png"), _file("a.png", b"y")],
+        ["a.png"],
+        [{**_file("a.png"), "sha256_digest": "abc"}],
+        [{**_file("a.png"), "size": -1}],
+        [_file(f"f{i}.png") for i in range(DIRECTORY_ADD_FILES_MAX + 1)],
+    ]:
+        assert_request(client.post, url=add_url, json={"files": files}, expected_status_code=422)
+
+
+def test_add_files_to_open_storage_directory(client, model, s3, s3_open_bucket):
+    s3.put_object(Bucket=s3_open_bucket, Key="open/data/a.csv", Body=b"a")
+    directory = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/register",
+        json={
+            "path": "files",
+            "full_path": "open/data",
+            "is_directory": True,
+            "content_type": "application/vnd.directory",
+            "label": AssetLabel.research_log_files,
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=201,
+    ).json()
+    error = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file("b.csv")]},
+        expected_status_code=409,
+    ).json()
+    assert error["error_code"] == "ASSET_INVALID_PATH"
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

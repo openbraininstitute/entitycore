@@ -4,6 +4,8 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Literal, cast
 
+import sqlalchemy as sa
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
 from starlette.responses import RedirectResponse
@@ -27,6 +29,8 @@ from app.schemas.asset import (
     AssetReadWithUploadMeta,
     AssetRegister,
     DetailedFileList,
+    DirectoryAddFilesRequest,
+    DirectoryAddFilesResponse,
     DirectoryUploadRequest,
     MultipartDirectoryFileRequest,
     MultipartDirectoryUploadRequest,
@@ -53,6 +57,7 @@ from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
     check_object,
+    generate_presigned_put_url_for_bytes,
     generate_presigned_url,
     list_directory_with_details,
     upload_to_s3_single_part,
@@ -61,6 +66,10 @@ from app.utils.s3 import (
     validate_multipart_filesize,
 )
 from app.utils.virtual_lab import resolve_virtual_lab_id
+
+# Not the usual 6 hours: write access is checked at signing, so a short window keeps a late
+# upload out of a directory deleted or moved since. S3 checks expiry when the upload starts.
+ADD_FILES_URL_EXPIRATION = 15 * 60
 
 
 def get_entity_assets(
@@ -464,6 +473,112 @@ def entity_asset_directory_upload(
         urls[path] = AnyUrl(url)
 
     return AssetRead.model_validate(asset_db), urls
+
+
+def entity_asset_directory_add_files(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    files: DirectoryAddFilesRequest,
+) -> DirectoryAddFilesResponse:
+    """Sign one upload per new file of an existing directory asset.
+
+    S3 enforces each upload itself. It takes only the given size and sha256, and only while
+    the name is free, so an existing file is never replaced.
+
+    Args:
+        repos: Repository group for database access.
+        user_context: The caller. It needs write access to the entity.
+        entity_type: The type of the entity.
+        entity_id: The entity that owns the directory.
+        asset_id: The directory asset.
+        storage_client_factory: Factory returning an S3 client for a storage.
+        files: The files to add, each with its path, size and sha256.
+
+    Returns:
+        The directory, one URL per file, and the headers each PUT must send.
+
+    Raises:
+        ApiError: 404 when the caller can't write the entity or it has no such asset.
+            422 ``ASSET_NOT_A_DIRECTORY`` for a file asset. 409 ``ASSET_INVALID_PATH`` for a
+            directory that is unfinished, made by multipart upload, or outside internal storage.
+            409 ``ASSET_DIRECTORY_FILE_DUPLICATED`` when a path exists, listed in
+            ``details.existing``. 422 ``S3_CANNOT_CREATE_PRESIGNED_URL`` when signing fails.
+    """
+    asset = get_writable_entity_db_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    if not asset.is_directory:
+        raise ApiError(
+            message="Asset is not a directory, files cannot be added",
+            error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    is_multipart_directory = repos.db.scalar(
+        sa.select(sa.exists().where(Asset.parent_id == asset.id))
+    )
+    if (
+        is_multipart_directory
+        or asset.status != AssetStatus.CREATED
+        or asset.storage_type != StorageType.aws_s3_internal
+    ):
+        raise ApiError(
+            message="Files can be added only to a completed directory uploaded with presigned urls",
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+    # One HEAD per name answers 409 early. It can race, so the signed If-None-Match is the guard.
+    taken = sorted(
+        f.path
+        for f in files.files
+        if check_object(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=str(Path(asset.full_path) / f.path),
+            is_directory=False,
+        )["exists"]
+    )
+    if taken:
+        raise ApiError(
+            message=f"These files already exist in the directory: {', '.join(taken)}",
+            error_code=ApiErrorCode.ASSET_DIRECTORY_FILE_DUPLICATED,
+            http_status_code=HTTPStatus.CONFLICT,
+            details={"existing": taken},
+        )
+
+    urls: dict[Path, AnyUrl] = {}
+    headers: dict[Path, dict[str, str]] = {}
+    for f in files.files:
+        try:
+            url, headers[Path(f.path)] = generate_presigned_put_url_for_bytes(
+                s3_client,
+                bucket_name=storage.bucket,
+                s3_key=str(Path(asset.full_path) / f.path),
+                size=f.size,
+                sha256_hex=f.sha256_digest,
+                expires_in=ADD_FILES_URL_EXPIRATION,
+            )
+        except (BotoCoreError, ClientError) as e:
+            raise ApiError(
+                message=f"Could not create presigned url for {f.path}",
+                error_code=ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            ) from e
+        urls[Path(f.path)] = AnyUrl(url)
+
+    return DirectoryAddFilesResponse(
+        asset=AssetRead.model_validate(asset), files=urls, headers=headers
+    )
 
 
 def register_entity_asset_unverified(

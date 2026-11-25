@@ -1,10 +1,13 @@
 import base64
+import datetime as dt
 import hashlib
 import io
 import math
 from unittest.mock import Mock
 from urllib.parse import urlparse
 
+import boto3
+import botocore.client
 import botocore.exceptions
 import pytest
 
@@ -432,6 +435,34 @@ def test_upload_to_s3_single_part_missing_checksum():
     )
 
     assert result is None
+
+
+def test_presigned_put_url_for_bytes_is_signed_for_the_public_host(monkeypatch):
+    now = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
+    monkeypatch.setattr("botocore.auth.get_current_datetime", lambda: now)
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", "127.0.0.1:9000")
+    digest = hashlib.sha256(b"x").hexdigest()
+    checksum = base64.b64encode(bytes.fromhex(digest)).decode()
+    internal = boto3.client("s3", region_name="us-east-1", endpoint_url="http://rustfs:9000")
+
+    url, _headers = test_module.generate_presigned_put_url_for_bytes(
+        internal, bucket_name="bucket", s3_key="a/b.txt", size=1, sha256_hex=digest, expires_in=60
+    )
+
+    public = boto3.client(
+        "s3",
+        region_name="us-east-1",
+        endpoint_url="http://127.0.0.1:9000",
+        config=botocore.client.Config(signature_version="s3v4"),
+    )
+    params = {
+        "Bucket": "bucket",
+        "Key": "a/b.txt",
+        "IfNoneMatch": "*",
+        "ContentLength": 1,
+        "ChecksumSHA256": checksum,
+    }
+    assert url == public.generate_presigned_url("put_object", Params=params, ExpiresIn=60)
 
 
 def test_apply_presigned_url_netloc_unset(monkeypatch):

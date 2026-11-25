@@ -255,6 +255,49 @@ class DirectoryUploadRequest(Schema):
         return self
 
 
+# Each file costs one S3 HEAD inside the request, so the cap bounds the request time.
+DIRECTORY_ADD_FILES_MAX = 10
+
+
+class DirectoryAddFile(Schema):
+    path: RelativePathStr
+    size: Annotated[
+        int,
+        Field(
+            description="Exact size in bytes. S3 refuses an upload of any other size.",
+            ge=0,
+            # One PUT, so the same 5 GiB cap as one multipart part.
+            le=settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE,
+        ),
+    ]
+    sha256_digest: Annotated[
+        Sha256Digest,
+        Field(description="SHA256 of the content. S3 refuses an upload with other bytes."),
+    ]
+
+
+class DirectoryAddFilesRequest(Schema):
+    files: Annotated[
+        list[DirectoryAddFile],
+        Field(
+            description=(
+                "Files to add, with paths relative to the directory. "
+                "A path that already exists in the directory is refused."
+            ),
+            min_length=1,
+            max_length=DIRECTORY_ADD_FILES_MAX,
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def verify_unique(self):
+        paths = [f.path for f in self.files]
+        if len(set(paths)) != len(paths):
+            msg = "Filenames must be unique within the request."
+            raise ValueError(msg)
+        return self
+
+
 class DetailedFile(Schema):
     name: str
     size: int
@@ -268,6 +311,18 @@ class DetailedFileList(Schema):
 class AssetAndPresignedURLS(Schema):
     asset: AssetRead
     files: dict[Path, AnyUrl]
+
+
+class DirectoryAddFilesResponse(AssetAndPresignedURLS):
+    headers: Annotated[
+        dict[Path, dict[str, str]],
+        Field(
+            description=(
+                "For each file, the headers its PUT must send, exactly as given. "
+                "They are part of the signature."
+            ),
+        ),
+    ]
 
 
 class MultipartUploadInitiateRequest(Schema):

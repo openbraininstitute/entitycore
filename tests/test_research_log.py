@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import mimetypes
 import urllib.parse
 
 import pytest
@@ -442,6 +443,20 @@ def test_add_files_shows_only_safe_types_inline(client, model, path, content_typ
     assert data["headers"][path]["Content-Disposition"] == (
         f"{disposition}; filename*=UTF-8''{path}"
     )
+
+
+def test_add_files_ignores_the_host_mime_types(client, model, monkeypatch):
+    # the host's mime.types must not change the type
+    monkeypatch.setattr(mimetypes, "guess_type", lambda *_args, **_kwargs: ("text/html", None))
+    directory = _files_directory(client, model)
+
+    data = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file("fig.png")]},
+    ).json()
+
+    assert data["headers"]["fig.png"]["Content-Type"] == "image/png"
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

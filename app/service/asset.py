@@ -87,6 +87,8 @@ INLINE_CONTENT_TYPES = frozenset(
         "application/json",
     }
 )
+# skips the host's mime.types, same type on every machine
+MIME_TYPES = mimetypes.MimeTypes()
 
 
 def get_entity_assets(
@@ -611,7 +613,7 @@ def entity_asset_directory_add_files(
     urls: dict[Path, AnyUrl] = {}
     headers: dict[Path, dict[str, str]] = {}
     for f in files.files:
-        content_type = mimetypes.guess_type(f.path, strict=False)[0] or "application/octet-stream"
+        content_type = MIME_TYPES.guess_type(f.path, strict=False)[0] or "application/octet-stream"
         try:
             url, headers[Path(f.path)] = generate_presigned_put_url_for_bytes(
                 s3_client,

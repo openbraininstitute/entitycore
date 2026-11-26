@@ -7,7 +7,7 @@ import threading
 import uuid
 from pathlib import Path
 from typing import IO, Protocol, TypedDict
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import quote, urlparse, urlunparse
 from uuid import UUID
 
 import boto3.session
@@ -367,9 +367,12 @@ def generate_presigned_put_url_for_bytes(
 
     Returns:
         The URL and the headers its PUT must send. Without them, S3 refuses the signature.
-        With other bytes, S3 answers 400. Once the key exists, S3 answers 412.
+        With other bytes, S3 answers 400. Once the key exists, S3 answers 412. The
+        Content-Disposition is signed too, with the key's file name (RFC 6266 ``filename*``),
+        so the uploader can't pick the name a download is saved as.
     """
     checksum = base64.b64encode(bytes.fromhex(sha256_hex)).decode()
+    content_disposition = f"inline; filename*=UTF-8''{quote(Path(s3_key).name, safe='')}"
     endpoint_url = (
         _apply_presigned_url_netloc(s3_client.meta.endpoint_url)
         if settings.S3_PRESIGNED_URL_NETLOC
@@ -384,6 +387,7 @@ def generate_presigned_put_url_for_bytes(
             "IfNoneMatch": "*",
             "ContentLength": size,
             "ContentType": content_type,
+            "ContentDisposition": content_disposition,
             "ChecksumSHA256": checksum,
         },
         ExpiresIn=expires_in,
@@ -392,6 +396,7 @@ def generate_presigned_put_url_for_bytes(
         "If-None-Match": "*",
         "Content-Length": str(size),
         "Content-Type": content_type,
+        "Content-Disposition": content_disposition,
         "x-amz-checksum-sha256": checksum,
     }
     return url, headers

@@ -32,6 +32,7 @@ The bytes go straight from the client to S3, as with `directory/upload`. The ser
 | The service signs `If-None-Match: *` into each URL. | S3 refuses a second upload to the same name with 412, so an existing file is never replaced. A reference to a file stays valid. |
 | The service signs `Content-Length` and `x-amz-checksum-sha256` into each URL. | S3 refuses an upload with another size or other bytes. A URL cannot store anything but the announced file. |
 | The service signs `Content-Type`, guessed from the file extension. | The uploader can't store a file as `text/html` when its name says otherwise. Downloads serve the stored type. |
+| The service signs `Content-Disposition: inline; filename*=UTF-8''<file name>` (RFC 6266). | The uploader can't pick the name a download is saved as. Downloads keep showing in the browser. |
 | These URLs use SigV4. | botocore presigns S3 URLs with SigV2 by default. SigV2 does not sign those headers, so S3 would ignore them. |
 | The SigV4 client signs for the public host when `S3_PRESIGNED_URL_NETLOC` is set. Otherwise boto3 picks the endpoint, as for the storage client. | SigV4 signs the host. Rewriting the host after signing, as the other presigned URLs do, would break the signature. Without a custom endpoint, AWS gets the same virtual-hosted URLs as the other presigned URLs. |
 | A public entity gets 403 `ENTITY_FORBIDDEN`. | Members can't delete the files of a public entity, so they must not add files they can't take back. Files under `public/` are also copied out as open data. |

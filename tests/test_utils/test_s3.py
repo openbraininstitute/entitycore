@@ -467,9 +467,26 @@ def test_presigned_put_url_for_bytes_is_signed_for_the_public_host(monkeypatch):
         "IfNoneMatch": "*",
         "ContentLength": 1,
         "ContentType": "text/plain",
+        "ContentDisposition": "inline; filename*=UTF-8''b.txt",
         "ChecksumSHA256": checksum,
     }
     assert url == public.generate_presigned_url("put_object", Params=params, ExpiresIn=60)
+
+
+def test_presigned_put_url_for_bytes_pins_the_saved_name():
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    _url, headers = test_module.generate_presigned_put_url_for_bytes(
+        s3,
+        bucket_name="bucket",
+        s3_key="a/évil name;x.html",
+        size=1,
+        sha256_hex=hashlib.sha256(b"x").hexdigest(),
+        content_type="text/html",
+        expires_in=60,
+    )
+
+    assert headers["Content-Disposition"] == ("inline; filename*=UTF-8''%C3%A9vil%20name%3Bx.html")
 
 
 def test_presigned_put_url_for_bytes_is_virtual_hosted_on_aws(monkeypatch):

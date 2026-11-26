@@ -286,12 +286,13 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
             "If-None-Match": "*",
             "Content-Length": str(len(content)),
             "Content-Type": "image/png",
+            "Content-Disposition": "inline; filename*=UTF-8''rate.png",
             "x-amz-checksum-sha256": checksum,
         }
     }
     signed = urllib.parse.parse_qs(urllib.parse.urlparse(data["files"]["figures/rate.png"]).query)
     assert signed["X-Amz-SignedHeaders"] == [
-        "content-length;content-type;host;if-none-match;x-amz-checksum-sha256"
+        "content-disposition;content-length;content-type;host;if-none-match;x-amz-checksum-sha256"
     ]
     assert signed["X-Amz-Expires"] == ["900"]
 
@@ -303,6 +304,7 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
     stored = s3.get_object(Bucket=s3_internal_bucket, Key=key)
     assert stored["Body"].read() == content
     assert stored["ContentType"] == "image/png"
+    assert stored["ContentDisposition"] == "inline; filename*=UTF-8''rate.png"
 
     error = assert_request(
         client.post, url=add_url, json={"files": [file]}, expected_status_code=409

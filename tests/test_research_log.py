@@ -375,6 +375,24 @@ def test_add_files_when_s3_check_fails(client, model, monkeypatch):
     assert error["error_code"] == "GENERIC_ERROR"
 
 
+def test_add_files_when_signing_fails(client, model, monkeypatch):
+    directory = _files_directory(client, model)
+
+    def fail(*_args, **_kwargs):
+        raise ClientError({"Error": {"Code": "500"}}, "PutObject")
+
+    monkeypatch.setattr("app.service.asset.generate_presigned_put_url_for_bytes", fail)
+
+    error = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file("x.png")]},
+        expected_status_code=422,
+    ).json()
+
+    assert error["error_code"] == "S3_CANNOT_CREATE_PRESIGNED_URL"
+
+
 def test_add_files_to_open_storage_directory(client, model, s3, s3_open_bucket):
     s3.put_object(Bucket=s3_open_bucket, Key="open/data/a.csv", Body=b"a")
     directory = assert_request(

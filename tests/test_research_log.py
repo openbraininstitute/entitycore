@@ -1,9 +1,10 @@
 import hashlib
 
 import pytest
+import sqlalchemy as sa
 
-from app.db.model import Derivation, ResearchLog
-from app.db.types import AssetLabel, ContentType, DerivationType, EntityType
+from app.db.model import Asset, Derivation, ResearchLog
+from app.db.types import AssetLabel, AssetStatus, ContentType, DerivationType, EntityType
 
 from .utils import (
     assert_request,
@@ -338,6 +339,28 @@ def test_replace_document_heals_after_a_failed_transaction(
     replaced = _replace(clients.admin, url, b"# newer\n", first["sha256_digest"]).json()
     assert replaced["sha256_digest"] == hashlib.sha256(b"# newer\n").hexdigest()
     assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == b"# newer\n"
+
+
+def test_replace_document_while_uploading(db, clients, model):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(status=AssetStatus.UPLOADING))
+    db.commit()
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_UPLOAD_INCOMPLETE"
+
+
+def test_replace_document_when_s3_fails(clients, model, monkeypatch):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    monkeypatch.setattr("app.service.asset.upload_to_s3_single_part", lambda *_a, **_k: None)
+
+    _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 500)
+
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == first["sha256_digest"]
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

@@ -7,11 +7,12 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
+from app.config import settings
 from app.db.model import Derivation, ResearchLog
 from app.db.types import AssetLabel, ContentType, DerivationType, EntityType
-from app.schemas.asset import DIRECTORY_ADD_FILES_MAX
 
 from .utils import (
+    PROJECT_ID,
     assert_request,
     check_admin_create_one,
     check_authorization,
@@ -228,7 +229,7 @@ def test_add_files_to_directory(clients, model, s3, s3_internal_bucket):
     s3.put_object(
         Bucket=s3_internal_bucket, Key=f"{directory['full_path']}/figures/fig1.png", Body=b"png"
     )
-    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add"
 
     data = assert_request(
         client.post,
@@ -263,7 +264,7 @@ def test_add_files_to_directory(clients, model, s3, s3_internal_bucket):
     ).json()
     error = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{document['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{document['id']}/directory/add",
         json={"files": [_file("x.png")]},
         expected_status_code=422,
     ).json()
@@ -276,7 +277,7 @@ def test_add_files_to_directory(clients, model, s3, s3_internal_bucket):
 
 def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucket):
     directory = _files_directory(client, model)
-    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add"
     content = b"\x89PNG plot"
     file = _file("figures/rate.png", content)
 
@@ -317,7 +318,7 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
         ["a.png"],
         [{**_file("a.png"), "sha256_digest": "abc"}],
         [{**_file("a.png"), "size": -1}],
-        [_file(f"f{i}.png") for i in range(DIRECTORY_ADD_FILES_MAX + 1)],
+        [_file(f"f{i}.png") for i in range(settings.DIRECTORY_ADD_FILES_MAX + 1)],
         [_file("a"), _file("a/b.png")],
         [_file("a\x00b.png")],
         [_file("a\nb.png")],
@@ -326,12 +327,56 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
         assert_request(client.post, url=add_url, json={"files": files}, expected_status_code=422)
 
 
+def test_add_files_to_a_multipart_directory(clients, model, s3, s3_internal_bucket):
+    client = clients.user_1
+    initiated = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/directory/multipart-upload/initiate",
+        json={
+            "directory_name": "files",
+            "label": AssetLabel.research_log_files,
+            "files": [{**_file("a.png", b"a"), "filename": "a.png", "filesize": 1}],
+        },
+    ).json()
+    directory, child = initiated["asset"], initiated["files"][0]
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add"
+    error = assert_request(
+        client.post, url=add_url, json={"files": [_file("b.png")]}, expected_status_code=409
+    ).json()
+    assert error["message"] == "The directory is still uploading"
+    part_url = child["upload_meta"]["parts"][0]["url"]
+    assert requests.put(part_url, data=b"a", timeout=10).status_code == 200
+    assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/multipart-upload/complete",
+    )
+
+    data = assert_request(client.post, url=add_url, json={"files": [_file("b.png", b"b")]}).json()
+    response = requests.put(
+        data["files"]["b.png"], data=b"b", headers=data["headers"]["b.png"], timeout=10
+    )
+    assert response.status_code == 200
+
+    listed = assert_request(client.get, url=f"{ROUTE}/{model.id}/assets/{directory['id']}/list")
+    assert set(listed.json()["files"]) == {"a.png", "b.png"}
+
+    assert_request(clients.admin.post, url=f"/admin/publish-project/{PROJECT_ID}?dry_run=false")
+    public = assert_request(
+        clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}/assets/{directory['id']}"
+    ).json()["full_path"]
+    keys = s3.list_objects_v2(Bucket=s3_internal_bucket, Prefix=f"{public}/")["Contents"]
+    assert {k["Key"] for k in keys} == {f"{public}/a.png", f"{public}/b.png"}
+
+    assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{model.id}/assets/{directory['id']}")
+    assert "Contents" not in s3.list_objects_v2(Bucket=s3_internal_bucket, Prefix=public)
+
+
 def test_add_files_refuses_paths_that_clash_with_folders(client, model, s3, s3_internal_bucket):
     directory = _files_directory(client, model)
     s3.put_object(
         Bucket=s3_internal_bucket, Key=f"{directory['full_path']}/figures/fig1.png", Body=b"png"
     )
-    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add"
 
     for path in ["figures", "figures/fig1.png/x"]:
         error = assert_request(
@@ -350,7 +395,7 @@ def test_add_files_to_public_entity(db, client, model):
 
     error = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file("x.png")]},
         expected_status_code=403,
     ).json()
@@ -368,7 +413,7 @@ def test_add_files_when_s3_check_fails(client, model, monkeypatch):
 
     error = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file("x.png")]},
         expected_status_code=502,
     ).json()
@@ -386,7 +431,7 @@ def test_add_files_when_signing_fails(client, model, monkeypatch):
 
     error = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file("x.png")]},
         expected_status_code=422,
     ).json()
@@ -411,11 +456,12 @@ def test_add_files_to_open_storage_directory(client, model, s3, s3_open_bucket):
     ).json()
     error = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file("b.csv")]},
         expected_status_code=409,
     ).json()
     assert error["error_code"] == "ASSET_NOT_APPENDABLE"
+    assert error["message"] == "Files can be added only to a directory on internal storage"
 
 
 @pytest.mark.parametrize(
@@ -435,7 +481,7 @@ def test_add_files_shows_only_safe_types_inline(client, model, path, content_typ
 
     data = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file(path)]},
     ).json()
 
@@ -452,7 +498,7 @@ def test_add_files_ignores_the_host_mime_types(client, model, monkeypatch):
 
     data = assert_request(
         client.post,
-        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/add",
         json={"files": [_file("fig.png")]},
     ).json()
 

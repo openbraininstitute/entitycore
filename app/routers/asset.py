@@ -238,7 +238,7 @@ def entity_asset_directory_upload(
     return AssetAndPresignedURLS.model_validate({"asset": model.model_dump(), "files": urls})
 
 
-@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/files")
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/add")
 def entity_asset_directory_add_files(
     repos: RepoGroupDep,
     user_context: UserContextDep,
@@ -250,17 +250,18 @@ def entity_asset_directory_add_files(
 ) -> DirectoryAddFilesResponse:
     """Add files to an existing directory asset. You get one presigned upload URL per file.
 
-    The directory must come from `assets/directory/upload`, and the entity must be private.
-    A path that already exists in it, as a file or a folder, gets HTTP 409
-    `ASSET_DIRECTORY_FILE_DUPLICATED`, with the paths in `details.existing`.
+    The directory's label must allow it, and the entity must be private. A path that already
+    exists in it, as a file or a folder, gets HTTP 409 `ASSET_DIRECTORY_FILE_DUPLICATED`, with
+    the paths in `details.existing`.
 
     Send each file as `{path, size, sha256_digest}`. Send the returned `headers` with its PUT.
     S3 then accepts only those exact bytes, and only once. A second PUT gets HTTP 412, and
     other bytes get HTTP 400. Send the body with a fixed `Content-Length`, not chunked:
     a chunked upload gets HTTP 403.
 
-    Each upload must start within 15 minutes and may take longer to finish. A URL can stop
-    working earlier when the service's AWS keys rotate. On HTTP 403, ask for a new URL.
+    Each upload must start within `X-Amz-Expires` seconds and may take longer to finish.
+    A URL can stop working earlier when the service's AWS keys rotate. On HTTP 403, ask for
+    a new URL.
     """
     return asset_service.entity_asset_directory_add_files(
         repos=repos,

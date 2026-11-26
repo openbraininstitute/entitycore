@@ -1402,12 +1402,13 @@ def test_add_files_to_a_directory_whose_label_is_not_appendable(client, circuit)
         ).json()["asset"]
         error = assert_request(
             client.post,
-            url=f"{entity_route}/assets/{directory['id']}/directory/files",
+            url=f"{entity_route}/assets/{directory['id']}/directory/add",
             json={"files": [{"path": "extra.json", "size": 1, "sha256_digest": "0" * 64}]},
             expected_status_code=409,
         ).json()
 
     assert error["error_code"] == "ASSET_NOT_APPENDABLE"
+    assert error["message"] == "Label sonata_circuit doesn't allow adding files"
 
 
 def test_list_entity_asset_directory(

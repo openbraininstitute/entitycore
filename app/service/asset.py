@@ -1,4 +1,3 @@
-import functools
 import mimetypes
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -6,7 +5,6 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Literal, cast
 
-import sqlalchemy as sa
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
@@ -69,7 +67,6 @@ from app.utils.s3 import (
 )
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
-ADD_FILES_URL_EXPIRATION = 15 * 60
 S3_KEY_MAX_BYTES = 1024
 INLINE_CONTENT_TYPES = frozenset(
     {
@@ -506,10 +503,8 @@ def entity_asset_directory_add_files(
     """Sign one upload per new file of an existing directory asset.
 
     S3 enforces each upload itself. It takes only the given size, sha256 and Content-Type, and
-    only while the name is free, so an existing file is never replaced.
-
-    The URLs last 15 minutes, not the usual 6 hours, because write access is checked only here.
-    S3 checks the expiry when the upload starts, so a slow upload still finishes.
+    only while the name is free, so an existing file is never replaced. The URLs are short-lived,
+    since write access is checked only when they are signed.
 
     Downloads are presigned GETs that serve the stored headers. Only ``INLINE_CONTENT_TYPES``,
     which a browser shows without running anything, are stored as ``inline``. Every other type,
@@ -532,9 +527,8 @@ def entity_asset_directory_add_files(
         ApiError: 404 when the caller can't write the entity or it has no such asset.
             403 ``ENTITY_FORBIDDEN`` for a public entity, whose files members can't delete.
             422 ``ASSET_NOT_A_DIRECTORY`` for a file asset. 409 ``ASSET_NOT_APPENDABLE`` for a
-            label without ``is_appendable``, a directory made by multipart upload, or one
-            outside internal storage. The multipart check is a query, so it runs last. 422
-            ``ASSET_INVALID_PATH`` for an S3 key over 1024 bytes. 409
+            label without ``is_appendable``, a directory still uploading, or one outside
+            internal storage. 422 ``ASSET_INVALID_PATH`` for an S3 key over 1024 bytes. 409
             ``ASSET_DIRECTORY_FILE_DUPLICATED`` when a path is taken, listed in
             ``details.existing``. 502 ``GENERIC_ERROR`` when S3 can't be checked. 422
             ``S3_CANNOT_CREATE_PRESIGNED_URL`` when signing fails.
@@ -561,21 +555,7 @@ def entity_asset_directory_add_files(
             error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-    requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
-    if (
-        not any(r.is_appendable for r in requirements)
-        or asset.status != AssetStatus.CREATED
-        or asset.storage_type != StorageType.aws_s3_internal
-        or repos.db.scalar(sa.select(sa.exists().where(Asset.parent_id == asset.id)))
-    ):
-        raise ApiError(
-            message=(
-                f"Files cannot be added to this directory: label {asset.label} doesn't allow it, "
-                "or the directory was not uploaded with presigned urls to internal storage"
-            ),
-            error_code=ApiErrorCode.ASSET_NOT_APPENDABLE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
+    _check_appendable(entity, asset)
     if too_long := [
         f.path
         for f in files.files
@@ -623,7 +603,7 @@ def entity_asset_directory_add_files(
                 sha256_hex=f.sha256_digest,
                 content_type=content_type,
                 inline=content_type in INLINE_CONTENT_TYPES,
-                expires_in=ADD_FILES_URL_EXPIRATION,
+                expires_in=settings.S3_ADD_FILES_URL_EXPIRATION_SECONDS,
             )
         except (BotoCoreError, ClientError) as e:
             raise ApiError(
@@ -638,38 +618,56 @@ def entity_asset_directory_add_files(
     )
 
 
+def _check_appendable(entity: Entity, asset: Asset) -> None:
+    requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
+    if not any(r.is_appendable for r in requirements):
+        message = f"Label {asset.label} doesn't allow adding files"
+    elif asset.status != AssetStatus.CREATED:
+        message = "The directory is still uploading"
+    elif asset.storage_type != StorageType.aws_s3_internal:
+        message = "Files can be added only to a directory on internal storage"
+    else:
+        return
+    raise ApiError(
+        message=message,
+        error_code=ApiErrorCode.ASSET_NOT_APPENDABLE,
+        http_status_code=HTTPStatus.CONFLICT,
+    )
+
+
 def _taken_paths(
     s3_client: S3Client, *, bucket_name: str, directory: str, paths: list[str]
 ) -> list[str]:
-    """Return the paths that clash with what the directory already holds in S3.
+    folders = {parent for p in paths for parent in Path(p).parents[:-1]}
+    file_keys = [f"{directory}/{p}" for p in [*paths, *map(str, folders)]]
 
-    A path is taken when it is a file, when it is a folder, or when one of its folders is a
-    file. Each path costs one HEAD and one LIST, plus one HEAD per folder not seen before, so
-    the 10-file cap of the request bounds the calls. The check can race with an upload, so
-    the signed If-None-Match stays the guard against overwrites.
-    """
-    is_file = functools.cache(
-        lambda key: check_object(
-            s3_client, bucket_name=bucket_name, s3_key=key, is_directory=False
-        )["exists"]
-    )
+    def is_file(key: str) -> bool:
+        return check_object(s3_client, bucket_name=bucket_name, s3_key=key, is_directory=False)[
+            "exists"
+        ]
 
-    def is_taken(path: str) -> bool:
-        key = f"{directory}/{path}"
-        return (
-            is_file(key)
-            or bool(
-                list_directory_with_details(
-                    s3_client,
-                    bucket_name=bucket_name,
-                    prefix=key,
-                    pagination_config={"MaxItems": 1, "PageSize": 1},
-                )
+    def is_folder(path: str) -> bool:
+        return bool(
+            list_directory_with_details(
+                s3_client,
+                bucket_name=bucket_name,
+                prefix=f"{directory}/{path}",
+                pagination_config={"MaxItems": 1, "PageSize": 1},
             )
-            or any(is_file(f"{directory}/{parent}") for parent in Path(path).parents[:-1])
         )
 
-    return sorted(p for p in paths if is_taken(p))
+    # in parallel, the request waits for the slowest call, not the sum
+    max_workers = min(settings.S3_MAX_WORKERS, len(file_keys) + len(paths))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        files = dict(zip(file_keys, executor.map(is_file, file_keys), strict=True))
+        folder_paths = dict(zip(paths, executor.map(is_folder, paths), strict=True))
+    return sorted(
+        p
+        for p in paths
+        if files[f"{directory}/{p}"]
+        or folder_paths[p]
+        or any(files[f"{directory}/{parent}"] for parent in Path(p).parents[:-1])
+    )
 
 
 def register_entity_asset_unverified(

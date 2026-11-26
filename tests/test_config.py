@@ -44,6 +44,13 @@ def test_api_asset_post_max_size_invalid(monkeypatch):
         Settings()
 
 
+def test_s3_single_put_max_size_invalid(monkeypatch):
+    monkeypatch.setenv("S3_SINGLE_PUT_MAX_SIZE", str(5 * 1024**3 + 1))
+
+    with pytest.raises(ValueError, match="S3_SINGLE_PUT_MAX_SIZE must not exceed 5 GiB"):
+        Settings()
+
+
 @pytest.mark.parametrize(
     "name",
     ["SENTRY_TRACES_SAMPLE_RATE", "SENTRY_PROFILE_SESSION_SAMPLE_RATE"],

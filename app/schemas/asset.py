@@ -13,7 +13,7 @@ from pydantic import (
 )
 from pydantic.networks import AnyUrl
 
-from app.config import GB, settings, storages
+from app.config import settings, storages
 from app.db.types import (
     CONTENT_TYPE_TO_SUFFIX,
     AssetLabel,
@@ -256,10 +256,6 @@ class DirectoryUploadRequest(Schema):
         return self
 
 
-DIRECTORY_ADD_FILES_MAX = 10
-S3_SINGLE_PUT_MAX_SIZE = 5 * GB
-
-
 def validate_no_control_chars(s: str) -> str:
     """Refuse control characters, which S3 or file systems refuse and zip extraction breaks on."""
     if any(unicodedata.category(c) == "Cc" for c in s):
@@ -275,10 +271,10 @@ class DirectoryAddFile(Schema):
         Field(
             description=(
                 "Exact size in bytes. S3 refuses an upload of any other size. "
-                "At most 5 GiB, the most one S3 PUT holds."
+                f"At most {settings.S3_SINGLE_PUT_MAX_SIZE} bytes."
             ),
             ge=0,
-            le=S3_SINGLE_PUT_MAX_SIZE,
+            le=settings.S3_SINGLE_PUT_MAX_SIZE,
         ),
     ]
     sha256_digest: Annotated[
@@ -294,10 +290,10 @@ class DirectoryAddFilesRequest(Schema):
             description=(
                 "Files to add, with paths relative to the directory. "
                 "A path that already exists in the directory is refused. "
-                "At most 10, since each file costs S3 requests inside this request."
+                f"At most {settings.DIRECTORY_ADD_FILES_MAX} files."
             ),
             min_length=1,
-            max_length=DIRECTORY_ADD_FILES_MAX,
+            max_length=settings.DIRECTORY_ADD_FILES_MAX,
         ),
     ]
 

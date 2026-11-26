@@ -36,6 +36,8 @@ Out of scope:
 | Optimistic concurrency uses the sha256. A request without `If-Match` gets 428. A malformed `If-Match` gets 422. A stale one gets 412 `ASSET_VERSION_MISMATCH`, with the current digest in `details.sha256_digest`. | The row already stores the digest, so the change needs no version column and no migration. A stale caller reads again and retries. It cannot overwrite a newer edit. |
 | A `SELECT ... FOR UPDATE` row lock covers the compare and the write. | Two replaces of the same asset run one after the other. The second compares its `If-Match` with the digest the first wrote. Without the lock, both could pass the check. |
 | The new file must have the asset's content type. Any other type gets 422. | A markdown document stays markdown. |
+| An empty file gets 422 `ASSET_INVALID_FILE`. | A sync that sends an empty body by mistake would erase the document. |
+| The asset of a public entity gets 403 `ENTITY_FORBIDDEN`. The entity is read again under the row lock. | Published content stays as published, as for adding files to a directory. Files under `public/` are copied out as open data every night. A publish that runs during a replace is seen. |
 | Only the admin route exists. | The sync is the only caller, and it works on logs of every project. |
 
 Replace uses the single-part upload path, so two fixes to that path come with it:
@@ -53,6 +55,8 @@ Replace uses the single-part upload path, so two fixes to that path come with it
 
 - If the transaction fails after the S3 PUT, the object holds the new content and the row holds the old digest and size. The next replace fixes both, and the sync retries on its own.
 - Objects uploaded before this change keep their stored type, `binary/octet-stream`. The change runs no migration.
+- Once a project is published, the sync gets 403 for its logs and can't update them.
+- Limit: the bucket is versioned, so each replace keeps the old content as a noncurrent version. The lifecycle rule keeps those for 90 days. The logbook syncs a page at most every 120 s while people edit it. Upgrade: tag replaceable objects on PUT and expire their old versions sooner with a tag-filtered lifecycle rule.
 
 ## Follow-ups
 

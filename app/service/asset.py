@@ -333,8 +333,10 @@ def replace_entity_asset_unverified(
 
     Raises:
         ApiError: 404 ``ASSET_NOT_FOUND`` when the entity has no such asset.
+            403 ``ENTITY_FORBIDDEN`` for a public entity: published content stays as published.
             409 ``ASSET_NOT_REPLACEABLE`` for a directory, external storage, or a label
             without ``is_replaceable``. 409 ``ASSET_UPLOAD_INCOMPLETE`` while the asset uploads.
+            422 ``ASSET_INVALID_FILE`` for an empty file, which would erase the content.
             422 for a file that fails validation or has another content type.
             428 without ``if_match``, 422 when ``if_match`` is not one sha256, and
             412 ``ASSET_VERSION_MISMATCH`` when it differs from the stored digest.
@@ -351,6 +353,14 @@ def replace_entity_asset_unverified(
             .with_for_update()
             .execution_options(populate_existing=True)
         ).scalar_one()
+    # Read the entity again under the lock: a publish that ran meanwhile made it public.
+    repos.db.refresh(entity)
+    if entity.authorized_public:
+        raise ApiError(
+            message="The asset of a public entity cannot be replaced",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
 
     requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
     if (
@@ -370,6 +380,12 @@ def replace_entity_asset_unverified(
             http_status_code=HTTPStatus.CONFLICT,
         )
     content_type = validate_uploadfile_for_small_entity_post(file)
+    if not file.size:
+        raise ApiError(
+            message="The new file is empty, so it would erase the content",
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     if content_type != asset.content_type:
         raise ApiError(
             message=f"Content type {content_type} differs from the asset's {asset.content_type}",

@@ -64,8 +64,10 @@ from app.db.types import (
     ExecutorType,
     ExternalSource,
     GlobalType,
+    ImagingModality,
     MeasurementStatistic,
     MeasurementUnit,
+    OpticalRecordingOrigin,
     PointLocation,
     PointLocationType,
     PublicationType,
@@ -1248,6 +1250,34 @@ class ExtracellularRecording(ScientificArtifact, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     sampling_frequency: Mapped[float]
     duration: Mapped[float]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
+
+
+class OpticalPhysiologyRecording(ScientificArtifact, NameDescriptionVectorMixin):
+    """Optical physiology recording, e.g. calcium, voltage or neurotransmitter-sensor imaging.
+
+    One entity corresponds to one NWB ophys file, usually one field of view or session.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the scientific artifact ID.
+        sampling_frequency (float): Frame rate per imaging plane, in Hz.
+        duration (float): Duration of the recording, in seconds.
+        imaging_modality (ImagingModality): Imaging technique, e.g. two-photon or widefield.
+        recording_origin (OpticalRecordingOrigin): Origin of the recording, e.g. in vivo.
+
+    Assets:
+        - an NWB file with label `nwb`, with ROI masks, fluorescence and ΔF/F traces,
+          imaging plane metadata and stimulus tables.
+    """
+
+    __tablename__ = EntityType.optical_physiology_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    sampling_frequency: Mapped[float]
+    duration: Mapped[float]
+    imaging_modality: Mapped[ImagingModality]
+    recording_origin: Mapped[OpticalRecordingOrigin]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 

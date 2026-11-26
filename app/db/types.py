@@ -210,6 +210,7 @@ class TaskConfigType(StrEnum):
     circuit_single_build__config = auto()
     memodel_build__campaign = auto()
     memodel_build__config = auto()
+    em_cell_mesh_conversion__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -249,6 +250,7 @@ class TaskActivityType(StrEnum):
     circuit_single_build__execution = auto()
     memodel_build__config_generation = auto()
     memodel_build__execution = auto()
+    em_cell_mesh_conversion__execution = auto()
 
 
 class AgentType(StrEnum):

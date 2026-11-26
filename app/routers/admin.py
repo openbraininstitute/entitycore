@@ -124,7 +124,7 @@ def replace_entity_asset(
 
     Only labels that must always show the newest content accept a replace, such as
     `research_log_document`. Any other asset gets HTTP 409 and stays immutable. The asset of a
-    public entity gets HTTP 403, and an empty file gets HTTP 422.
+    public entity gets HTTP 403. An empty file is accepted: it clears the content.
 
     Send `If-Match` with the `sha256_digest` you last read. If the content changed since, the
     route writes nothing and answers HTTP 412, with the current digest in

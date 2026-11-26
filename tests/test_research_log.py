@@ -291,15 +291,16 @@ def test_replace_document_needs_the_version_read(clients, model, s3, s3_internal
     assert saved["sha256_digest"] == alice["sha256_digest"]
 
 
-def test_replace_document_refuses_an_empty_file(clients, model, s3, s3_internal_bucket):
+def test_replace_document_with_an_empty_file(clients, model, s3, s3_internal_bucket):
     first = _upload_document(clients.user_1, model)
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
 
-    error = _replace(clients.admin, url, b"", first["sha256_digest"], 422).json()
+    cleared = _replace(clients.admin, url, b"", first["sha256_digest"]).json()
 
-    assert error["error_code"] == "ASSET_INVALID_FILE"
+    assert cleared["size"] == 0
+    assert cleared["sha256_digest"] == hashlib.sha256(b"").hexdigest()
     body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
-    assert body == b"# Log\n"
+    assert body == b""
 
 
 def test_replace_document_of_a_public_log(db, clients, model, s3, s3_internal_bucket):

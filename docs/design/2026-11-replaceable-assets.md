@@ -36,7 +36,7 @@ Out of scope:
 | Optimistic concurrency uses the sha256. A request without `If-Match` gets 428. A malformed `If-Match` gets 422. A stale one gets 412 `ASSET_VERSION_MISMATCH`, with the current digest in `details.sha256_digest`. | The row already stores the digest, so the change needs no version column and no migration. A stale caller reads again and retries. It cannot overwrite a newer edit. |
 | A `SELECT ... FOR UPDATE` row lock covers the compare and the write. | Two replaces of the same asset run one after the other. The second compares its `If-Match` with the digest the first wrote. Without the lock, both could pass the check. |
 | The new file must have the asset's content type. Any other type gets 422. | A markdown document stays markdown. |
-| An empty file gets 422 `ASSET_INVALID_FILE`. | A sync that sends an empty body by mistake would erase the document. |
+| An empty file is accepted. | The logbook clears a page's document this way, so the document doesn't keep text that was removed. The id and link stay. |
 | The asset of a public entity gets 403 `ENTITY_FORBIDDEN`. The entity is read again under the row lock. | Published content stays as published, as for adding files to a directory. Files under `public/` are copied out as open data every night. A publish that runs during a replace is seen. |
 | Only the admin route exists. | The sync is the only caller, and it works on logs of every project. |
 

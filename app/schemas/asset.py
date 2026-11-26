@@ -1,3 +1,4 @@
+import unicodedata
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,7 @@ from pydantic import (
 )
 from pydantic.networks import AnyUrl
 
-from app.config import settings, storages
+from app.config import GB, settings, storages
 from app.db.types import (
     CONTENT_TYPE_TO_SUFFIX,
     AssetLabel,
@@ -255,19 +256,29 @@ class DirectoryUploadRequest(Schema):
         return self
 
 
-# Each file costs one S3 HEAD inside the request, so the cap bounds the request time.
 DIRECTORY_ADD_FILES_MAX = 10
+S3_SINGLE_PUT_MAX_SIZE = 5 * GB
+
+
+def validate_no_control_chars(s: str) -> str:
+    """Refuse control characters, which S3 or file systems refuse and zip extraction breaks on."""
+    if any(unicodedata.category(c) == "Cc" for c in s):
+        msg = "Control characters are forbidden in paths"
+        raise ValueError(msg)
+    return s
 
 
 class DirectoryAddFile(Schema):
-    path: RelativePathStr
+    path: Annotated[RelativePathStr, AfterValidator(validate_no_control_chars)]
     size: Annotated[
         int,
         Field(
-            description="Exact size in bytes. S3 refuses an upload of any other size.",
+            description=(
+                "Exact size in bytes. S3 refuses an upload of any other size. "
+                "At most 5 GiB, the most one S3 PUT holds."
+            ),
             ge=0,
-            # One PUT, so the same 5 GiB cap as one multipart part.
-            le=settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE,
+            le=S3_SINGLE_PUT_MAX_SIZE,
         ),
     ]
     sha256_digest: Annotated[
@@ -282,7 +293,8 @@ class DirectoryAddFilesRequest(Schema):
         Field(
             description=(
                 "Files to add, with paths relative to the directory. "
-                "A path that already exists in the directory is refused."
+                "A path that already exists in the directory is refused. "
+                "At most 10, since each file costs S3 requests inside this request."
             ),
             min_length=1,
             max_length=DIRECTORY_ADD_FILES_MAX,
@@ -290,10 +302,15 @@ class DirectoryAddFilesRequest(Schema):
     ]
 
     @model_validator(mode="after")
-    def verify_unique(self):
+    def verify_paths(self):
+        """Refuse a path listed twice, or a path that is also a folder of another path."""
         paths = [f.path for f in self.files]
         if len(set(paths)) != len(paths):
             msg = "Filenames must be unique within the request."
+            raise ValueError(msg)
+        folders = {str(parent) for p in paths for parent in Path(p).parents}
+        if clashes := sorted(folders.intersection(paths)):
+            msg = f"These paths are both a file and a folder: {', '.join(clashes)}"
             raise ValueError(msg)
         return self
 

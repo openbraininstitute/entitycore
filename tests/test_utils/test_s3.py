@@ -446,7 +446,13 @@ def test_presigned_put_url_for_bytes_is_signed_for_the_public_host(monkeypatch):
     internal = boto3.client("s3", region_name="us-east-1", endpoint_url="http://rustfs:9000")
 
     url, _headers = test_module.generate_presigned_put_url_for_bytes(
-        internal, bucket_name="bucket", s3_key="a/b.txt", size=1, sha256_hex=digest, expires_in=60
+        internal,
+        bucket_name="bucket",
+        s3_key="a/b.txt",
+        size=1,
+        sha256_hex=digest,
+        content_type="text/plain",
+        expires_in=60,
     )
 
     public = boto3.client(
@@ -460,9 +466,31 @@ def test_presigned_put_url_for_bytes_is_signed_for_the_public_host(monkeypatch):
         "Key": "a/b.txt",
         "IfNoneMatch": "*",
         "ContentLength": 1,
+        "ContentType": "text/plain",
         "ChecksumSHA256": checksum,
     }
     assert url == public.generate_presigned_url("put_object", Params=params, ExpiresIn=60)
+
+
+def test_presigned_put_url_for_bytes_is_virtual_hosted_on_aws(monkeypatch):
+    monkeypatch.setattr(settings, "S3_PRESIGNED_URL_NETLOC", None)
+    monkeypatch.delenv("AWS_ENDPOINT_URL", raising=False)
+    monkeypatch.delenv("AWS_ENDPOINT_URL_S3", raising=False)
+    test_module._sigv4_presign_client.cache_clear()
+    aws = boto3.client("s3", region_name="us-east-1")
+
+    url, _headers = test_module.generate_presigned_put_url_for_bytes(
+        aws,
+        bucket_name="bucket",
+        s3_key="a/b.txt",
+        size=1,
+        sha256_hex=hashlib.sha256(b"x").hexdigest(),
+        content_type="text/plain",
+        expires_in=60,
+    )
+    test_module._sigv4_presign_client.cache_clear()
+
+    assert url.startswith("https://bucket.s3.amazonaws.com/a/b.txt?")
 
 
 def test_apply_presigned_url_netloc_unset(monkeypatch):

@@ -4,6 +4,7 @@ import urllib.parse
 
 import pytest
 import requests
+from botocore.exceptions import ClientError
 
 from app.db.model import Derivation, ResearchLog
 from app.db.types import AssetLabel, ContentType, DerivationType, EntityType
@@ -284,12 +285,13 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
         "figures/rate.png": {
             "If-None-Match": "*",
             "Content-Length": str(len(content)),
+            "Content-Type": "image/png",
             "x-amz-checksum-sha256": checksum,
         }
     }
     signed = urllib.parse.parse_qs(urllib.parse.urlparse(data["files"]["figures/rate.png"]).query)
     assert signed["X-Amz-SignedHeaders"] == [
-        "content-length;host;if-none-match;x-amz-checksum-sha256"
+        "content-length;content-type;host;if-none-match;x-amz-checksum-sha256"
     ]
     assert signed["X-Amz-Expires"] == ["900"]
 
@@ -298,7 +300,9 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
     again = requests.put(url, data=content, headers=headers, timeout=10)
     assert again.status_code == 412
     key = f"{directory['full_path']}/figures/rate.png"
-    assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == content
+    stored = s3.get_object(Bucket=s3_internal_bucket, Key=key)
+    assert stored["Body"].read() == content
+    assert stored["ContentType"] == "image/png"
 
     error = assert_request(
         client.post, url=add_url, json={"files": [file]}, expected_status_code=409
@@ -311,8 +315,62 @@ def test_add_files_upload_is_enforced_by_s3(client, model, s3, s3_internal_bucke
         [{**_file("a.png"), "sha256_digest": "abc"}],
         [{**_file("a.png"), "size": -1}],
         [_file(f"f{i}.png") for i in range(DIRECTORY_ADD_FILES_MAX + 1)],
+        [_file("a"), _file("a/b.png")],
+        [_file("a\x00b.png")],
+        [_file("a\nb.png")],
+        [_file("x" * 1024)],
     ]:
         assert_request(client.post, url=add_url, json={"files": files}, expected_status_code=422)
+
+
+def test_add_files_refuses_paths_that_clash_with_folders(client, model, s3, s3_internal_bucket):
+    directory = _files_directory(client, model)
+    s3.put_object(
+        Bucket=s3_internal_bucket, Key=f"{directory['full_path']}/figures/fig1.png", Body=b"png"
+    )
+    add_url = f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files"
+
+    for path in ["figures", "figures/fig1.png/x"]:
+        error = assert_request(
+            client.post,
+            url=add_url,
+            json={"files": [_file(path), _file("ok.png")]},
+            expected_status_code=409,
+        ).json()
+        assert error["details"] == {"existing": [path]}
+
+
+def test_add_files_to_public_entity(db, client, model):
+    directory = _files_directory(client, model)
+    model.authorized_public = True
+    db.commit()
+
+    error = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file("x.png")]},
+        expected_status_code=403,
+    ).json()
+
+    assert error["error_code"] == "ENTITY_FORBIDDEN"
+
+
+def test_add_files_when_s3_check_fails(client, model, monkeypatch):
+    directory = _files_directory(client, model)
+
+    def fail(*_args, **_kwargs):
+        raise ClientError({"Error": {"Code": "400"}}, "HeadObject")
+
+    monkeypatch.setattr("app.service.asset.check_object", fail)
+
+    error = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file("x.png")]},
+        expected_status_code=502,
+    ).json()
+
+    assert error["error_code"] == "GENERIC_ERROR"
 
 
 def test_add_files_to_open_storage_directory(client, model, s3, s3_open_bucket):

@@ -1,3 +1,5 @@
+import functools
+import mimetypes
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http import HTTPStatus
@@ -67,9 +69,8 @@ from app.utils.s3 import (
 )
 from app.utils.virtual_lab import resolve_virtual_lab_id
 
-# Not the usual 6 hours: write access is checked at signing, so a short window keeps a late
-# upload out of a directory deleted or moved since. S3 checks expiry when the upload starts.
 ADD_FILES_URL_EXPIRATION = 15 * 60
+S3_KEY_MAX_BYTES = 1024
 
 
 def get_entity_assets(
@@ -486,8 +487,11 @@ def entity_asset_directory_add_files(
 ) -> DirectoryAddFilesResponse:
     """Sign one upload per new file of an existing directory asset.
 
-    S3 enforces each upload itself. It takes only the given size and sha256, and only while
-    the name is free, so an existing file is never replaced.
+    S3 enforces each upload itself. It takes only the given size, sha256 and Content-Type, and
+    only while the name is free, so an existing file is never replaced.
+
+    The URLs last 15 minutes, not the usual 6 hours, because write access is checked only here.
+    S3 checks the expiry when the upload starts, so a slow upload still finishes.
 
     Args:
         repos: Repository group for database access.
@@ -503,18 +507,30 @@ def entity_asset_directory_add_files(
 
     Raises:
         ApiError: 404 when the caller can't write the entity or it has no such asset.
+            403 ``ENTITY_FORBIDDEN`` for a public entity, whose files members can't delete.
             422 ``ASSET_NOT_A_DIRECTORY`` for a file asset. 409 ``ASSET_INVALID_PATH`` for a
-            directory that is unfinished, made by multipart upload, or outside internal storage.
-            409 ``ASSET_DIRECTORY_FILE_DUPLICATED`` when a path exists, listed in
-            ``details.existing``. 422 ``S3_CANNOT_CREATE_PRESIGNED_URL`` when signing fails.
+            directory made by multipart upload or outside internal storage. 422
+            ``ASSET_INVALID_PATH`` for an S3 key over 1024 bytes. 409
+            ``ASSET_DIRECTORY_FILE_DUPLICATED`` when a path is taken, listed in
+            ``details.existing``. 502 ``GENERIC_ERROR`` when S3 can't be checked. 422
+            ``S3_CANNOT_CREATE_PRESIGNED_URL`` when signing fails.
     """
-    asset = get_writable_entity_db_asset(
+    entity = entity_service.get_writable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
-        asset_id=asset_id,
     )
+    if entity.authorized_public:
+        raise ApiError(
+            message="Files cannot be added to a public entity",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
+        )
     if not asset.is_directory:
         raise ApiError(
             message="Asset is not a directory, files cannot be added",
@@ -530,24 +546,36 @@ def entity_asset_directory_add_files(
         or asset.storage_type != StorageType.aws_s3_internal
     ):
         raise ApiError(
-            message="Files can be added only to a completed directory uploaded with presigned urls",
+            message="Files can be added only to a directory uploaded with presigned urls",
             error_code=ApiErrorCode.ASSET_INVALID_PATH,
             http_status_code=HTTPStatus.CONFLICT,
+        )
+    if too_long := [
+        f.path
+        for f in files.files
+        if len(f"{asset.full_path}/{f.path}".encode()) > S3_KEY_MAX_BYTES
+    ]:
+        raise ApiError(
+            message=f"These paths make an S3 key over {S3_KEY_MAX_BYTES} bytes: {too_long}",
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
 
     storage = storages[asset.storage_type]
     s3_client = storage_client_factory(storage)
-    # One HEAD per name answers 409 early. It can race, so the signed If-None-Match is the guard.
-    taken = sorted(
-        f.path
-        for f in files.files
-        if check_object(
+    try:
+        taken = _taken_paths(
             s3_client,
             bucket_name=storage.bucket,
-            s3_key=str(Path(asset.full_path) / f.path),
-            is_directory=False,
-        )["exists"]
-    )
+            directory=asset.full_path,
+            paths=[f.path for f in files.files],
+        )
+    except (BotoCoreError, ClientError) as e:
+        raise ApiError(
+            message="Could not check the directory in S3",
+            error_code=ApiErrorCode.GENERIC_ERROR,
+            http_status_code=HTTPStatus.BAD_GATEWAY,
+        ) from e
     if taken:
         raise ApiError(
             message=f"These files already exist in the directory: {', '.join(taken)}",
@@ -566,6 +594,8 @@ def entity_asset_directory_add_files(
                 s3_key=str(Path(asset.full_path) / f.path),
                 size=f.size,
                 sha256_hex=f.sha256_digest,
+                content_type=mimetypes.guess_type(f.path, strict=False)[0]
+                or "application/octet-stream",
                 expires_in=ADD_FILES_URL_EXPIRATION,
             )
         except (BotoCoreError, ClientError) as e:
@@ -579,6 +609,40 @@ def entity_asset_directory_add_files(
     return DirectoryAddFilesResponse(
         asset=AssetRead.model_validate(asset), files=urls, headers=headers
     )
+
+
+def _taken_paths(
+    s3_client: S3Client, *, bucket_name: str, directory: str, paths: list[str]
+) -> list[str]:
+    """Return the paths that clash with what the directory already holds in S3.
+
+    A path is taken when it is a file, when it is a folder, or when one of its folders is a
+    file. Each path costs one HEAD and one LIST, plus one HEAD per folder not seen before, so
+    the 10-file cap of the request bounds the calls. The check can race with an upload, so
+    the signed If-None-Match stays the guard against overwrites.
+    """
+    is_file = functools.cache(
+        lambda key: check_object(
+            s3_client, bucket_name=bucket_name, s3_key=key, is_directory=False
+        )["exists"]
+    )
+
+    def is_taken(path: str) -> bool:
+        key = f"{directory}/{path}"
+        return (
+            is_file(key)
+            or bool(
+                list_directory_with_details(
+                    s3_client,
+                    bucket_name=bucket_name,
+                    prefix=key,
+                    pagination_config={"MaxItems": 1, "PageSize": 1},
+                )
+            )
+            or any(is_file(f"{directory}/{parent}") for parent in Path(path).parents[:-1])
+        )
+
+    return sorted(p for p in paths if is_taken(p))
 
 
 def register_entity_asset_unverified(

@@ -325,13 +325,14 @@ def generate_presigned_url(
 
 
 @functools.cache
-def _sigv4_presign_client(endpoint_url: str, region_name: str) -> S3Client:
+def _sigv4_presign_client(endpoint_url: str | None, region_name: str) -> S3Client:
     """Return an S3 client that presigns with SigV4, one per endpoint and region.
 
     botocore presigns S3 URLs with SigV2 by default, and SigV2 does not sign If-None-Match or
     Content-Length, so S3 would not enforce them. SigV4 signs every header given.
     SigV4 also signs the host, so the host can't be swapped after signing as
     ``_apply_presigned_url_netloc`` does. The caller passes the public endpoint instead.
+    With no endpoint, boto3 picks it as for the storage client, so AWS gets virtual-hosted URLs.
     The client only presigns, which makes no network call.
     """
     return boto3.session.Session().client(
@@ -349,16 +350,19 @@ def generate_presigned_put_url_for_bytes(
     s3_key: str,
     size: int,
     sha256_hex: str,
+    content_type: str,
     expires_in: int,
 ) -> tuple[str, dict[str, str]]:
     """Presign a PUT that S3 accepts only for these bytes, and only while the key is free.
 
     Args:
-        s3_client: S3 client of the storage. Its endpoint and region are reused.
+        s3_client: S3 client of the storage. Its region is reused, and its endpoint when
+            ``S3_PRESIGNED_URL_NETLOC`` is set.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key the upload creates.
         size: exact size of the content in bytes.
         sha256_hex: SHA256 of the content, in hexadecimal.
+        content_type: Content-Type the object is stored and served with.
         expires_in: seconds the URL stays valid. S3 checks it when the upload starts.
 
     Returns:
@@ -366,9 +370,12 @@ def generate_presigned_put_url_for_bytes(
         With other bytes, S3 answers 400. Once the key exists, S3 answers 412.
     """
     checksum = base64.b64encode(bytes.fromhex(sha256_hex)).decode()
-    signer = _sigv4_presign_client(
-        _apply_presigned_url_netloc(s3_client.meta.endpoint_url), s3_client.meta.region_name
+    endpoint_url = (
+        _apply_presigned_url_netloc(s3_client.meta.endpoint_url)
+        if settings.S3_PRESIGNED_URL_NETLOC
+        else None
     )
+    signer = _sigv4_presign_client(endpoint_url, s3_client.meta.region_name)
     url = signer.generate_presigned_url(
         "put_object",
         Params={
@@ -376,6 +383,7 @@ def generate_presigned_put_url_for_bytes(
             "Key": s3_key,
             "IfNoneMatch": "*",
             "ContentLength": size,
+            "ContentType": content_type,
             "ChecksumSHA256": checksum,
         },
         ExpiresIn=expires_in,
@@ -383,6 +391,7 @@ def generate_presigned_put_url_for_bytes(
     headers = {
         "If-None-Match": "*",
         "Content-Length": str(size),
+        "Content-Type": content_type,
         "x-amz-checksum-sha256": checksum,
     }
     return url, headers

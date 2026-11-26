@@ -351,6 +351,7 @@ def generate_presigned_put_url_for_bytes(
     size: int,
     sha256_hex: str,
     content_type: str,
+    inline: bool,
     expires_in: int,
 ) -> tuple[str, dict[str, str]]:
     """Presign a PUT that S3 accepts only for these bytes, and only while the key is free.
@@ -363,16 +364,18 @@ def generate_presigned_put_url_for_bytes(
         size: exact size of the content in bytes.
         sha256_hex: SHA256 of the content, in hexadecimal.
         content_type: Content-Type the object is stored and served with.
+        inline: True to let a browser show the download, False to make it save the file.
         expires_in: seconds the URL stays valid. S3 checks it when the upload starts.
 
     Returns:
         The URL and the headers its PUT must send. Without them, S3 refuses the signature.
         With other bytes, S3 answers 400. Once the key exists, S3 answers 412. The
         Content-Disposition is signed too, with the key's file name (RFC 6266 ``filename*``),
-        so the uploader can't pick the name a download is saved as.
+        so the uploader can't pick how a download is shown or the name it is saved as.
     """
     checksum = base64.b64encode(bytes.fromhex(sha256_hex)).decode()
-    content_disposition = f"inline; filename*=UTF-8''{quote(Path(s3_key).name, safe='')}"
+    disposition = "inline" if inline else "attachment"
+    content_disposition = f"{disposition}; filename*=UTF-8''{quote(Path(s3_key).name, safe='')}"
     endpoint_url = (
         _apply_presigned_url_netloc(s3_client.meta.endpoint_url)
         if settings.S3_PRESIGNED_URL_NETLOC

@@ -46,6 +46,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_MISSING_PATH = auto()
     ASSET_INVALID_PATH = auto()
     ASSET_NOT_A_DIRECTORY = auto()
+    ASSET_NOT_APPENDABLE = auto()
     ASSET_INVALID_SCHEMA = auto()
     ASSET_INVALID_CONTENT_TYPE = auto()
     ASSET_UPLOAD_INCOMPLETE = auto()

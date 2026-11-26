@@ -8,16 +8,17 @@
 
 ## Context
 
-A directory asset never takes new files after `directory/upload` creates it. The research log needs a folder that grows. During a research session, people and the agent add files one at a time to the `research_log_files` directory. The research log is the first user. The endpoint works for any directory asset.
+A directory asset never takes new files after `directory/upload` creates it. The research log needs a folder that grows. During a research session, people and the agent add files one at a time to the `research_log_files` directory. For now only `research_log_files` accepts new files.
 
 The files can be large. The web app accepts files up to 100 MB. The agent saves files up to 5 GiB. The service's own upload route, `POST /assets`, accepts at most 150 MB (`API_ASSET_POST_MAX_SIZE`).
 
 In scope:
 
-- Adding new files to a directory made by `directory/upload`, on internal storage, of a private entity.
+- Adding new files to a directory made by `directory/upload`, on internal storage, of a private entity, whose label opts in.
 
 Out of scope:
 
+- Any other directory label.
 - Replacing or deleting a single file inside a directory.
 - Directories made by multipart upload, and directories on open storage.
 
@@ -29,10 +30,11 @@ The bytes go straight from the client to S3, as with `directory/upload`. The ser
 
 | Choice | Why |
 |---|---|
+| A label opts in with `LabelRequirements.is_appendable`, which defaults to `False`. Only `research_log_files` sets it. Any other label, a multipart directory, or one outside internal storage gets 409 `ASSET_NOT_APPENDABLE`. | Directories stay as created unless their label says otherwise, as `is_replaceable` does for files. Turning a label on later is easy; taking it away once clients depend on it is not. |
 | The service signs `If-None-Match: *` into each URL. | S3 refuses a second upload to the same name with 412, so an existing file is never replaced. A reference to a file stays valid. |
 | The service signs `Content-Length` and `x-amz-checksum-sha256` into each URL. | S3 refuses an upload with another size or other bytes. A URL cannot store anything but the announced file. |
 | The service signs `Content-Type`, guessed from the file extension. | The uploader can't store a file as `text/html` when its name says otherwise. Downloads serve the stored type. |
-| The service signs `Content-Disposition: inline; filename*=UTF-8''<file name>` (RFC 6266). | The uploader can't pick the name a download is saved as. Downloads keep showing in the browser. |
+| The service signs `Content-Disposition: <inline or attachment>; filename*=UTF-8''<file name>` (RFC 6266). It is `inline` only for images (not SVG), PDF, plain text, CSV, markdown and JSON, and `attachment` for every other type. | The uploader can't pick how a download is shown or the name it is saved as. Downloads are plain presigned GETs that serve the stored headers, so an `.html`, `.svg` or `.js` file is saved, never run as a page on the bucket's domain. |
 | These URLs use SigV4. | botocore presigns S3 URLs with SigV2 by default. SigV2 does not sign those headers, so S3 would ignore them. |
 | The SigV4 client signs for the public host when `S3_PRESIGNED_URL_NETLOC` is set. Otherwise boto3 picks the endpoint, as for the storage client. | SigV4 signs the host. Rewriting the host after signing, as the other presigned URLs do, would break the signature. Without a custom endpoint, AWS gets the same virtual-hosted URLs as the other presigned URLs. |
 | A public entity gets 403 `ENTITY_FORBIDDEN`. | Members can't delete the files of a public entity, so they must not add files they can't take back. Files under `public/` are also copied out as open data. |
@@ -48,7 +50,8 @@ The bytes go straight from the client to S3, as with `directory/upload`. The ser
 - Upload through the service with `put_object(IfNoneMatch="*", ChecksumAlgorithm="SHA256")`. This needs no presigning and no header contract. The service's upload path accepts at most 150 MB, and the agent saves files up to 5 GiB, so it cannot carry every file.
 - Plain presigned URLs, as `directory/upload` uses, plus the HEAD check. They need no SigV4 client and no headers. S3 would not check the size or the bytes, and two uploads to one name would both land, with the last one kept. The agent's save path refuses a URL that does not make S3 check the bytes.
 - Allow a bare path without size and sha256. No caller sends one, and its URL would carry no check.
-- Limit the endpoint to the `research_log_files` label. Left open in review: a generic endpoint lets other directories grow too.
+- Allow every directory label. It needs no flag, but other directories, such as a SONATA circuit other entities derive from, are expected to stay as created.
+- Store HTML, SVG and JavaScript as `application/octet-stream`. It also stops them running, but downloads then lose their real type.
 
 ## Consequences
 

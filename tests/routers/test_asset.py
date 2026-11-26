@@ -1387,6 +1387,29 @@ def test_upload_entity_asset_directory(client, root_circuit):
     ]
 
 
+def test_add_files_to_a_directory_whose_label_is_not_appendable(client, circuit):
+    entity_route = f"{route(circuit.type)}/{circuit.id}"
+    with mock_aws():
+        directory = assert_request(
+            client.post,
+            url=f"{entity_route}/assets/directory/upload",
+            json={
+                "files": ["config.json"],
+                "meta": None,
+                "label": "sonata_circuit",
+                "directory_name": "circuit",
+            },
+        ).json()["asset"]
+        error = assert_request(
+            client.post,
+            url=f"{entity_route}/assets/{directory['id']}/directory/files",
+            json={"files": [{"path": "extra.json", "size": 1, "sha256_digest": "0" * 64}]},
+            expected_status_code=409,
+        ).json()
+
+    assert error["error_code"] == "ASSET_NOT_APPENDABLE"
+
+
 def test_list_entity_asset_directory(
     clients, root_circuit, circuit, private_asset_directory, asset_directory
 ):

@@ -452,6 +452,7 @@ def test_presigned_put_url_for_bytes_is_signed_for_the_public_host(monkeypatch):
         size=1,
         sha256_hex=digest,
         content_type="text/plain",
+        inline=True,
         expires_in=60,
     )
 
@@ -483,10 +484,13 @@ def test_presigned_put_url_for_bytes_pins_the_saved_name():
         size=1,
         sha256_hex=hashlib.sha256(b"x").hexdigest(),
         content_type="text/html",
+        inline=False,
         expires_in=60,
     )
 
-    assert headers["Content-Disposition"] == ("inline; filename*=UTF-8''%C3%A9vil%20name%3Bx.html")
+    assert headers["Content-Disposition"] == (
+        "attachment; filename*=UTF-8''%C3%A9vil%20name%3Bx.html"
+    )
 
 
 def test_presigned_put_url_for_bytes_is_virtual_hosted_on_aws(monkeypatch):
@@ -503,6 +507,7 @@ def test_presigned_put_url_for_bytes_is_virtual_hosted_on_aws(monkeypatch):
         size=1,
         sha256_hex=hashlib.sha256(b"x").hexdigest(),
         content_type="text/plain",
+        inline=True,
         expires_in=60,
     )
     test_module._sigv4_presign_client.cache_clear()

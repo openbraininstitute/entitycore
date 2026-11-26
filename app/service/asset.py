@@ -71,6 +71,22 @@ from app.utils.virtual_lab import resolve_virtual_lab_id
 
 ADD_FILES_URL_EXPIRATION = 15 * 60
 S3_KEY_MAX_BYTES = 1024
+INLINE_CONTENT_TYPES = frozenset(
+    {
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "image/avif",
+        "image/bmp",
+        "image/tiff",
+        "application/pdf",
+        "text/plain",
+        "text/csv",
+        "text/markdown",
+        "application/json",
+    }
+)
 
 
 def get_entity_assets(
@@ -493,6 +509,11 @@ def entity_asset_directory_add_files(
     The URLs last 15 minutes, not the usual 6 hours, because write access is checked only here.
     S3 checks the expiry when the upload starts, so a slow upload still finishes.
 
+    Downloads are presigned GETs that serve the stored headers. Only ``INLINE_CONTENT_TYPES``,
+    which a browser shows without running anything, are stored as ``inline``. Every other type,
+    such as HTML, SVG or JavaScript, is stored as ``attachment``, so the browser saves the file
+    and never runs it as a page on the bucket's domain.
+
     Args:
         repos: Repository group for database access.
         user_context: The caller. It needs write access to the entity.
@@ -508,8 +529,9 @@ def entity_asset_directory_add_files(
     Raises:
         ApiError: 404 when the caller can't write the entity or it has no such asset.
             403 ``ENTITY_FORBIDDEN`` for a public entity, whose files members can't delete.
-            422 ``ASSET_NOT_A_DIRECTORY`` for a file asset. 409 ``ASSET_INVALID_PATH`` for a
-            directory made by multipart upload or outside internal storage. 422
+            422 ``ASSET_NOT_A_DIRECTORY`` for a file asset. 409 ``ASSET_NOT_APPENDABLE`` for a
+            label without ``is_appendable``, a directory made by multipart upload, or one
+            outside internal storage. The multipart check is a query, so it runs last. 422
             ``ASSET_INVALID_PATH`` for an S3 key over 1024 bytes. 409
             ``ASSET_DIRECTORY_FILE_DUPLICATED`` when a path is taken, listed in
             ``details.existing``. 502 ``GENERIC_ERROR`` when S3 can't be checked. 422
@@ -537,17 +559,19 @@ def entity_asset_directory_add_files(
             error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-    is_multipart_directory = repos.db.scalar(
-        sa.select(sa.exists().where(Asset.parent_id == asset.id))
-    )
+    requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
     if (
-        is_multipart_directory
+        not any(r.is_appendable for r in requirements)
         or asset.status != AssetStatus.CREATED
         or asset.storage_type != StorageType.aws_s3_internal
+        or repos.db.scalar(sa.select(sa.exists().where(Asset.parent_id == asset.id)))
     ):
         raise ApiError(
-            message="Files can be added only to a directory uploaded with presigned urls",
-            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            message=(
+                f"Files cannot be added to this directory: label {asset.label} doesn't allow it, "
+                "or the directory was not uploaded with presigned urls to internal storage"
+            ),
+            error_code=ApiErrorCode.ASSET_NOT_APPENDABLE,
             http_status_code=HTTPStatus.CONFLICT,
         )
     if too_long := [
@@ -587,6 +611,7 @@ def entity_asset_directory_add_files(
     urls: dict[Path, AnyUrl] = {}
     headers: dict[Path, dict[str, str]] = {}
     for f in files.files:
+        content_type = mimetypes.guess_type(f.path, strict=False)[0] or "application/octet-stream"
         try:
             url, headers[Path(f.path)] = generate_presigned_put_url_for_bytes(
                 s3_client,
@@ -594,8 +619,8 @@ def entity_asset_directory_add_files(
                 s3_key=str(Path(asset.full_path) / f.path),
                 size=f.size,
                 sha256_hex=f.sha256_digest,
-                content_type=mimetypes.guess_type(f.path, strict=False)[0]
-                or "application/octet-stream",
+                content_type=content_type,
+                inline=content_type in INLINE_CONTENT_TYPES,
                 expires_in=ADD_FILES_URL_EXPIRATION,
             )
         except (BotoCoreError, ClientError) as e:

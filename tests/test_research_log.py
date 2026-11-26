@@ -414,7 +414,34 @@ def test_add_files_to_open_storage_directory(client, model, s3, s3_open_bucket):
         json={"files": [_file("b.csv")]},
         expected_status_code=409,
     ).json()
-    assert error["error_code"] == "ASSET_INVALID_PATH"
+    assert error["error_code"] == "ASSET_NOT_APPENDABLE"
+
+
+@pytest.mark.parametrize(
+    ("path", "content_type", "disposition"),
+    [
+        ("fig.png", "image/png", "inline"),
+        ("doc.pdf", "application/pdf", "inline"),
+        ("notes.md", "text/markdown", "inline"),
+        ("page.html", "text/html", "attachment"),
+        ("logo.svg", "image/svg+xml", "attachment"),
+        ("app.js", "text/javascript", "attachment"),
+        ("data.bin", "application/octet-stream", "attachment"),
+    ],
+)
+def test_add_files_shows_only_safe_types_inline(client, model, path, content_type, disposition):
+    directory = _files_directory(client, model)
+
+    data = assert_request(
+        client.post,
+        url=f"{ROUTE}/{model.id}/assets/{directory['id']}/directory/files",
+        json={"files": [_file(path)]},
+    ).json()
+
+    assert data["headers"][path]["Content-Type"] == content_type
+    assert data["headers"][path]["Content-Disposition"] == (
+        f"{disposition}; filename*=UTF-8''{path}"
+    )
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

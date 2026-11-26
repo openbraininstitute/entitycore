@@ -647,6 +647,7 @@ class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
+    is_appendable: bool = False
 
     @model_validator(mode="after")
     def validate_directory_content_type(self):
@@ -1262,6 +1263,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=None,
                 is_directory=True,
                 description="Optional directory with the files referenced by the logbook.",
+                is_appendable=True,
             )
         ],
     },

@@ -116,8 +116,8 @@ def replace_entity_asset(
     file: UploadFile,
     response: Response,
     if_match: Annotated[
-        str | None,
-        Header(description="The sha256_digest you last read. Required."),
+        list[str] | None,
+        Header(description="The sha256_digest you last read, in one field. Required."),
     ] = None,
 ) -> AssetRead:
     """Replace the content of a small file asset. Its id, path, label and link don't change.

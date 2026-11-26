@@ -201,7 +201,7 @@ def replace_entity_asset(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
     file: UploadFile,
-    if_match: str | None,
+    if_match: list[str] | None,
 ) -> AssetRead:
     entity = crud.get_identifiable_one(
         db=repos.db,

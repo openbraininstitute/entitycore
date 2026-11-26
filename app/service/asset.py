@@ -56,6 +56,7 @@ from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
     check_object,
+    delete_old_versions,
     generate_presigned_url,
     list_directory_with_details,
     upload_to_s3_single_part,
@@ -306,7 +307,7 @@ def replace_entity_asset_unverified(
     asset_id: uuid.UUID,
     storage_client_factory: StorageClientFactory,
     file: UploadFile,
-    if_match: str | None,
+    if_match: list[str] | None,
 ) -> AssetRead:
     """Replace the content of a small file asset. Its id, path, label and link stay the same.
 
@@ -318,6 +319,10 @@ def replace_entity_asset_unverified(
     object holds the new content and the row keeps the old digest. The next replace with the
     old digest still matches the row and puts both back in line.
 
+    The old versions of the object are deleted after the PUT, so the key keeps one version.
+    That costs one list and one delete per replace. Publish moves an object by deleting only
+    its current version, and an older one would come back at the private key.
+
     Args:
         repos: Repository group for database access.
         entity: The entity that owns the asset.
@@ -326,7 +331,7 @@ def replace_entity_asset_unverified(
         asset_id: The asset to replace.
         storage_client_factory: Factory returning an S3 client for a storage.
         file: The new content. It must have the asset's content type.
-        if_match: The ``If-Match`` header, holding the sha256 the caller last read.
+        if_match: The ``If-Match`` header fields, holding the sha256 the caller last read.
 
     Returns:
         The asset with its new ``size`` and ``sha256_digest``.
@@ -334,24 +339,19 @@ def replace_entity_asset_unverified(
     Raises:
         ApiError: 404 ``ASSET_NOT_FOUND`` when the entity has no such asset.
             403 ``ENTITY_FORBIDDEN`` for a public entity: published content stays as published.
-            409 ``ASSET_NOT_REPLACEABLE`` for a directory, external storage, or a label
-            without ``is_replaceable``. 409 ``ASSET_UPLOAD_INCOMPLETE`` while the asset uploads.
+            409 ``ASSET_NOT_REPLACEABLE`` for a directory, external storage, an asset with no
+            digest, or when no ``is_replaceable`` requirement of the label matches its content
+            type. 409 ``ASSET_UPLOAD_INCOMPLETE`` while the asset uploads.
             422 for a file that fails validation or has another content type.
-            428 without ``if_match``, 422 when ``if_match`` is not one sha256, and
+            428 without ``if_match``, 422 when ``if_match`` is not one sha256 in one field, and
             412 ``ASSET_VERSION_MISMATCH`` when it differs from the stored digest.
-        HTTPException: 500 when the S3 upload fails.
+        HTTPException: 500 when the S3 upload or the delete of the old versions fails.
     """
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        # The row lock makes a concurrent replace check If-Match after this one.
         asset = repos.asset.get_entity_asset(
-            entity_type=entity_type, entity_id=entity.id, asset_id=asset_id
+            entity_type=entity_type, entity_id=entity.id, asset_id=asset_id, for_update=True
         )
-        # Lock the row and read it again, so a concurrent replace checks If-Match after this one.
-        repos.db.execute(
-            sa.select(Asset)
-            .where(Asset.id == asset.id)
-            .with_for_update()
-            .execution_options(populate_existing=True)
-        ).scalar_one()
     # Read the entity again under the lock: a publish that ran meanwhile made it public.
     repos.db.refresh(entity)
     if entity.authorized_public:
@@ -365,7 +365,8 @@ def replace_entity_asset_unverified(
     if (
         asset.is_directory
         or asset.storage_type != StorageType.aws_s3_internal
-        or not any(r.is_replaceable for r in requirements)
+        or asset.sha256_digest is None
+        or not any(r.is_replaceable and r.content_type == asset.content_type for r in requirements)
     ):
         raise ApiError(
             message=f"Assets with label {asset.label} cannot be replaced",
@@ -386,7 +387,7 @@ def replace_entity_asset_unverified(
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
     expected = _expected_sha256(if_match)
-    current = asset.sha256_digest.hex() if asset.sha256_digest else None
+    current = asset.sha256_digest.hex()
     if current != expected:
         raise ApiError(
             message="The asset changed since you read it: read it again, then replace it.",
@@ -405,6 +406,10 @@ def replace_entity_asset_unverified(
     )
     if sha256_digest is None:
         raise HTTPException(status_code=500, detail="Failed to upload object")
+    if not delete_old_versions(
+        storage_client_factory(storage), bucket_name=storage.bucket, s3_key=asset.full_path
+    ):
+        raise HTTPException(status_code=500, detail="Failed to delete the old versions")
 
     asset.size = file.size or 0
     asset.sha256_digest = bytes.fromhex(sha256_digest)
@@ -415,16 +420,18 @@ def replace_entity_asset_unverified(
     return AssetRead.model_validate(asset)
 
 
-def _expected_sha256(if_match: str | None) -> str:
-    if if_match is None:
+def _expected_sha256(if_match: list[str] | None) -> str:
+    if not if_match:
         raise ApiError(
             message='Send If-Match with the sha256_digest you last read: If-Match: "<sha256>".',
             error_code=ApiErrorCode.INVALID_REQUEST,
             http_status_code=HTTPStatus.PRECONDITION_REQUIRED,
         )
-    value = if_match.strip().removeprefix('"').removesuffix('"').lower()
+    value = if_match[0].strip() if len(if_match) == 1 else ""
+    if len(value) > 1 and value[0] == value[-1] == '"':
+        value = value[1:-1]
     try:
-        return _SHA256_DIGEST.validate_python(value)
+        return _SHA256_DIGEST.validate_python(value.lower())
     except ValidationError:
         raise ApiError(
             message="If-Match must be one sha256_digest of the asset: 64 hexadecimal characters.",

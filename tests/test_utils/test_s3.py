@@ -563,6 +563,35 @@ def test_delete_objects_batch_client_error_returns_chunk():
     assert set(failed) == {"a.txt", "b.txt"}
 
 
+def test_delete_old_versions_keeps_only_the_current_one(s3, s3_internal_bucket):
+    for data in [b"v1", b"v2", b"v3"]:
+        _upload(s3, s3_internal_bucket, "doc.md", data)
+    _upload(s3, s3_internal_bucket, "doc.md.bak", b"other")
+
+    assert test_module.delete_old_versions(s3, bucket_name=s3_internal_bucket, s3_key="doc.md")
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix="doc.md")["Versions"]
+    assert sorted(v["Key"] for v in versions) == ["doc.md", "doc.md.bak"]
+    assert s3.get_object(Bucket=s3_internal_bucket, Key="doc.md")["Body"].read() == b"v3"
+
+
+def test_delete_old_versions_reports_errors_without_raising(s3, s3_internal_bucket, monkeypatch):
+    for data in [b"v1", b"v2"]:
+        _upload(s3, s3_internal_bucket, "doc.md", data)
+    monkeypatch.setattr(
+        s3, "delete_objects", Mock(return_value={"Errors": [{"Key": "doc.md", "Code": "Denied"}]})
+    )
+
+    assert not test_module.delete_old_versions(s3, bucket_name=s3_internal_bucket, s3_key="doc.md")
+
+
+def test_delete_old_versions_client_error_returns_false():
+    s3_client = Mock()
+    s3_client.get_paginator.side_effect = RuntimeError("boom")
+
+    assert not test_module.delete_old_versions(s3_client, bucket_name="bucket", s3_key="doc.md")
+
+
 def test_delete_directory_storage_objects_removes_all(s3, s3_internal_bucket):
     """Every object under the directory prefix is removed, including nested keys."""
     prefix = "private/vlab/proj/assets/dir/entity-123"

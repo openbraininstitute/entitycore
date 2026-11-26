@@ -4,9 +4,17 @@ import pytest
 import sqlalchemy as sa
 
 from app.db.model import Asset, Derivation, ResearchLog
-from app.db.types import AssetLabel, AssetStatus, ContentType, DerivationType, EntityType
+from app.db.types import (
+    AssetLabel,
+    AssetStatus,
+    ContentType,
+    DerivationType,
+    EntityType,
+    LabelRequirements,
+)
 
 from .utils import (
+    PROJECT_ID,
     assert_request,
     check_admin_create_one,
     check_authorization,
@@ -361,6 +369,74 @@ def test_replace_document_when_s3_fails(clients, model, monkeypatch):
 
     saved = assert_request(clients.admin.get, url=url).json()
     assert saved["sha256_digest"] == first["sha256_digest"]
+
+
+def test_replace_document_when_deleting_old_versions_fails(clients, model, monkeypatch):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    monkeypatch.setattr("app.service.asset.delete_old_versions", lambda *_a, **_k: False)
+
+    _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 500)
+
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == first["sha256_digest"]
+
+
+def test_publish_after_a_replace_leaves_no_old_text(clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model, b"# secret v1\n")
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    _replace(clients.admin, url, b"# v2\n", first["sha256_digest"])
+
+    assert_request(clients.admin.post, url=f"/admin/publish-project/{PROJECT_ID}?dry_run=false")
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert versions.get("Versions", []) == []
+    public = assert_request(clients.admin.get, url=url).json()["full_path"]
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v2\n"
+
+
+def test_replace_document_without_a_digest(db, clients, model):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(sha256_digest=None))
+    db.commit()
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+
+
+def test_replace_document_needs_one_if_match(clients, model):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    digest = first["sha256_digest"]
+
+    for headers in [
+        [("If-Match", "0" * 64), ("If-Match", digest)],
+        [("If-Match", f'"{digest}')],
+        [("If-Match", f'{digest}"')],
+    ]:
+        response = clients.admin.put(
+            url, files={"file": ("log.md", b"# x\n", "text/markdown")}, headers=headers
+        )
+        assert response.status_code == 422, headers
+
+
+def test_replace_needs_the_matching_requirement_to_opt_in(clients, model, monkeypatch):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    requirements = [
+        LabelRequirements(content_type=ContentType.json, is_directory=False, is_replaceable=True),
+        LabelRequirements(content_type=ContentType.markdown, is_directory=False),
+    ]
+    monkeypatch.setattr(
+        "app.service.asset.allowed_asset_labels_for",
+        lambda _entity: {AssetLabel.research_log_document: requirements},
+    )
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

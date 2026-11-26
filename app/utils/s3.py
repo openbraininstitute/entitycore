@@ -187,6 +187,47 @@ def upload_to_s3_single_part(
     return base64.b64decode(checksum_b64).hex()
 
 
+def delete_old_versions(s3_client: S3Client, *, bucket_name: str, s3_key: str) -> bool:
+    """Delete every version of an object except the current one.
+
+    ``move_file`` deletes only the current version of its source. An older version would then
+    become current again, at a key that no asset lists.
+
+    Args:
+        s3_client: S3 client instance.
+        bucket_name: name of the S3 bucket.
+        s3_key: key of the object whose old versions are deleted.
+
+    Returns:
+        ``True`` when no old version is left, ``False`` when listing or deleting failed.
+    """
+    try:
+        pages = s3_client.get_paginator("list_object_versions").paginate(
+            Bucket=bucket_name, Prefix=s3_key
+        )
+        old: list[ObjectIdentifierTypeDef] = [
+            {"Key": s3_key, "VersionId": version_id}
+            for page in pages
+            for version in page.get("Versions", [])
+            if version.get("Key") == s3_key
+            and not version.get("IsLatest", True)
+            and (version_id := version.get("VersionId"))
+        ]
+        for chunk in itertools.batched(old, S3_DELETE_OBJECTS_MAX_KEYS, strict=False):
+            response = s3_client.delete_objects(
+                Bucket=bucket_name, Delete={"Objects": list(chunk), "Quiet": True}
+            )
+            if errors := response.get("Errors"):
+                L.error(
+                    "Failed to delete old versions of s3://{}/{}: {}", bucket_name, s3_key, errors
+                )
+                return False
+    except Exception:  # ruff:ignore[blind-except]
+        L.exception("Error while deleting old versions of s3://{}/{}", bucket_name, s3_key)
+        return False
+    return True
+
+
 def delete_objects_batch(
     s3_client: S3Client,
     *,

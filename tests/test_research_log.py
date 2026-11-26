@@ -11,7 +11,9 @@ from app.db.types import (
     DerivationType,
     EntityType,
     LabelRequirements,
+    StorageType,
 )
+from app.schemas.types import HeaderKey
 
 from .utils import (
     PROJECT_ID,
@@ -219,7 +221,7 @@ def _replace(client, url: str, content: bytes, if_match: str | None, expected: i
         client.put,
         url=url,
         files={"file": ("log.md", content, "text/markdown")},
-        headers={} if if_match is None else {"If-Match": if_match},
+        headers={} if if_match is None else {HeaderKey.if_match: if_match},
         expected_status_code=expected,
     )
 
@@ -229,14 +231,14 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
     new_content = b"# Log\n\nResting potential **-68 mV**.\n"
 
-    response = _replace(clients.admin, url, new_content, f'"{first["sha256_digest"]}"')
+    response = _replace(clients.admin, url, new_content, f'"{first["sha256_digest"].upper()}"')
     replaced = response.json()
     assert replaced["id"] == first["id"]
     assert replaced["path"] == first["path"]
     assert replaced["full_path"] == first["full_path"]
     assert replaced["size"] == len(new_content)
     assert replaced["sha256_digest"] == hashlib.sha256(new_content).hexdigest()
-    assert response.headers["ETag"] == f'"{replaced["sha256_digest"]}"'
+    assert response.headers[HeaderKey.etag] == f'"{replaced["sha256_digest"]}"'
     head = s3.head_object(Bucket=s3_internal_bucket, Key=first["full_path"])
     assert head["ContentType"] == "text/markdown"
     body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
@@ -248,7 +250,7 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
         clients.admin.put,
         url=url,
         files={"file": ("log.json", b"{}", "application/json")},
-        headers={"If-Match": replaced["sha256_digest"]},
+        headers={HeaderKey.if_match: replaced["sha256_digest"]},
         expected_status_code=422,
     ).json()
     assert error["error_code"] == "ASSET_INVALID_CONTENT_TYPE"
@@ -264,9 +266,14 @@ def test_replace_document(clients, model, s3, s3_internal_bucket):
         },
     ).json()["asset"]
     error = _replace(
-        clients.admin, f"{ADMIN_ROUTE}/{model.id}/assets/{folder['id']}", new_content, None, 409
+        clients.admin,
+        f"{ADMIN_ROUTE}/{model.id}/assets/{folder['id']}",
+        new_content,
+        "0" * 64,
+        409,
     ).json()
     assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == "A directory cannot be replaced"
 
     _replace(clients.user_1, url, b"x", replaced["sha256_digest"], 403)
     _replace(
@@ -291,7 +298,7 @@ def test_replace_document_needs_the_version_read(clients, model, s3, s3_internal
     body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
     assert body == b"# Log\n\nAlice\n"
 
-    assert _replace(clients.admin, url, b"x", None, 428).json()["error_code"] == "INVALID_REQUEST"
+    assert _replace(clients.admin, url, b"x", None, 422).json()["error_code"] == "INVALID_REQUEST"
     for bad in [f'W/"{alice["sha256_digest"]}"', "*", f"{alice['sha256_digest']}, abc", "abc"]:
         assert _replace(clients.admin, url, b"x", bad, 422).json()["error_code"] == (
             "INVALID_REQUEST"
@@ -395,15 +402,26 @@ def test_publish_after_a_replace_leaves_no_old_text(clients, model, s3, s3_inter
     assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v2\n"
 
 
-def test_replace_document_without_a_digest(db, clients, model):
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        ({"sha256_digest": None}, "The asset has no sha256_digest to compare with If-Match"),
+        (
+            {"storage_type": StorageType.aws_s3_open},
+            "Only an asset on internal storage can be replaced",
+        ),
+    ],
+)
+def test_replace_document_not_replaceable(db, clients, model, values, message):
     first = _upload_document(clients.user_1, model)
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
-    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(sha256_digest=None))
+    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(**values))
     db.commit()
 
     error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
 
     assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == message
 
 
 def test_replace_document_needs_one_if_match(clients, model):
@@ -412,9 +430,9 @@ def test_replace_document_needs_one_if_match(clients, model):
     digest = first["sha256_digest"]
 
     for headers in [
-        [("If-Match", "0" * 64), ("If-Match", digest)],
-        [("If-Match", f'"{digest}')],
-        [("If-Match", f'{digest}"')],
+        [(HeaderKey.if_match, "0" * 64), (HeaderKey.if_match, digest)],
+        [(HeaderKey.if_match, f'"{digest}')],
+        [(HeaderKey.if_match, f'{digest}"')],
     ]:
         response = clients.admin.put(
             url, files={"file": ("log.md", b"# x\n", "text/markdown")}, headers=headers
@@ -437,6 +455,9 @@ def test_replace_needs_the_matching_requirement_to_opt_in(clients, model, monkey
     error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
 
     assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == (
+        "Label research_log_document doesn't allow replacing text/markdown files"
+    )
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

@@ -15,6 +15,7 @@ from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead, MultipartDirectoryUploadResponse
 from app.schemas.auth import UserContext, UserProfile
+from app.schemas.types import HeaderKey
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -1210,6 +1211,7 @@ def test_replace_entity_asset_not_replaceable(client_admin, entity, asset):
     response = client_admin.put(
         f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}",
         files={"file": ("a.json", b"{}", "application/json")},
+        headers={HeaderKey.if_match: "0" * 64},
     )
     assert response.status_code == 409, response.text
     error = ErrorResponse.model_validate(response.json())

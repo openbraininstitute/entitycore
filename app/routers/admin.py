@@ -1,14 +1,14 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Header, Query, Request, Response, UploadFile, status
+from fastapi import APIRouter, Form, Query, Request, Response, UploadFile, status
 from pydantic import Json
 from starlette.responses import RedirectResponse
 
 from app.config import storages
 from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import AdminContextDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import IfMatchDep, PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.filter import FilterDep
 from app.dependencies.s3 import StorageClientFactoryDep
@@ -24,7 +24,7 @@ from app.schemas.asset import (
     MultipartUploadInitiateRequest,
 )
 from app.schemas.publish import ChangeProjectVisibilityResponse
-from app.schemas.types import ListResponse
+from app.schemas.types import HeaderKey, ListResponse
 from app.service import (
     admin as admin_service,
     asset as asset_service,
@@ -115,10 +115,7 @@ def replace_entity_asset(
     asset_id: uuid.UUID,
     file: UploadFile,
     response: Response,
-    if_match: Annotated[
-        list[str] | None,
-        Header(description="The sha256_digest you last read, in one field. Required."),
-    ] = None,
+    expected_sha256: IfMatchDep,
 ) -> AssetRead:
     """Replace the content of a small file asset. Its id, path, label and link don't change.
 
@@ -128,8 +125,8 @@ def replace_entity_asset(
 
     Send `If-Match` with the `sha256_digest` you last read. If the content changed since, the
     route writes nothing and answers HTTP 412, with the current digest in
-    `details.sha256_digest`. A request without `If-Match` gets HTTP 428. The response's `ETag`
-    is the new digest. Send it as `If-Match` next time.
+    `details.sha256_digest`. A request without one valid `If-Match` gets HTTP 422. The
+    response's `ETag` is the new digest. Send it as `If-Match` next time.
     """
     replaced = admin_service.replace_entity_asset(
         repos=repos,
@@ -139,9 +136,9 @@ def replace_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
         file=file,
-        if_match=if_match,
+        expected_sha256=expected_sha256,
     )
-    response.headers["ETag"] = f'"{replaced.sha256_digest}"'
+    response.headers[HeaderKey.etag] = f'"{replaced.sha256_digest}"'
     return replaced
 
 

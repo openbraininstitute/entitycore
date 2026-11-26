@@ -43,3 +43,12 @@ def test_label_requirements_directory_content_type():
         ValidationError, match="content_type must be None when is_directory is True"
     ):
         LabelRequirements(content_type=ContentType.directory, is_directory=True)
+
+
+def test_label_requirements_replaceable_only_for_files():
+    LabelRequirements(content_type=ContentType.markdown, is_directory=False, is_replaceable=True)
+
+    with pytest.raises(
+        ValidationError, match="is_replaceable must be False when is_directory is True"
+    ):
+        LabelRequirements(content_type=None, is_directory=True, is_replaceable=True)

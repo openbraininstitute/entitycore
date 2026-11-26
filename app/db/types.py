@@ -654,6 +654,9 @@ class LabelRequirements(BaseModel):
         if self.is_directory and self.content_type is not None:
             msg = "content_type must be None when is_directory is True"
             raise ValueError(msg)
+        if self.is_replaceable and self.is_directory:
+            msg = "is_replaceable must be False when is_directory is True"
+            raise ValueError(msg)
         return self
 
 

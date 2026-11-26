@@ -201,7 +201,7 @@ def replace_entity_asset(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
     file: UploadFile,
-    if_match: list[str] | None,
+    expected_sha256: str,
 ) -> AssetRead:
     entity = crud.get_identifiable_one(
         db=repos.db,
@@ -216,7 +216,7 @@ def replace_entity_asset(
         asset_id=asset_id,
         storage_client_factory=storage_client_factory,
         file=file,
-        if_match=if_match,
+        expected_sha256=expected_sha256,
     )
 
 

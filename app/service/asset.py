@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal, cast
 
 import sqlalchemy as sa
+from botocore.exceptions import ClientError
 from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
 from starlette.responses import RedirectResponse
@@ -54,7 +55,8 @@ from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
     check_object,
-    delete_old_versions,
+    current_version_id,
+    delete_version,
     generate_presigned_url,
     list_directory_with_details,
     upload_to_s3_single_part,
@@ -315,9 +317,11 @@ def replace_entity_asset_unverified(
     object holds the new content and the row keeps the old digest. The next replace with the
     old digest still matches the row and puts both back in line.
 
-    The old versions of the object are deleted after the PUT, so the key keeps one version.
-    That costs one list and one delete per replace. Publish moves an object by deleting only
-    its current version, and an older one would come back at the private key.
+    The previous version is deleted after the PUT, so the key keeps one version. Publish moves
+    an object by deleting only its current version, and an older one would come back at the
+    private key. It costs one HEAD before the PUT and one delete after it. If that delete
+    fails, the new content still counts: only the previous version stays behind, and it is
+    logged.
 
     Args:
         repos: Repository group for database access.
@@ -341,7 +345,7 @@ def replace_entity_asset_unverified(
             that fails validation or has another content type.
             412 ``ASSET_VERSION_MISMATCH`` when ``expected_sha256`` differs from the stored
             digest.
-        HTTPException: 500 when the S3 upload or the delete of the old versions fails.
+        HTTPException: 500 when S3 can't be read or the upload fails. Nothing changed then.
     """
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
         # The row lock makes a concurrent replace check If-Match after this one.
@@ -380,8 +384,17 @@ def replace_entity_asset_unverified(
         )
 
     storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+    # Read before the PUT: without s3:ListBucketVersions it can't be found after it. The row
+    # lock keeps other replaces of this asset out until the delete.
+    try:
+        previous_version = current_version_id(
+            s3_client, bucket_name=storage.bucket, s3_key=asset.full_path
+        )
+    except ClientError as e:
+        raise HTTPException(status_code=500, detail="Failed to read the current object") from e
     sha256_digest = upload_to_s3_single_part(
-        storage_client_factory(storage),
+        s3_client,
         file_obj=file.file,
         bucket_name=storage.bucket,
         s3_key=asset.full_path,
@@ -389,10 +402,13 @@ def replace_entity_asset_unverified(
     )
     if sha256_digest is None:
         raise HTTPException(status_code=500, detail="Failed to upload object")
-    if not delete_old_versions(
-        storage_client_factory(storage), bucket_name=storage.bucket, s3_key=asset.full_path
-    ):
-        raise HTTPException(status_code=500, detail="Failed to delete the old versions")
+    if previous_version is not None:
+        delete_version(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=asset.full_path,
+            version_id=previous_version,
+        )
 
     asset.size = file.size or 0
     asset.sha256_digest = bytes.fromhex(sha256_digest)

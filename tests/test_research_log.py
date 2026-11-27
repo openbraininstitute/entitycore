@@ -1,7 +1,13 @@
 import hashlib
+import json
+import uuid
+from unittest.mock import Mock
 
+import boto3
+import botocore.exceptions
 import pytest
 import sqlalchemy as sa
+from moto.core import enable_iam_authentication
 
 from app.db.model import Asset, Derivation, ResearchLog
 from app.db.types import (
@@ -378,15 +384,36 @@ def test_replace_document_when_s3_fails(clients, model, monkeypatch):
     assert saved["sha256_digest"] == first["sha256_digest"]
 
 
-def test_replace_document_when_deleting_old_versions_fails(clients, model, monkeypatch):
+def test_replace_document_when_deleting_the_previous_version_fails(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
     first = _upload_document(clients.user_1, model)
     url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
-    monkeypatch.setattr("app.service.asset.delete_old_versions", lambda *_a, **_k: False)
+    monkeypatch.setattr("app.service.asset.delete_version", lambda *_a, **_k: False)
+
+    replaced = _replace(clients.admin, url, b"# x\n", first["sha256_digest"]).json()
+
+    # The new content counts; only the previous version stays behind.
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == replaced["sha256_digest"]
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert len(versions["Versions"]) == 2
+
+
+def test_replace_document_when_s3_cannot_be_read(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    denied = botocore.exceptions.ClientError({"Error": {"Code": "403"}}, "HeadObject")
+    monkeypatch.setattr("app.service.asset.current_version_id", Mock(side_effect=denied))
 
     _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 500)
 
     saved = assert_request(clients.admin.get, url=url).json()
     assert saved["sha256_digest"] == first["sha256_digest"]
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == b"# Log\n"
 
 
 def test_publish_after_a_replace_leaves_no_old_text(clients, model, s3, s3_internal_bucket):
@@ -400,6 +427,46 @@ def test_publish_after_a_replace_leaves_no_old_text(clients, model, s3, s3_inter
     assert versions.get("Versions", []) == []
     public = assert_request(clients.admin.get, url=url).json()["full_path"]
     assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v2\n"
+
+
+def test_replace_and_publish_with_the_task_role_policy(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    # The S3 actions of entitycore's task role in AWS: no ListBucketVersions.
+    actions = [
+        "s3:AbortMultipartUpload",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:ListBucket",
+    ]
+    bucket = f"arn:aws:s3:::{s3_internal_bucket}"
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Effect": "Allow", "Action": actions, "Resource": [bucket, f"{bucket}/*"]}],
+    }
+    iam = boto3.client("iam")
+    user = f"entitycore-task-{uuid.uuid4().hex[:8]}"
+    iam.create_user(UserName=user)
+    iam.put_user_policy(UserName=user, PolicyName="s3-access", PolicyDocument=json.dumps(policy))
+    key = iam.create_access_key(UserName=user)["AccessKey"]
+    task_s3 = boto3.client(
+        "s3", aws_access_key_id=key["AccessKeyId"], aws_secret_access_key=key["SecretAccessKey"]
+    )
+    monkeypatch.setattr("app.dependencies.s3.get_s3_client", lambda _storage: task_s3)
+    first = _upload_document(clients.user_1, model, b"# secret v1\n")
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+
+    with enable_iam_authentication():
+        second = _replace(clients.admin, url, b"# v2\n", first["sha256_digest"]).json()
+        _replace(clients.admin, url, b"# v3\n", second["sha256_digest"])
+        assert_request(clients.admin.post, url=f"/admin/publish-project/{PROJECT_ID}?dry_run=false")
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert versions.get("Versions", []) == []
+    public = assert_request(clients.admin.get, url=url).json()["full_path"]
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v3\n"
 
 
 @pytest.mark.parametrize(

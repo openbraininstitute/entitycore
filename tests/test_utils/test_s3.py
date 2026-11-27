@@ -2,6 +2,7 @@ import base64
 import hashlib
 import io
 import math
+import uuid
 from unittest.mock import Mock
 from urllib.parse import urlparse
 
@@ -563,33 +564,53 @@ def test_delete_objects_batch_client_error_returns_chunk():
     assert set(failed) == {"a.txt", "b.txt"}
 
 
-def test_delete_old_versions_keeps_only_the_current_one(s3, s3_internal_bucket):
-    for data in [b"v1", b"v2", b"v3"]:
-        _upload(s3, s3_internal_bucket, "doc.md", data)
-    _upload(s3, s3_internal_bucket, "doc.md.bak", b"other")
+def test_current_version_id(s3, s3_internal_bucket):
+    key = f"doc-{uuid.uuid4()}.md"
+    assert test_module.current_version_id(s3, bucket_name=s3_internal_bucket, s3_key=key) is None
+    put = s3.put_object(Bucket=s3_internal_bucket, Key=key, Body=b"v1")
 
-    assert test_module.delete_old_versions(s3, bucket_name=s3_internal_bucket, s3_key="doc.md")
+    found = test_module.current_version_id(s3, bucket_name=s3_internal_bucket, s3_key=key)
 
-    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix="doc.md")["Versions"]
-    assert sorted(v["Key"] for v in versions) == ["doc.md", "doc.md.bak"]
-    assert s3.get_object(Bucket=s3_internal_bucket, Key="doc.md")["Body"].read() == b"v3"
+    assert found == put["VersionId"]
 
 
-def test_delete_old_versions_reports_errors_without_raising(s3, s3_internal_bucket, monkeypatch):
-    for data in [b"v1", b"v2"]:
-        _upload(s3, s3_internal_bucket, "doc.md", data)
-    monkeypatch.setattr(
-        s3, "delete_objects", Mock(return_value={"Errors": [{"Key": "doc.md", "Code": "Denied"}]})
+@pytest.mark.parametrize("version_id", [None, "null"])
+def test_current_version_id_without_an_own_version(version_id):
+    s3_client = Mock()
+    s3_client.head_object.return_value = {} if version_id is None else {"VersionId": version_id}
+
+    assert test_module.current_version_id(s3_client, bucket_name="b", s3_key="k") is None
+
+
+def test_current_version_id_raises_other_errors():
+    s3_client = Mock()
+    s3_client.head_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "403"}}, "HeadObject"
     )
 
-    assert not test_module.delete_old_versions(s3, bucket_name=s3_internal_bucket, s3_key="doc.md")
+    with pytest.raises(botocore.exceptions.ClientError):
+        test_module.current_version_id(s3_client, bucket_name="b", s3_key="k")
 
 
-def test_delete_old_versions_client_error_returns_false():
+def test_delete_version_deletes_only_that_version(s3, s3_internal_bucket):
+    key = f"doc-{uuid.uuid4()}.md"
+    old = s3.put_object(Bucket=s3_internal_bucket, Key=key, Body=b"v1")["VersionId"]
+    new = s3.put_object(Bucket=s3_internal_bucket, Key=key, Body=b"v2")["VersionId"]
+
+    assert test_module.delete_version(
+        s3, bucket_name=s3_internal_bucket, s3_key=key, version_id=old
+    )
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=key)
+    assert [v["VersionId"] for v in versions["Versions"]] == [new]
+    assert "DeleteMarkers" not in versions
+
+
+def test_delete_version_reports_errors_without_raising():
     s3_client = Mock()
-    s3_client.get_paginator.side_effect = RuntimeError("boom")
+    s3_client.delete_object.side_effect = RuntimeError("boom")
 
-    assert not test_module.delete_old_versions(s3_client, bucket_name="bucket", s3_key="doc.md")
+    assert not test_module.delete_version(s3_client, bucket_name="b", s3_key="k", version_id="v")
 
 
 def test_delete_directory_storage_objects_removes_all(s3, s3_internal_bucket):

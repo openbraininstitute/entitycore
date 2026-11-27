@@ -22,4 +22,5 @@ The status of each record is in its header.
 - [ExtracellularRecording entity](2026-11-extracellular-recording-entity.md)
 - [Admin create endpoints for entities and activities](2026-11-admin-create.md)
 - [GenericDataset entity](2026-11-generic-dataset-entity.md)
+- [Add files to a directory asset](2026-11-directory-add-files.md)
 - [Replace the content of a file asset](2026-11-replaceable-assets.md)

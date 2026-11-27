@@ -21,6 +21,8 @@ from app.schemas.asset import (
     AssetReadWithUploadMeta,
     AssetRegister,
     DetailedFileList,
+    DirectoryAddFilesRequest,
+    DirectoryAddFilesResponse,
     DirectoryUploadRequest,
     MultipartDirectoryUploadRequest,
     MultipartDirectoryUploadResponse,
@@ -235,6 +237,42 @@ def entity_asset_directory_upload(
         files=files,
     )
     return AssetAndPresignedURLS.model_validate({"asset": model.model_dump(), "files": urls})
+
+
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/add")
+def entity_asset_directory_add_files(
+    repos: RepoGroupDep,
+    user_context: UserContextDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    files: DirectoryAddFilesRequest,
+) -> DirectoryAddFilesResponse:
+    """Add files to an existing directory asset. You get one presigned upload URL per file.
+
+    The directory's label must allow it, and the entity must be private. A path that already
+    exists in it, as a file or a folder, gets HTTP 409 `ASSET_DIRECTORY_FILE_DUPLICATED`, with
+    the paths in `details.existing`.
+
+    Send each file as `{path, size, sha256_digest}`. Send the returned `headers` with its PUT.
+    S3 then accepts only those exact bytes, and only once. A second PUT gets HTTP 412, and
+    other bytes get HTTP 400. Send the body with a fixed `Content-Length`, not chunked:
+    a chunked upload gets HTTP 403.
+
+    Each upload must start within `X-Amz-Expires` seconds and may take longer to finish.
+    A URL can stop working earlier when the service's AWS keys rotate. On HTTP 403, ask for
+    a new URL.
+    """
+    return asset_service.entity_asset_directory_add_files(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        storage_client_factory=storage_client_factory,
+        files=files,
+    )
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/list")

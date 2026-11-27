@@ -760,6 +760,7 @@ def test_register_entity_asset_not_found(client, entity):
         ("/test.swc", "Absolute paths are forbidden"),
         ("", "Empty paths are forbidden"),
         ("path/to/../test.swc", "Parent traversal is forbidden"),
+        ("path/to/te\x1fst.swc", "Control characters are forbidden in paths"),
     ],
 )
 def test_register_entity_asset_with_invalid_full_path(client, entity, full_path, expected_error):
@@ -1403,6 +1404,7 @@ def test_upload_entity_asset_directory(client, root_circuit):
         "valid/path/../../../etc/groups",
         ".",
         "",
+        "bad\nname.txt",
     ]
     with mock_aws():
         response = client.post(
@@ -1418,7 +1420,32 @@ def test_upload_entity_asset_directory(client, root_circuit):
         "Value error, Parent traversal is forbidden",
         "Value error, Empty paths are forbidden",
         "Value error, Empty paths are forbidden",
+        "Value error, Control characters are forbidden in paths",
     ]
+
+
+def test_add_files_to_a_directory_whose_label_is_not_appendable(client, circuit):
+    entity_route = f"{route(circuit.type)}/{circuit.id}"
+    with mock_aws():
+        directory = assert_request(
+            client.post,
+            url=f"{entity_route}/assets/directory/upload",
+            json={
+                "files": ["config.json"],
+                "meta": None,
+                "label": "sonata_circuit",
+                "directory_name": "circuit",
+            },
+        ).json()["asset"]
+        error = assert_request(
+            client.post,
+            url=f"{entity_route}/assets/{directory['id']}/directory/add",
+            json={"files": [{"path": "extra.json", "size": 1, "sha256_digest": "0" * 64}]},
+            expected_status_code=409,
+        ).json()
+
+    assert error["error_code"] == "ASSET_NOT_APPENDABLE"
+    assert error["message"] == "Label sonata_circuit doesn't allow adding files"
 
 
 def test_list_entity_asset_directory(

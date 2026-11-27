@@ -668,12 +668,16 @@ class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
+    is_appendable: bool = False
     is_replaceable: bool = False
 
     @model_validator(mode="after")
     def validate_directory_content_type(self):
         if self.is_directory and self.content_type is not None:
             msg = "content_type must be None when is_directory is True"
+            raise ValueError(msg)
+        if self.is_appendable and not self.is_directory:
+            msg = "is_appendable must be False when is_directory is False"
             raise ValueError(msg)
         if self.is_replaceable and self.is_directory:
             msg = "is_replaceable must be False when is_directory is True"
@@ -1300,6 +1304,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=None,
                 is_directory=True,
                 description="Optional directory with the files referenced by the logbook.",
+                is_appendable=True,
             )
         ],
     },

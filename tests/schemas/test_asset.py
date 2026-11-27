@@ -125,6 +125,8 @@ def test_validate_relative_path_str(input_path, expected):
         ("./", "Empty paths are forbidden"),
         ("./current_dir_file.txt", "Path must be normalized"),
         ("folder/./current_dir_file.txt", "Path must be normalized"),
+        ("sub/a\nb.txt", "Control characters are forbidden in paths"),
+        ("a\x00b.txt", "Control characters are forbidden in paths"),
     ],
 )
 def test_validate_relative_path_str_raises(input_path, expected_error):
@@ -156,6 +158,7 @@ def test_validate_path_component_str(input_path, expected):
         ("..", "Expected a valid file or directory name"),
         ("../", "Expected a valid file or directory name"),
         ("./current_dir_file.txt", "Name must be normalized"),
+        ("a\tb.txt", "Control characters are forbidden in paths"),
     ],
 )
 def test_validate_path_component_str_raises(input_path, expected_error):

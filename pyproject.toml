@@ -44,6 +44,7 @@ dev = [
     "pytest-cov",
     "pytest-freezer>=0.4.9",
     "pytest-httpx2>=1.0.0",
+    "requests>=2.34.2",  # tests PUT to presigned URLs, moto mocks the requests library
     "ruff",
     "types-boto3-lite[essential]>=1.36.11",
     "types-cachetools>=5.5.0.20240820",

@@ -14,6 +14,8 @@ MB = KB * 1024
 GB = MB * 1024
 TB = GB * 1024
 
+S3_PUT_OBJECT_MAX_SIZE = 5 * GB
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -81,6 +83,9 @@ class Settings(BaseSettings):
     S3_MULTIPART_UPLOAD_MAX_PARTS: int = 10_000
     S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
     S3_MAX_WORKERS: int = 32
+    S3_SINGLE_PUT_MAX_SIZE: int = 5 * GB
+    S3_ADD_FILES_URL_EXPIRATION_SECONDS: int = 15 * 60
+    DIRECTORY_ADD_FILES_MAX: int = 10
 
     API_ASSET_POST_MAX_SIZE: int = 150 * MB
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
@@ -147,6 +152,9 @@ class Settings(BaseSettings):
         if self.API_ASSET_POST_MAX_SIZE > self.S3_MULTIPART_UPLOAD_MAX_PART_SIZE:
             # The simple POST uploads with a single PutObject, capped at 5 GiB.
             msg = "API_ASSET_POST_MAX_SIZE must not exceed S3_MULTIPART_UPLOAD_MAX_PART_SIZE"
+            raise ValueError(msg)
+        if self.S3_SINGLE_PUT_MAX_SIZE > S3_PUT_OBJECT_MAX_SIZE:
+            msg = "S3_SINGLE_PUT_MAX_SIZE must not exceed 5 GiB, the S3 limit of one PutObject"
             raise ValueError(msg)
         return self
 

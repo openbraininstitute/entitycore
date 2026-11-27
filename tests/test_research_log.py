@@ -1,15 +1,30 @@
 import base64
 import hashlib
+import json
 import mimetypes
 import urllib.parse
+import uuid
+from unittest.mock import Mock
 
+import boto3
 import pytest
 import requests
+import sqlalchemy as sa
 from botocore.exceptions import ClientError
+from moto.core import enable_iam_authentication
 
 from app.config import settings
-from app.db.model import Derivation, ResearchLog
-from app.db.types import AssetLabel, ContentType, DerivationType, EntityType
+from app.db.model import Asset, Derivation, ResearchLog
+from app.db.types import (
+    AssetLabel,
+    AssetStatus,
+    ContentType,
+    DerivationType,
+    EntityType,
+    LabelRequirements,
+    StorageType,
+)
+from app.schemas.types import HeaderKey
 
 from .utils import (
     PROJECT_ID,
@@ -503,6 +518,321 @@ def test_add_files_ignores_the_host_mime_types(client, model, monkeypatch):
     ).json()
 
     assert data["headers"]["fig.png"]["Content-Type"] == "image/png"
+
+
+def _upload_document(client, model, content: bytes = b"# Log\n") -> dict:
+    return upload_entity_asset(
+        client,
+        entity_type=EntityType.research_log,
+        entity_id=model.id,
+        files={"file": ("log.md", content, "text/markdown")},
+        label=AssetLabel.research_log_document,
+    ).json()
+
+
+def _replace(client, url: str, content: bytes, if_match: str | None, expected: int = 200):
+    return assert_request(
+        client.put,
+        url=url,
+        files={"file": ("log.md", content, "text/markdown")},
+        headers={} if if_match is None else {HeaderKey.if_match: if_match},
+        expected_status_code=expected,
+    )
+
+
+def test_replace_document(clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    new_content = b"# Log\n\nResting potential **-68 mV**.\n"
+
+    response = _replace(clients.admin, url, new_content, f'"{first["sha256_digest"].upper()}"')
+    replaced = response.json()
+    assert replaced["id"] == first["id"]
+    assert replaced["path"] == first["path"]
+    assert replaced["full_path"] == first["full_path"]
+    assert replaced["size"] == len(new_content)
+    assert replaced["sha256_digest"] == hashlib.sha256(new_content).hexdigest()
+    assert response.headers[HeaderKey.etag] == f'"{replaced["sha256_digest"]}"'
+    head = s3.head_object(Bucket=s3_internal_bucket, Key=first["full_path"])
+    assert head["ContentType"] == "text/markdown"
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == new_content
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == replaced["sha256_digest"]
+
+    error = assert_request(
+        clients.admin.put,
+        url=url,
+        files={"file": ("log.json", b"{}", "application/json")},
+        headers={HeaderKey.if_match: replaced["sha256_digest"]},
+        expected_status_code=422,
+    ).json()
+    assert error["error_code"] == "ASSET_INVALID_CONTENT_TYPE"
+
+    folder = assert_request(
+        clients.user_1.post,
+        url=f"{ROUTE}/{model.id}/assets/directory/upload",
+        json={
+            "files": ["a.png"],
+            "meta": None,
+            "label": AssetLabel.research_log_files,
+            "directory_name": "files",
+        },
+    ).json()["asset"]
+    error = _replace(
+        clients.admin,
+        f"{ADMIN_ROUTE}/{model.id}/assets/{folder['id']}",
+        new_content,
+        "0" * 64,
+        409,
+    ).json()
+    assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == "A directory cannot be replaced"
+
+    _replace(clients.user_1, url, b"x", replaced["sha256_digest"], 403)
+    _replace(
+        clients.admin,
+        f"{ADMIN_ROUTE}/{model.id}/assets/00000000-0000-0000-0000-000000000000",
+        b"x",
+        replaced["sha256_digest"],
+        404,
+    )
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == new_content
+
+
+def test_replace_document_needs_the_version_read(clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+
+    alice = _replace(clients.admin, url, b"# Log\n\nAlice\n", first["sha256_digest"]).json()
+    error = _replace(clients.admin, url, b"# Log\n\nBob\n", first["sha256_digest"], 412).json()
+    assert error["error_code"] == "ASSET_VERSION_MISMATCH"
+    assert error["details"] == {"sha256_digest": alice["sha256_digest"]}
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == b"# Log\n\nAlice\n"
+
+    assert _replace(clients.admin, url, b"x", None, 422).json()["error_code"] == "INVALID_REQUEST"
+    for bad in [f'W/"{alice["sha256_digest"]}"', "*", f"{alice['sha256_digest']}, abc", "abc"]:
+        assert _replace(clients.admin, url, b"x", bad, 422).json()["error_code"] == (
+            "INVALID_REQUEST"
+        )
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == alice["sha256_digest"]
+
+
+def test_replace_document_with_an_empty_file(clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+
+    cleared = _replace(clients.admin, url, b"", first["sha256_digest"]).json()
+
+    assert cleared["size"] == 0
+    assert cleared["sha256_digest"] == hashlib.sha256(b"").hexdigest()
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == b""
+
+
+def test_replace_document_of_a_public_log(db, clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    model.authorized_public = True
+    db.commit()
+
+    error = _replace(clients.admin, url, b"# changed\n", first["sha256_digest"], 403).json()
+
+    assert error["error_code"] == "ENTITY_FORBIDDEN"
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == b"# Log\n"
+
+
+def test_replace_document_heals_after_a_failed_transaction(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    first = _upload_document(clients.user_1, model, b"# old\n")
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    key = first["full_path"]
+
+    def fail_after_the_s3_write(*_args, **_kwargs):
+        msg = "database down"
+        raise RuntimeError(msg)
+
+    with monkeypatch.context() as patched:
+        patched.setattr("app.service.asset.get_or_create_user", fail_after_the_s3_write)
+        with pytest.raises(RuntimeError, match="database down"):
+            _replace(clients.admin, url, b"# new\n", first["sha256_digest"])
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == b"# new\n"
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == first["sha256_digest"]
+
+    replaced = _replace(clients.admin, url, b"# newer\n", first["sha256_digest"]).json()
+    assert replaced["sha256_digest"] == hashlib.sha256(b"# newer\n").hexdigest()
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=key)["Body"].read() == b"# newer\n"
+
+
+def test_replace_document_while_uploading(db, clients, model):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(status=AssetStatus.UPLOADING))
+    db.commit()
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_UPLOAD_INCOMPLETE"
+
+
+def test_replace_document_when_s3_fails(clients, model, monkeypatch):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    monkeypatch.setattr("app.service.asset.upload_to_s3_single_part", lambda *_a, **_k: None)
+
+    _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 500)
+
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == first["sha256_digest"]
+
+
+def test_replace_document_when_deleting_the_previous_version_fails(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    monkeypatch.setattr("app.service.asset.delete_version", lambda *_a, **_k: False)
+
+    replaced = _replace(clients.admin, url, b"# x\n", first["sha256_digest"]).json()
+
+    # The new content counts; only the previous version stays behind.
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == replaced["sha256_digest"]
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert len(versions["Versions"]) == 2
+
+
+def test_replace_document_when_s3_cannot_be_read(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    denied = ClientError({"Error": {"Code": "403"}}, "HeadObject")
+    monkeypatch.setattr("app.service.asset.current_version_id", Mock(side_effect=denied))
+
+    _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 500)
+
+    saved = assert_request(clients.admin.get, url=url).json()
+    assert saved["sha256_digest"] == first["sha256_digest"]
+    body = s3.get_object(Bucket=s3_internal_bucket, Key=first["full_path"])["Body"].read()
+    assert body == b"# Log\n"
+
+
+def test_publish_after_a_replace_leaves_no_old_text(clients, model, s3, s3_internal_bucket):
+    first = _upload_document(clients.user_1, model, b"# secret v1\n")
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    _replace(clients.admin, url, b"# v2\n", first["sha256_digest"])
+
+    assert_request(clients.admin.post, url=f"/admin/publish-project/{PROJECT_ID}?dry_run=false")
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert versions.get("Versions", []) == []
+    public = assert_request(clients.admin.get, url=url).json()["full_path"]
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v2\n"
+
+
+def test_replace_and_publish_with_the_task_role_policy(
+    clients, model, s3, s3_internal_bucket, monkeypatch
+):
+    # The S3 actions of entitycore's task role in AWS: no ListBucketVersions.
+    actions = [
+        "s3:AbortMultipartUpload",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:ListBucket",
+    ]
+    bucket = f"arn:aws:s3:::{s3_internal_bucket}"
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Effect": "Allow", "Action": actions, "Resource": [bucket, f"{bucket}/*"]}],
+    }
+    iam = boto3.client("iam")
+    user = f"entitycore-task-{uuid.uuid4().hex[:8]}"
+    iam.create_user(UserName=user)
+    iam.put_user_policy(UserName=user, PolicyName="s3-access", PolicyDocument=json.dumps(policy))
+    key = iam.create_access_key(UserName=user)["AccessKey"]
+    task_s3 = boto3.client(
+        "s3", aws_access_key_id=key["AccessKeyId"], aws_secret_access_key=key["SecretAccessKey"]
+    )
+    monkeypatch.setattr("app.dependencies.s3.get_s3_client", lambda _storage: task_s3)
+    first = _upload_document(clients.user_1, model, b"# secret v1\n")
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+
+    with enable_iam_authentication():
+        second = _replace(clients.admin, url, b"# v2\n", first["sha256_digest"]).json()
+        _replace(clients.admin, url, b"# v3\n", second["sha256_digest"])
+        assert_request(clients.admin.post, url=f"/admin/publish-project/{PROJECT_ID}?dry_run=false")
+
+    versions = s3.list_object_versions(Bucket=s3_internal_bucket, Prefix=first["full_path"])
+    assert versions.get("Versions", []) == []
+    public = assert_request(clients.admin.get, url=url).json()["full_path"]
+    assert s3.get_object(Bucket=s3_internal_bucket, Key=public)["Body"].read() == b"# v3\n"
+
+
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        ({"sha256_digest": None}, "The asset has no sha256_digest to compare with If-Match"),
+        (
+            {"storage_type": StorageType.aws_s3_open},
+            "Only an asset on internal storage can be replaced",
+        ),
+    ],
+)
+def test_replace_document_not_replaceable(db, clients, model, values, message):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    db.execute(sa.update(Asset).where(Asset.id == first["id"]).values(**values))
+    db.commit()
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == message
+
+
+def test_replace_document_needs_one_if_match(clients, model):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    digest = first["sha256_digest"]
+
+    for headers in [
+        [(HeaderKey.if_match, "0" * 64), (HeaderKey.if_match, digest)],
+        [(HeaderKey.if_match, f'"{digest}')],
+        [(HeaderKey.if_match, f'{digest}"')],
+    ]:
+        response = clients.admin.put(
+            url, files={"file": ("log.md", b"# x\n", "text/markdown")}, headers=headers
+        )
+        assert response.status_code == 422, headers
+
+
+def test_replace_needs_the_matching_requirement_to_opt_in(clients, model, monkeypatch):
+    first = _upload_document(clients.user_1, model)
+    url = f"{ADMIN_ROUTE}/{model.id}/assets/{first['id']}"
+    requirements = [
+        LabelRequirements(content_type=ContentType.json, is_directory=False, is_replaceable=True),
+        LabelRequirements(content_type=ContentType.markdown, is_directory=False),
+    ]
+    monkeypatch.setattr(
+        "app.service.asset.allowed_asset_labels_for",
+        lambda _entity: {AssetLabel.research_log_document: requirements},
+    )
+
+    error = _replace(clients.admin, url, b"# x\n", first["sha256_digest"], 409).json()
+
+    assert error["error_code"] == "ASSET_NOT_REPLACEABLE"
+    assert error["message"] == (
+        "Label research_log_document doesn't allow replacing text/markdown files"
+    )
 
 
 def test_derivations(db, client, model, root_circuit, circuit):

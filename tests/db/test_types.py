@@ -52,3 +52,12 @@ def test_label_requirements_appendable_only_for_directories():
         ValidationError, match="is_appendable must be False when is_directory is False"
     ):
         LabelRequirements(content_type=ContentType.json, is_directory=False, is_appendable=True)
+
+
+def test_label_requirements_replaceable_only_for_files():
+    LabelRequirements(content_type=ContentType.markdown, is_directory=False, is_replaceable=True)
+
+    with pytest.raises(
+        ValidationError, match="is_replaceable must be False when is_directory is True"
+    ):
+        LabelRequirements(content_type=None, is_directory=True, is_replaceable=True)

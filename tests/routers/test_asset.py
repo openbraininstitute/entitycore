@@ -15,6 +15,7 @@ from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead, MultipartDirectoryUploadResponse
 from app.schemas.auth import UserContext, UserProfile
+from app.schemas.types import HeaderKey
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -575,6 +576,28 @@ def test_upload_entity_asset_admin(client_admin, entity):
     expected_full_path = _get_expected_full_path(entity, path="morph.asc")
     assert data["full_path"] == expected_full_path
     assert data["label"] == "morphology"
+
+
+@pytest.mark.parametrize("admin", [False, True])
+def test_upload_entity_asset_with_meta(request, client, client_admin, entity, admin):
+    if admin:
+        request.getfixturevalue("mock_virtual_lab_project_mapping")
+    url = f"{'/admin' if admin else ''}{route(entity.type)}/{entity.id}/assets"
+    uploader = client_admin if admin else client
+
+    def upload(name: str, data: dict):
+        return uploader.post(
+            url,
+            files={"file": (name, io.BytesIO(b"x"), "application/asc")},
+            data={"label": "morphology", **data},
+        )
+
+    response = upload("a.asc", {"meta": '{"logbook_page_id": "p1", "n": 2}'})
+    assert response.status_code == 201, response.text
+    assert response.json()["meta"] == {"logbook_page_id": "p1", "n": 2}
+    assert upload("b.asc", {}).status_code == 201
+    for bad in ["not json", "[1, 2]"]:
+        assert upload("c.asc", {"meta": bad}).status_code == 422
 
 
 @pytest.mark.usefixtures("virtual_lab_api_url")
@@ -1183,6 +1206,17 @@ def test_delete_entity_asset(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_replace_entity_asset_not_replaceable(client_admin, entity, asset):
+    response = client_admin.put(
+        f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}",
+        files={"file": ("a.json", b"{}", "application/json")},
+        headers={HeaderKey.if_match: "0" * 64},
+    )
+    assert response.status_code == 409, response.text
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_REPLACEABLE
 
 
 def test_asset_deletion_cascade(db, client, create_entity_asset, s3):

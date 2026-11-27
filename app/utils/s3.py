@@ -151,6 +151,7 @@ def upload_to_s3_single_part(
     file_obj: IO,
     bucket_name: str,
     s3_key: str,
+    content_type: str,
 ) -> str | None:
     """Upload an object via ``put_object`` and return its SHA256 digest in hex.
 
@@ -162,6 +163,8 @@ def upload_to_s3_single_part(
         file_obj: file-like object positioned at the start of the content.
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
+        content_type: stored as the object's Content-Type, so downloads get it back.
+            Without it, S3 stores ``binary/octet-stream``.
 
     Returns:
         SHA256 hex digest, or ``None`` if the upload failed.
@@ -172,6 +175,7 @@ def upload_to_s3_single_part(
             Bucket=bucket_name,
             Key=s3_key,
             ChecksumAlgorithm="SHA256",
+            ContentType=content_type,
         )
     except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
@@ -182,6 +186,53 @@ def upload_to_s3_single_part(
         return None
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
     return base64.b64decode(checksum_b64).hex()
+
+
+def current_version_id(s3_client: S3Client, *, bucket_name: str, s3_key: str) -> str | None:
+    """Return the version id of the object at ``s3_key``.
+
+    ``head_object`` needs only ``s3:GetObject``. Listing the versions would need
+    ``s3:ListBucketVersions``, which the service role doesn't have.
+
+    Args:
+        s3_client: S3 client instance.
+        bucket_name: name of the S3 bucket.
+        s3_key: key of the object.
+
+    Returns:
+        The version id. ``None`` when no object is there, when the bucket isn't versioned, or
+        for the ``null`` version, which a PUT on a suspended bucket replaces in place.
+    """
+    try:
+        head = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") != "404":
+            raise
+        return None
+    version_id = head.get("VersionId")
+    return None if version_id in {None, "null"} else version_id
+
+
+def delete_version(s3_client: S3Client, *, bucket_name: str, s3_key: str, version_id: str) -> bool:
+    """Delete one version of an object for good, without leaving a delete marker.
+
+    Args:
+        s3_client: S3 client instance.
+        bucket_name: name of the S3 bucket.
+        s3_key: key of the object.
+        version_id: the version to delete.
+
+    Returns:
+        ``True`` when the version is deleted, ``False`` when the delete failed.
+    """
+    try:
+        s3_client.delete_object(Bucket=bucket_name, Key=s3_key, VersionId=version_id)
+    except Exception:  # ruff:ignore[blind-except]
+        L.exception(
+            "Error while deleting version {} of s3://{}/{}", version_id, bucket_name, s3_key
+        )
+        return False
+    return True
 
 
 def delete_objects_batch(

@@ -669,6 +669,7 @@ class LabelRequirements(BaseModel):
     is_directory: bool
     description: str = ""
     is_appendable: bool = False
+    is_replaceable: bool = False
 
     @model_validator(mode="after")
     def validate_directory_content_type(self):
@@ -677,6 +678,9 @@ class LabelRequirements(BaseModel):
             raise ValueError(msg)
         if self.is_appendable and not self.is_directory:
             msg = "is_appendable must be False when is_directory is False"
+            raise ValueError(msg)
+        if self.is_replaceable and self.is_directory:
+            msg = "is_replaceable must be False when is_directory is True"
             raise ValueError(msg)
         return self
 
@@ -1292,6 +1296,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.markdown,
                 is_directory=False,
                 description="Logbook of the research session, in markdown.",
+                is_replaceable=True,
             )
         ],
         AssetLabel.research_log_files: [

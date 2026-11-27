@@ -154,6 +154,7 @@ class EntityType(StrEnum):
     research_log = auto()
     extracellular_recording = auto()
     generic_dataset = auto()
+    optical_physiology_recording = auto()
 
 
 class TaskResultType(StrEnum):
@@ -210,6 +211,7 @@ class TaskConfigType(StrEnum):
     circuit_single_build__config = auto()
     memodel_build__campaign = auto()
     memodel_build__config = auto()
+    em_cell_mesh_conversion__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -249,6 +251,7 @@ class TaskActivityType(StrEnum):
     circuit_single_build__execution = auto()
     memodel_build__config_generation = auto()
     memodel_build__execution = auto()
+    em_cell_mesh_conversion__execution = auto()
 
 
 class AgentType(StrEnum):
@@ -503,6 +506,24 @@ class ElectricalRecordingOrigin(StrEnum):
     in_vitro = auto()
     in_silico = auto()
     unknown = auto()
+
+
+class OpticalRecordingOrigin(StrEnum):
+    in_vivo = auto()
+    in_vitro = auto()
+    in_silico = auto()
+    unknown = auto()
+
+
+class ImagingModality(StrEnum):
+    widefield = auto()  # one-photon epifluorescence
+    confocal = auto()
+    two_photon = auto()
+    three_photon = auto()
+    light_sheet = auto()
+    miniscope = auto()
+    fiber_photometry = auto()
+    other = auto()
 
 
 class AgePeriod(StrEnum):
@@ -933,6 +954,18 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.nwb,
                 is_directory=False,
                 description="Extracellular voltage traces, with the electrodes table.",
+            ),
+        ],
+    },
+    EntityType.optical_physiology_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description=(
+                    "ROI masks, fluorescence and ΔF/F traces with timestamps, "
+                    "imaging plane metadata, and stimulus tables."
+                ),
             ),
         ],
     },

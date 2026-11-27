@@ -1,13 +1,14 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Query, Request, UploadFile, status
+from fastapi import APIRouter, Form, Query, Request, Response, UploadFile, status
+from pydantic import Json
 from starlette.responses import RedirectResponse
 
 from app.config import storages
 from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import AdminContextDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import IfMatchDep, PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.filter import FilterDep
 from app.dependencies.s3 import StorageClientFactoryDep
@@ -23,7 +24,7 @@ from app.schemas.asset import (
     MultipartUploadInitiateRequest,
 )
 from app.schemas.publish import ChangeProjectVisibilityResponse
-from app.schemas.types import ListResponse
+from app.schemas.types import HeaderKey, ListResponse
 from app.service import (
     admin as admin_service,
     asset as asset_service,
@@ -84,7 +85,7 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     label: Annotated[AssetLabel, Form()],
-    meta: Annotated[dict | None, Form()] = None,
+    meta: Annotated[Json[dict] | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -101,6 +102,44 @@ def upload_entity_asset(
         meta=meta,
         virtual_lab_client=virtual_lab_client,
     )
+
+
+@router.put("/{entity_route}/{entity_id}/assets/{asset_id}")
+def replace_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: AdminContextDep,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    file: UploadFile,
+    response: Response,
+    expected_sha256: IfMatchDep,
+) -> AssetRead:
+    """Replace the content of a small file asset. Its id, path, label and link don't change.
+
+    Only labels that must always show the newest content accept a replace, such as
+    `research_log_document`. Any other asset gets HTTP 409 and stays immutable. The asset of a
+    public entity gets HTTP 403. An empty file is accepted: it clears the content.
+
+    Send `If-Match` with the `sha256_digest` you last read. If the content changed since, the
+    route writes nothing and answers HTTP 412, with the current digest in
+    `details.sha256_digest`. A request without one valid `If-Match` gets HTTP 422. The
+    response's `ETag` is the new digest. Send it as `If-Match` next time.
+    """
+    replaced = admin_service.replace_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        storage_client_factory=storage_client_factory,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        file=file,
+        expected_sha256=expected_sha256,
+    )
+    response.headers[HeaderKey.etag] = f'"{replaced.sha256_digest}"'
+    return replaced
 
 
 @router.post("/{entity_route}/{entity_id}/assets/register", status_code=status.HTTP_201_CREATED)

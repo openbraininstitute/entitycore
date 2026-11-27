@@ -18,8 +18,17 @@ class AssetRepository(BaseRepository):
         entity_type: EntityType,
         entity_id: uuid.UUID,
         asset_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Asset:
-        """Return a single asset, or raise an error."""
+        """Return a single asset, or raise an error.
+
+        Args:
+            entity_type: The type of the entity that owns the asset.
+            entity_id: The entity that owns the asset.
+            asset_id: The asset to return.
+            for_update: Lock the asset row, not the entity row, until the transaction ends.
+        """
         query = (
             sa.select(Asset)
             .join(Entity, Entity.id == Asset.entity_id)
@@ -29,6 +38,8 @@ class AssetRepository(BaseRepository):
                 Entity.type == entity_type.name,
             )
         )
+        if for_update:
+            query = query.with_for_update(of=Asset)
         return self.db.execute(query).scalar_one()
 
     def create_entity_asset(

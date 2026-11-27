@@ -4,6 +4,8 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Literal, cast
 
+import sqlalchemy as sa
+from botocore.exceptions import ClientError
 from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
 from starlette.responses import RedirectResponse
@@ -53,6 +55,8 @@ from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
     check_object,
+    current_version_id,
+    delete_version,
     generate_presigned_url,
     list_directory_with_details,
     upload_to_s3_single_part,
@@ -284,11 +288,154 @@ def upload_and_create_entity_asset(
         file_obj=file.file,
         bucket_name=storage.bucket,
         s3_key=asset_db.full_path,
+        content_type=content_type,
     )
     if sha256_digest is None:
         raise HTTPException(status_code=500, detail="Failed to upload object")
     asset_db.sha256_digest = bytes.fromhex(sha256_digest)
     return AssetRead.model_validate(asset_db)
+
+
+def replace_entity_asset_unverified(
+    repos: RepositoryGroup,
+    *,
+    entity: Entity,
+    entity_type: EntityType,
+    user_profile: UserProfile,
+    asset_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    file: UploadFile,
+    expected_sha256: str,
+) -> AssetRead:
+    """Replace the content of a small file asset. Its id, path, label and link stay the same.
+
+    The caller checks write access first. Only labels marked ``is_replaceable`` accept a
+    replace. The service overwrites the object at the same S3 key. A single PUT is atomic, so a
+    reader gets the old content or the new content, never a mix.
+
+    S3 cannot join the database transaction. If the transaction fails after the PUT, the
+    object holds the new content and the row keeps the old digest. The next replace with the
+    old digest still matches the row and puts both back in line.
+
+    The previous version is deleted after the PUT, so the key keeps one version. Publish moves
+    an object by deleting only its current version, and an older one would come back at the
+    private key. It costs one HEAD before the PUT and one delete after it. If that delete
+    fails, the new content still counts: only the previous version stays behind, and it is
+    logged.
+
+    Args:
+        repos: Repository group for database access.
+        entity: The entity that owns the asset.
+        entity_type: The type of ``entity``.
+        user_profile: The profile recorded as ``updated_by``.
+        asset_id: The asset to replace.
+        storage_client_factory: Factory returning an S3 client for a storage.
+        file: The new content. It must have the asset's content type.
+        expected_sha256: The sha256 the caller last read, from ``If-Match``, in lowercase.
+
+    Returns:
+        The asset with its new ``size`` and ``sha256_digest``.
+
+    Raises:
+        ApiError: 404 ``ASSET_NOT_FOUND`` when the entity has no such asset.
+            403 ``ENTITY_FORBIDDEN`` for a public entity: published content stays as published.
+            409 ``ASSET_NOT_REPLACEABLE`` for a directory, external storage, an asset with no
+            digest, or when no ``is_replaceable`` requirement of the label matches its content
+            type. 409 ``ASSET_UPLOAD_INCOMPLETE`` while the asset uploads. 422 for a file
+            that fails validation or has another content type.
+            412 ``ASSET_VERSION_MISMATCH`` when ``expected_sha256`` differs from the stored
+            digest.
+        HTTPException: 500 when S3 can't be read or the upload fails. Nothing changed then.
+    """
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        # The row lock makes a concurrent replace check If-Match after this one.
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity.id, asset_id=asset_id, for_update=True
+        )
+    # Read the entity again under the lock: a publish that ran meanwhile made it public.
+    repos.db.refresh(entity)
+    if entity.authorized_public:
+        raise ApiError(
+            message="The asset of a public entity cannot be replaced",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
+    current = _replaceable_sha256(entity, asset)
+    if asset.status != AssetStatus.CREATED:
+        raise ApiError(
+            message="Cannot replace an uploading asset, because it is incomplete.",
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+    content_type = validate_uploadfile_for_small_entity_post(file)
+    if content_type != asset.content_type:
+        raise ApiError(
+            message=f"Content type {content_type} differs from the asset's {asset.content_type}",
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    if current != expected_sha256:
+        raise ApiError(
+            message="The asset changed since you read it: read it again, then replace it.",
+            error_code=ApiErrorCode.ASSET_VERSION_MISMATCH,
+            http_status_code=HTTPStatus.PRECONDITION_FAILED,
+            details={"sha256_digest": current},
+        )
+
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+    # Read before the PUT: without s3:ListBucketVersions it can't be found after it. The row
+    # lock keeps other replaces of this asset out until the delete.
+    try:
+        previous_version = current_version_id(
+            s3_client, bucket_name=storage.bucket, s3_key=asset.full_path
+        )
+    except ClientError as e:
+        raise HTTPException(status_code=500, detail="Failed to read the current object") from e
+    sha256_digest = upload_to_s3_single_part(
+        s3_client,
+        file_obj=file.file,
+        bucket_name=storage.bucket,
+        s3_key=asset.full_path,
+        content_type=content_type,
+    )
+    if sha256_digest is None:
+        raise HTTPException(status_code=500, detail="Failed to upload object")
+    if previous_version is not None:
+        delete_version(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=asset.full_path,
+            version_id=previous_version,
+        )
+
+    asset.size = file.size or 0
+    asset.sha256_digest = bytes.fromhex(sha256_digest)
+    asset.updated_by_id = get_or_create_user(repos.db, user_profile).id
+    asset.update_date = sa.func.statement_timestamp()
+    repos.db.flush()
+    repos.db.refresh(asset)
+    return AssetRead.model_validate(asset)
+
+
+def _replaceable_sha256(entity: Entity, asset: Asset) -> str:
+    requirements = (allowed_asset_labels_for(entity) or {}).get(asset.label, [])
+    if asset.is_directory:
+        message = "A directory cannot be replaced"
+    elif asset.storage_type != StorageType.aws_s3_internal:
+        message = "Only an asset on internal storage can be replaced"
+    elif asset.sha256_digest is None:
+        message = "The asset has no sha256_digest to compare with If-Match"
+    elif not any(r.is_replaceable and r.content_type == asset.content_type for r in requirements):
+        message = f"Label {asset.label} doesn't allow replacing {asset.content_type} files"
+    else:
+        return asset.sha256_digest.hex()
+    raise ApiError(
+        message=message,
+        error_code=ApiErrorCode.ASSET_NOT_REPLACEABLE,
+        http_status_code=HTTPStatus.CONFLICT,
+    )
 
 
 def validate_uploadfile_for_small_entity_post(file: UploadFile) -> ContentType:

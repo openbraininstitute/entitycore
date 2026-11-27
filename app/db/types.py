@@ -668,11 +668,15 @@ class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
+    is_replaceable: bool = False
 
     @model_validator(mode="after")
     def validate_directory_content_type(self):
         if self.is_directory and self.content_type is not None:
             msg = "content_type must be None when is_directory is True"
+            raise ValueError(msg)
+        if self.is_replaceable and self.is_directory:
+            msg = "is_replaceable must be False when is_directory is True"
             raise ValueError(msg)
         return self
 
@@ -1288,6 +1292,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.markdown,
                 is_directory=False,
                 description="Logbook of the research session, in markdown.",
+                is_replaceable=True,
             )
         ],
         AssetLabel.research_log_files: [

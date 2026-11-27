@@ -3,9 +3,9 @@ from http import HTTPStatus
 from typing import Annotated, Any, Protocol
 
 import sqlalchemy as sa
-from fastapi import Depends, Query
+from fastapi import Depends, Header, Query
 from fastapi.dependencies.models import Dependant
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, model_validator
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
@@ -15,7 +15,8 @@ from app.errors import ApiError, ApiErrorCode
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
 from app.queries.expand import EXPAND_DESCRIPTION, ExpandPaths, SchemaSpec, expand_enum
 from app.queries.types import FacetQueryParamsMap
-from app.schemas.types import Facet, Facets, PaginationRequest
+from app.schemas.asset import Sha256Digest
+from app.schemas.types import Facet, Facets, HeaderKey, PaginationRequest
 
 
 class BuildFacetQuery(Protocol):
@@ -222,6 +223,33 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
+
+
+def _strip_quotes(value: str) -> str:
+    value = value.strip()
+    return value[1:-1] if len(value) > 1 and value[0] == value[-1] == '"' else value
+
+
+def get_if_match(
+    if_match: Annotated[
+        list[Annotated[Sha256Digest, BeforeValidator(_strip_quotes)]],
+        Header(
+            alias=HeaderKey.if_match,
+            min_length=1,
+            max_length=1,
+            description="The sha256_digest you last read, quoted or not, in one field.",
+        ),
+    ],
+) -> str:
+    """Return the sha256 sent in ``If-Match``, in lowercase.
+
+    Args:
+        if_match: The ``If-Match`` header: one field with one sha256, quoted or not.
+    """
+    return if_match[0].lower()
+
+
+IfMatchDep = Annotated[str, Depends(get_if_match)]
 
 
 def expand_query(schema: SchemaSpec, db_model_class: type[Identifiable]) -> Any:

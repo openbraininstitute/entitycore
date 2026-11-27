@@ -1645,6 +1645,8 @@ def simulation_json_data(simulation_campaign, circuit):
         "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
         "number_neurons": 10,
         "number_synapses": 1000,
+        "number_synapses_in_replay": 50,
+        "number_spikes_in_replay": 20,
     }
 
 
@@ -1658,6 +1660,8 @@ def public_simulation_json_data(public_simulation_campaign, public_circuit):
         "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
         "number_neurons": 10,
         "number_synapses": 1000,
+        "number_synapses_in_replay": 50,
+        "number_spikes_in_replay": 20,
     }
 
 

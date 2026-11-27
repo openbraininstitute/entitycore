@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="31857c60a472"
+SCRIPT_DB_VERSION="766ed86f8c63"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -277,7 +277,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="31857c60a472"
+SCRIPT_DB_VERSION="766ed86f8c63"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

@@ -50,6 +50,7 @@ class EntityRoute(HyphenStrEnum):
     research_log = auto()
     extracellular_recording = auto()
     generic_dataset = auto()
+    optical_physiology_recording = auto()
 
 
 class GlobalRoute(HyphenStrEnum):

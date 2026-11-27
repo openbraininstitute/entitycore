@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="7fc7990077e4"
+SCRIPT_DB_VERSION="31857c60a472"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -199,6 +199,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM mtype_class AS t0  WHERE TRUE) TO '$DATA_DIR/mtype_class.csv' WITH CSV HEADER;
 \echo Dumping table mtype_classification
 \copy (SELECT t0.* FROM mtype_classification AS t0 JOIN entity AS t1 ON t1.id=t0.entity_id WHERE t0.authorized_public IS true AND t1.authorized_public IS NOT false) TO '$DATA_DIR/mtype_classification.csv' WITH CSV HEADER;
+\echo Dumping table optical_physiology_recording
+\copy (SELECT t0.* FROM optical_physiology_recording AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/optical_physiology_recording.csv' WITH CSV HEADER;
 \echo Dumping table organization
 \copy (SELECT t0.* FROM organization AS t0  WHERE TRUE) TO '$DATA_DIR/organization.csv' WITH CSV HEADER;
 \echo Dumping table person
@@ -275,7 +277,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="7fc7990077e4"
+SCRIPT_DB_VERSION="31857c60a472"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

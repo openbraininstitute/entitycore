@@ -1386,6 +1386,22 @@ def extracellular_recording_json_data(brain_region_id, subject_id, license_id):
 
 
 @pytest.fixture
+def optical_physiology_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "sampling_frequency": 9.0,
+        "duration": 600.0,
+        "imaging_modality": "widefield",
+        "recording_origin": "in_vitro",
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
 def generic_dataset_json_data():
     return {
         "name": "my-dataset",

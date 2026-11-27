@@ -638,6 +638,11 @@ def _check_appendable(entity: Entity, asset: Asset) -> None:
 def _taken_paths(
     s3_client: S3Client, *, bucket_name: str, directory: str, paths: list[str]
 ) -> list[str]:
+    """Return the paths that clash with what the directory already holds in S3.
+
+    A path is taken when it is a file, a folder, or one of its folders is a file.
+    This check can race with an upload, so the signed If-None-Match is the real guard.
+    """
     folders = {parent for p in paths for parent in Path(p).parents[:-1]}
     file_keys = [f"{directory}/{p}" for p in [*paths, *map(str, folders)]]
 

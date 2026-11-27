@@ -91,8 +91,8 @@ class SimulationBaseMixin(NameDescriptionMixin):
     scan_parameters: JSON_DICT
     number_neurons: int
     number_synapses: int = 0
-    number_replayed_synapses: int = 0
-    number_replay_spikes: int = 0
+    number_synapses_in_replay: int = 0
+    number_spikes_in_replay: int = 0
 
 
 class SimulationCreate(SimulationBaseMixin, EntityCreate):

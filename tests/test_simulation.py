@@ -22,7 +22,7 @@ from .utils import (
 )
 
 ROUTE = "simulation"
-COUNTS = ("number_synapses", "number_replayed_synapses", "number_replay_spikes")
+COUNTS = ("number_synapses", "number_synapses_in_replay", "number_spikes_in_replay")
 ADMIN_ROUTE = "/admin/simulation"
 MODEL = Simulation
 
@@ -155,8 +155,8 @@ def test_update_one(clients, public_json_data):
             "description": "description",
             "scan_parameters": {"param1": "value1", "param2": "value2"},
             "number_synapses": 5_000_000_000,
-            "number_replayed_synapses": 4_000_000_000,
-            "number_replay_spikes": 3_000_000_000,
+            "number_synapses_in_replay": 4_000_000_000,
+            "number_spikes_in_replay": 3_000_000_000,
         },
         optional_payload=None,
     )

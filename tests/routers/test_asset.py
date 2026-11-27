@@ -737,6 +737,7 @@ def test_register_entity_asset_not_found(client, entity):
         ("/test.swc", "Absolute paths are forbidden"),
         ("", "Empty paths are forbidden"),
         ("path/to/../test.swc", "Parent traversal is forbidden"),
+        ("path/to/te\x1fst.swc", "Control characters are forbidden in paths"),
     ],
 )
 def test_register_entity_asset_with_invalid_full_path(client, entity, full_path, expected_error):
@@ -1369,6 +1370,7 @@ def test_upload_entity_asset_directory(client, root_circuit):
         "valid/path/../../../etc/groups",
         ".",
         "",
+        "bad\nname.txt",
     ]
     with mock_aws():
         response = client.post(
@@ -1384,6 +1386,7 @@ def test_upload_entity_asset_directory(client, root_circuit):
         "Value error, Parent traversal is forbidden",
         "Value error, Empty paths are forbidden",
         "Value error, Empty paths are forbidden",
+        "Value error, Control characters are forbidden in paths",
     ]
 
 

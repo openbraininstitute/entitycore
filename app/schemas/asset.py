@@ -26,6 +26,14 @@ from app.db.types import (
 from app.schemas.base import Schema
 
 
+def validate_no_control_chars(s: str) -> str:
+    """Refuse control characters, which S3 or file systems refuse and zip extraction breaks on."""
+    if any(unicodedata.category(c) == "Cc" for c in s):
+        msg = "Control characters are forbidden in paths"
+        raise ValueError(msg)
+    return s
+
+
 def validate_relative_path(path: Path) -> Path:
     """Validate a relative path.
 
@@ -33,6 +41,7 @@ def validate_relative_path(path: Path) -> Path:
     - is not absolute
     - is not empty or "."
     - does not contain ".." components
+    - has no control characters
 
     Leading "./" and trailing "/" are stripped away by pathlib.
     """
@@ -45,6 +54,7 @@ def validate_relative_path(path: Path) -> Path:
     if ".." in path.parts:
         msg = "Parent traversal is forbidden"
         raise ValueError(msg)
+    validate_no_control_chars(str(path))
     return path
 
 
@@ -53,6 +63,7 @@ def validate_path_component(path: Path) -> Path:
     if len(path.parts) != 1 or path.parts[0] in {"..", "/"}:
         msg = "Expected a valid file or directory name"
         raise ValueError(msg)
+    validate_no_control_chars(str(path))
     return path
 
 
@@ -256,16 +267,8 @@ class DirectoryUploadRequest(Schema):
         return self
 
 
-def validate_no_control_chars(s: str) -> str:
-    """Refuse control characters, which S3 or file systems refuse and zip extraction breaks on."""
-    if any(unicodedata.category(c) == "Cc" for c in s):
-        msg = "Control characters are forbidden in paths"
-        raise ValueError(msg)
-    return s
-
-
 class DirectoryAddFile(Schema):
-    path: Annotated[RelativePathStr, AfterValidator(validate_no_control_chars)]
+    path: RelativePathStr
     size: Annotated[
         int,
         Field(

@@ -22,6 +22,7 @@ from .utils import (
 )
 
 ROUTE = "simulation"
+COUNTS = ("number_synapses", "number_replayed_synapses", "number_replay_spikes")
 ADMIN_ROUTE = "/admin/simulation"
 MODEL = Simulation
 
@@ -59,7 +60,8 @@ def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.simulation
     assert data["number_neurons"] == json_data["number_neurons"]
-    assert data["number_synapses"] == json_data["number_synapses"]
+    for count in COUNTS:
+        assert data[count] == json_data[count]
 
     check_creation_fields(data)
 
@@ -72,12 +74,14 @@ def test_create_one(client, json_data):
 
 def test_create_one_without_number_synapses(client, json_data):
     """Clients that do not count the synapses yet still create simulations, with 0."""
-    json_data = {k: v for k, v in json_data.items() if k != "number_synapses"}
+    json_data = {k: v for k, v in json_data.items() if k not in COUNTS}
 
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
 
-    assert data["number_synapses"] == 0
-    assert assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()["number_synapses"] == 0
+    read = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+    for count in COUNTS:
+        assert data[count] == 0
+        assert read[count] == 0
 
 
 def test_model_defaults_number_synapses_to_zero(db, json_data, user_id):
@@ -85,7 +89,7 @@ def test_model_defaults_number_synapses_to_zero(db, json_data, user_id):
     row = add_db(
         db,
         Simulation(
-            **{k: v for k, v in json_data.items() if k != "number_synapses"}
+            **{k: v for k, v in json_data.items() if k not in COUNTS}
             | {
                 "created_by_id": user_id,
                 "updated_by_id": user_id,
@@ -94,15 +98,16 @@ def test_model_defaults_number_synapses_to_zero(db, json_data, user_id):
         ),
     )
 
-    assert row.number_synapses == 0
+    assert [getattr(row, count) for count in COUNTS] == [0, 0, 0]
 
 
-@pytest.mark.parametrize("number_synapses", ["many", 1.5, None])
-def test_create_one_with_invalid_number_synapses(client, json_data, number_synapses):
+@pytest.mark.parametrize("count", COUNTS)
+@pytest.mark.parametrize("value", ["many", 1.5, None])
+def test_create_one_with_invalid_number_synapses(client, json_data, count, value):
     assert_request(
         client.post,
         url=ROUTE,
-        json=json_data | {"number_synapses": number_synapses},
+        json=json_data | {count: value},
         expected_status_code=422,
     )
 
@@ -150,6 +155,8 @@ def test_update_one(clients, public_json_data):
             "description": "description",
             "scan_parameters": {"param1": "value1", "param2": "value2"},
             "number_synapses": 5_000_000_000,
+            "number_replayed_synapses": 4_000_000_000,
+            "number_replay_spikes": 3_000_000_000,
         },
         optional_payload=None,
     )

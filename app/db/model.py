@@ -1796,6 +1796,9 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         entity (Entity): The entity this simulation is associated with.
         number_neurons (int): Number of neurons to be simulated
         number_synapses (int): Number of synapses onto the simulated neurons, 0 if not counted.
+        number_replayed_synapses (int): Number of those synapses whose source neuron spikes in a
+            replay input (estimated), 0 if not counted.
+        number_replay_spikes (int): Number of spikes in the replay inputs, 0 if not counted.
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
         recording_arrays: Simulatable extracellular recording arrays used by this simulation.
     """
@@ -1818,6 +1821,8 @@ class Simulation(Entity, NameDescriptionVectorMixin):
     )
     number_neurons: Mapped[int] = mapped_column(BigInteger)
     number_synapses: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
+    number_replayed_synapses: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
+    number_replay_spikes: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},
         nullable=False,
